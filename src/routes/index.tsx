@@ -34,6 +34,8 @@ import {
   Settings2,
   GripVertical,
   RotateCcw,
+  Download,
+  Users,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -876,6 +878,53 @@ function HomePage() {
               </div>
             </div>
           </div>
+
+          {/* Peer benchmarking — full comparison view */}
+          <Card className="rounded-3xl border-border/70 p-6">
+            <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/30 text-accent-foreground">
+                  <Users className="h-4 w-4" />
+                </div>
+                <div>
+                  <h2 className="font-serif text-xl font-semibold">
+                    Benchmark vs similar hotels
+                  </h2>
+                  <p className="mt-0.5 text-sm text-muted-foreground">
+                    {hotel
+                      ? `${hotel.name} compared against ${cohortSize} similar ${hotel.region} hotels (${hotel.size_band} rooms, ${hotel.star_rating}-star).`
+                      : `Compared against ${cohortSize} similar hotels.`}{" "}
+                    Per occupied room-night. Anonymous.
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                <span className="inline-flex items-center rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+                  {hotel?.size_band ?? "—"} rooms
+                </span>
+                <span className="inline-flex items-center rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+                  {hotel?.region ?? "—"}
+                </span>
+                <span className="inline-flex items-center rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+                  {hotel?.star_rating ?? "—"}-star
+                </span>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+              {KPIS.filter((kpi) => !utilityFilter || kpi.utility === utilityFilter).map(
+                (kpi) => (
+                  <BenchmarkComparisonCard
+                    key={kpi.key}
+                    kpi={kpi}
+                    entries={sorted}
+                    filters={filters}
+                    cohortSize={cohortSize}
+                    hotelName={hotel?.name ?? "Your hotel"}
+                  />
+                ),
+              )}
+            </div>
+          </Card>
         </TabsContent>
       </Tabs>
     </PageContainer>
@@ -3871,6 +3920,245 @@ function PeerMiniCard({
         <span className={`text-xs font-medium ${better ? "text-success" : "text-destructive"}`}>
           {formatPct(vsMedianPct)} vs median
         </span>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Benchmark Comparison Card (with CSV download) ---------- */
+
+function BenchmarkComparisonCard({
+  kpi,
+  entries,
+  filters,
+  cohortSize,
+  hotelName,
+}: {
+  kpi: KpiDef;
+  entries: MonthlyEntry[];
+  filters: { sizeBand: string; region: string; starRating: number };
+  cohortSize: number;
+  hotelName: string;
+}) {
+  const Icon = kpi.icon;
+  const unitLabel =
+    kpi.utility === "water" ? "m³/room-night" : kpi.utility === "waste" ? "kg/room-night" : "kWh/room-night";
+
+  const recent = entries.slice(-12);
+  const data = recent.map((e) => {
+    const stats = getPeerStats(kpi.utility, e.month, filters);
+    const raw = (e[kpi.key] as number | null) ?? null;
+    const yours =
+      raw !== null && e.occupied_room_nights ? raw / e.occupied_room_nights : null;
+    return {
+      label: `${MONTH_SHORT[e.month - 1]} ${String(e.year).slice(2)}`,
+      year: e.year,
+      month: e.month,
+      yours,
+      median: stats.median,
+      p25: stats.p25,
+      p75: stats.p75,
+      bandLow: stats.p25,
+      bandHeight: stats.p75 - stats.p25,
+      bestInClass: stats.p10,
+    };
+  });
+
+  const latest = data[data.length - 1];
+  const latestStats =
+    recent.length > 0
+      ? getPeerStats(kpi.utility, recent[recent.length - 1].month, filters)
+      : null;
+  const rank =
+    latest?.yours !== null && latest?.yours !== undefined && latestStats
+      ? getPeerRank(latest.yours, latestStats)
+      : null;
+  const rankPosition =
+    rank !== null ? Math.max(1, Math.round((rank / 100) * cohortSize)) : null;
+  const vsMedianPct =
+    latest?.yours && latestStats
+      ? ((latest.yours - latestStats.median) / latestStats.median) * 100
+      : null;
+  const better = vsMedianPct !== null && vsMedianPct < 0;
+
+  const handleDownloadCSV = React.useCallback(() => {
+    const header = [
+      "month",
+      "year",
+      `${hotelName} (${unitLabel})`,
+      `peer p25 (${unitLabel})`,
+      `peer median (${unitLabel})`,
+      `peer p75 (${unitLabel})`,
+      `best-in-class p10 (${unitLabel})`,
+    ];
+    const rows = data.map((d) => [
+      MONTH_SHORT[d.month - 1],
+      d.year,
+      d.yours !== null ? d.yours.toFixed(4) : "",
+      d.p25.toFixed(4),
+      d.median.toFixed(4),
+      d.p75.toFixed(4),
+      d.bestInClass.toFixed(4),
+    ]);
+    const csv = [header, ...rows]
+      .map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `benchmark-${kpi.utility}-${hotelName.replace(/\s+/g, "-").toLowerCase()}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success(`Downloaded ${kpi.label} benchmark data`);
+  }, [data, hotelName, kpi.label, kpi.utility, unitLabel]);
+
+  return (
+    <div className="rounded-2xl border border-border/70 bg-card">
+      <div className="flex items-start justify-between gap-3 border-b border-border/60 px-5 py-4">
+        <div className="flex items-center gap-3">
+          <div
+            className="flex h-9 w-9 items-center justify-center rounded-xl"
+            style={{ backgroundColor: `color-mix(in oklab, ${kpi.color} 15%, transparent)` }}
+          >
+            <Icon className="h-4 w-4" style={{ color: kpi.color }} />
+          </div>
+          <div>
+            <h3 className="font-serif text-base font-semibold">{kpi.label}</h3>
+            <p className="text-[11px] text-muted-foreground">{unitLabel}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {rankPosition !== null && (
+            <div className="text-right">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                Rank
+              </div>
+              <div className="font-serif text-base font-semibold leading-tight">
+                {rankPosition}
+                <span className="ml-1 text-xs font-normal text-muted-foreground">
+                  /{cohortSize}
+                </span>
+              </div>
+            </div>
+          )}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleDownloadCSV}
+            className="h-8 gap-1.5 px-2.5 text-xs"
+            aria-label={`Download ${kpi.label} benchmark data as CSV`}
+          >
+            <Download className="h-3.5 w-3.5" />
+            CSV
+          </Button>
+        </div>
+      </div>
+
+      <div className="h-48 px-2 pt-3">
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+            <XAxis
+              dataKey="label"
+              tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+            />
+            <YAxis tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} />
+            <ReTooltip
+              contentStyle={{
+                backgroundColor: "var(--card)",
+                border: "1px solid var(--border)",
+                borderRadius: 12,
+                fontSize: 12,
+              }}
+              formatter={(v: number, name: string) => {
+                const labels: Record<string, string> = {
+                  yours: hotelName,
+                  median: "Peer median",
+                  bandLow: "Peer p25",
+                  bandHeight: "Peer p25–p75",
+                };
+                return [v?.toFixed(2), labels[name] ?? name];
+              }}
+            />
+            <Area
+              dataKey="bandLow"
+              stackId="band"
+              stroke="none"
+              fill="transparent"
+              isAnimationActive={false}
+            />
+            <Area
+              dataKey="bandHeight"
+              stackId="band"
+              stroke="none"
+              fill={kpi.color}
+              fillOpacity={0.16}
+              isAnimationActive={false}
+            />
+            <Line
+              dataKey="median"
+              stroke={kpi.color}
+              strokeDasharray="4 4"
+              strokeWidth={1.5}
+              dot={false}
+            />
+            <Line
+              dataKey="yours"
+              stroke={kpi.color}
+              strokeWidth={2.5}
+              dot={{ r: 2.5, fill: kpi.color }}
+            />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2 border-t border-border/60 px-5 py-3 text-xs">
+        <div>
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            You
+          </div>
+          <div className="num font-serif text-sm font-semibold">
+            {latest?.yours ? formatNumber(latest.yours, 2) : "—"}
+          </div>
+        </div>
+        <div>
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            Median
+          </div>
+          <div className="num font-serif text-sm font-semibold text-muted-foreground">
+            {latestStats ? formatNumber(latestStats.median, 2) : "—"}
+          </div>
+        </div>
+        <div>
+          <div className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground">
+            <Trophy className="h-3 w-3" style={{ color: "var(--champagne)" }} />
+            Best
+          </div>
+          <div className="num font-serif text-sm font-semibold">
+            {latestStats ? formatNumber(latestStats.bestInClass, 2) : "—"}
+          </div>
+        </div>
+        {vsMedianPct !== null && (
+          <div className="col-span-3 flex items-center gap-1.5 pt-1">
+            {better ? (
+              <ArrowDownRight className="h-3.5 w-3.5 text-success" />
+            ) : (
+              <ArrowUpRight className="h-3.5 w-3.5 text-destructive" />
+            )}
+            <span
+              className={`text-xs font-medium ${better ? "text-success" : "text-destructive"}`}
+            >
+              {formatPct(vsMedianPct)} vs peer median
+            </span>
+            <span className="text-[11px] text-muted-foreground">
+              — {better ? "better than" : "above"} typical
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );
