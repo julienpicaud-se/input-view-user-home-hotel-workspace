@@ -28,6 +28,9 @@ import {
   AlertTriangle,
   AlertCircle,
   BookOpen,
+  Target,
+  FilePlus,
+  Wand2,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -117,6 +120,9 @@ function HomePage() {
   const [insights, setInsights] = React.useState<Insight[]>([]);
   const [insightsLoading, setInsightsLoading] = React.useState(false);
   const [activeChart, setActiveChart] = React.useState<ChartId>("consumption");
+  const [activeTab, setActiveTab] = React.useState<string>("overview");
+  const [pendingPrompt, setPendingPrompt] = React.useState<string | null>(null);
+  const [highlightFields, setHighlightFields] = React.useState<HighlightedField[]>([]);
 
   const reload = React.useCallback(async () => {
     const [{ data: h }, { data: e }] = await Promise.all([
@@ -214,6 +220,46 @@ function HomePage() {
 
   const cohortSize = getPeerCohortSize(filters);
 
+  // Worst-performing utility vs peers — used for "highlight fields to fix" action
+  const worstUtility = React.useMemo<{
+    key: HighlightedField;
+    label: string;
+    rank: ReturnType<typeof getPeerRank>;
+  } | null>(() => {
+    if (!latest || !latest.occupied_room_nights) return null;
+    const rn = latest.occupied_room_nights;
+    const checks: { key: HighlightedField; label: string; util: Utility; v: number | null }[] = [
+      { key: "electricity_kwh", label: "Electricity", util: "electricity", v: latest.electricity_kwh },
+      { key: "gas_kwh", label: "Gas", util: "gas", v: latest.gas_kwh },
+      { key: "water_m3", label: "Water", util: "water", v: latest.water_m3 },
+      { key: "waste_kg", label: "Waste", util: "waste", v: latest.waste_kg },
+    ];
+    let worst: { key: HighlightedField; label: string; rank: ReturnType<typeof getPeerRank>; ratio: number } | null = null;
+    for (const c of checks) {
+      if (c.v === null || c.v === undefined) continue;
+      const intensity = c.v / rn;
+      const stats = getPeerStats(c.util, latest.month, filters);
+      const span = stats.p90 - stats.p10 || 1;
+      const ratio = (intensity - stats.p10) / span;
+      if (!worst || ratio > worst.ratio) {
+        worst = { key: c.key, label: c.label, rank: getPeerRank(intensity, stats), ratio };
+      }
+    }
+    return worst;
+  }, [latest, filters]);
+
+  // Fields missing in the latest entry — used for "highlight fields to fix"
+  const missingFields = React.useMemo<HighlightedField[]>(() => {
+    if (!latest) return [];
+    const out: HighlightedField[] = [];
+    if (latest.electricity_kwh === null) out.push("electricity_kwh");
+    if (latest.gas_kwh === null) out.push("gas_kwh");
+    if (latest.water_m3 === null) out.push("water_m3");
+    if (latest.waste_kg === null) out.push("waste_kg");
+    if (!latest.occupied_room_nights) out.push("occupied_room_nights");
+    return out;
+  }, [latest]);
+
   const trendData = sorted.slice(-12).map((e) => ({
     label: `${MONTH_SHORT[e.month - 1]} ${String(e.year).slice(2)}`,
     electricity: e.electricity_kwh ?? 0,
@@ -272,7 +318,7 @@ function HomePage() {
       </header>
 
       {/* Tabbed workspace — Ask Sera is now embedded inside Overview & Analyze */}
-      <Tabs defaultValue="overview" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="mb-6 inline-flex h-auto w-full justify-start gap-1 rounded-2xl border border-border bg-card p-1.5 sm:w-auto">
           <TabsTrigger value="overview" className="rounded-xl px-4 py-2 text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
             Overview
@@ -389,6 +435,8 @@ function HomePage() {
             onSaved={() => void reload()}
             sorted={sorted}
             rooms={hotel.rooms}
+            highlightFields={highlightFields}
+            onHighlightConsumed={() => setHighlightFields([])}
           />
         </TabsContent>
 
@@ -547,7 +595,42 @@ function HomePage() {
             {/* Right rail: chart explainer + Sera chat */}
             <div className="space-y-6 lg:col-span-2">
               <div className="lg:sticky lg:top-6 space-y-6">
-                <ChartExplainerCard chartId={activeChart} />
+                <ChartExplainerCard
+                  chartId={activeChart}
+                  isLatestLogged={!!isCurrentLogged}
+                  hasMissingFields={missingFields.length > 0}
+                  worstUtilityLabel={worstUtility?.label ?? null}
+                  onDraftLog={() => {
+                    setHighlightFields([]);
+                    setActiveTab("log");
+                    toast.success(`Draft started for ${latest ? `${MONTH_NAMES[latest.month - 1]} ${latest.year}` : "this month"}`);
+                  }}
+                  onAskSera={(prompt) => {
+                    setPendingPrompt(prompt);
+                    toast.success("Sera is on it");
+                  }}
+                  onHighlightFix={() => {
+                    const fields =
+                      activeChart === "peer" && worstUtility
+                        ? [worstUtility.key]
+                        : missingFields.length > 0
+                          ? missingFields
+                          : worstUtility
+                            ? [worstUtility.key]
+                            : [];
+                    if (fields.length === 0) {
+                      toast.info("Nothing to flag — your data looks complete.");
+                      return;
+                    }
+                    setHighlightFields(fields);
+                    setActiveTab("log");
+                    toast.success(
+                      fields.length === 1
+                        ? `Highlighted ${labelOf(fields[0])} in the log form`
+                        : `Highlighted ${fields.length} fields in the log form`,
+                    );
+                  }}
+                />
                 <MiniAssistantCard
                   title="Ask Sera about your charts"
                   subtitle="Spot trends, compare months, plan actions"
@@ -558,6 +641,8 @@ function HomePage() {
                     "Explain my intensity per room-night",
                   ]}
                   height="default"
+                  pendingPrompt={pendingPrompt}
+                  onPromptConsumed={() => setPendingPrompt(null)}
                 />
               </div>
             </div>
@@ -584,6 +669,13 @@ function LegendDot({ color, label, line }: { color: string; label: string; line?
 /* ---------- Chart wrapper + Explainer ---------- */
 
 type ChartId = "consumption" | "co2e" | "intensity" | "peer";
+
+type HighlightedField =
+  | "electricity_kwh"
+  | "gas_kwh"
+  | "water_m3"
+  | "waste_kg"
+  | "occupied_room_nights";
 
 function ChartCard({
   id,
@@ -649,7 +741,23 @@ const CHART_TITLES: Record<ChartId, string> = {
   peer: "Peer comparison",
 };
 
-function ChartExplainerCard({ chartId }: { chartId: ChartId }) {
+function ChartExplainerCard({
+  chartId,
+  isLatestLogged,
+  hasMissingFields,
+  worstUtilityLabel,
+  onDraftLog,
+  onAskSera,
+  onHighlightFix,
+}: {
+  chartId: ChartId;
+  isLatestLogged: boolean;
+  hasMissingFields: boolean;
+  worstUtilityLabel: string | null;
+  onDraftLog: () => void;
+  onAskSera: (prompt: string) => void;
+  onHighlightFix: () => void;
+}) {
   const explain = useServerFn(explainChart);
   const [data, setData] = React.useState<ChartExplanation | null>(null);
   const [loading, setLoading] = React.useState(false);
@@ -672,6 +780,35 @@ function ChartExplainerCard({ chartId }: { chartId: ChartId }) {
       cancelled = true;
     };
   }, [chartId, explain]);
+
+  // Per-chart action labels and AI prompts
+  const actionConfig = React.useMemo(() => {
+    const recBase = `Looking at my "${CHART_TITLES[chartId]}" chart`;
+    switch (chartId) {
+      case "consumption":
+        return {
+          ask: `${recBase}, what is the single highest-impact action I should take this month? Be specific with numbers.`,
+          highlightLabel: hasMissingFields ? "Fix missing data" : "Flag worst utility",
+        };
+      case "co2e":
+        return {
+          ask: `${recBase}, give me 2 concrete CO₂e reduction actions ranked by ROI for my hotel.`,
+          highlightLabel: hasMissingFields ? "Fix missing data" : "Flag biggest emitter",
+        };
+      case "intensity":
+        return {
+          ask: `${recBase}, which utility has the worst intensity per room-night and what should I change?`,
+          highlightLabel: hasMissingFields ? "Fix missing data" : "Flag worst intensity",
+        };
+      case "peer":
+        return {
+          ask: `${recBase}, where am I worst vs peers and what do top performers do differently?`,
+          highlightLabel: worstUtilityLabel
+            ? `Flag ${worstUtilityLabel.toLowerCase()}`
+            : "Flag worst utility",
+        };
+    }
+  }, [chartId, hasMissingFields, worstUtilityLabel]);
 
   return (
     <Card className="rounded-3xl border-border/70 bg-gradient-to-br from-card to-accent/5 p-5">
@@ -723,7 +860,59 @@ function ChartExplainerCard({ chartId }: { chartId: ChartId }) {
           </div>
         )}
       </div>
+
+      {/* One-click actions */}
+      <div className="mt-5 border-t border-border/60 pt-4">
+        <div className="mb-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+          Quick actions
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <ActionChip
+            icon={<FilePlus className="h-3.5 w-3.5" />}
+            label={isLatestLogged ? "Update this month" : "Draft a log entry"}
+            onClick={onDraftLog}
+          />
+          <ActionChip
+            icon={<Wand2 className="h-3.5 w-3.5" />}
+            label="Ask Sera for a recommendation"
+            primary
+            onClick={() => onAskSera(actionConfig.ask)}
+          />
+          <ActionChip
+            icon={<Target className="h-3.5 w-3.5" />}
+            label={actionConfig.highlightLabel}
+            onClick={onHighlightFix}
+          />
+        </div>
+      </div>
     </Card>
+  );
+}
+
+function ActionChip({
+  icon,
+  label,
+  onClick,
+  primary,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  primary?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+        primary
+          ? "border-primary/40 bg-primary text-primary-foreground hover:bg-primary/90"
+          : "border-border bg-background hover:border-primary/40 hover:bg-accent/10"
+      }`}
+    >
+      {icon}
+      {label}
+    </button>
   );
 }
 
@@ -908,16 +1097,27 @@ function LogDataTabs({
   onSaved,
   sorted,
   rooms,
+  highlightFields = [],
+  onHighlightConsumed,
 }: {
   entries: MonthlyEntry[];
   isCurrentLogged: boolean;
   onSaved: () => void;
   sorted: MonthlyEntry[];
   rooms: number;
+  highlightFields?: HighlightedField[];
+  onHighlightConsumed?: () => void;
 }) {
   const [method, setMethod] = React.useState<"manual" | "survey" | "import">(
     "manual",
   );
+
+  // When highlighted fields arrive, force-switch to manual entry so user sees them.
+  React.useEffect(() => {
+    if (highlightFields.length > 0 && method !== "manual") {
+      setMethod("manual");
+    }
+  }, [highlightFields, method]);
 
   const METHODS: {
     key: "manual" | "survey" | "import";
@@ -1004,6 +1204,8 @@ function LogDataTabs({
             isCurrentLogged={isCurrentLogged}
             onSaved={onSaved}
             rooms={rooms}
+            highlightFields={highlightFields}
+            onHighlightConsumed={onHighlightConsumed}
           />
         )}
         {method === "survey" && (
@@ -1146,12 +1348,29 @@ function QuickLogCard({
   isCurrentLogged,
   onSaved,
   rooms,
+  highlightFields = [],
+  onHighlightConsumed,
 }: {
   entries: MonthlyEntry[];
   isCurrentLogged: boolean;
   onSaved: () => void;
   rooms: number;
+  highlightFields?: HighlightedField[];
+  onHighlightConsumed?: () => void;
 }) {
+  const cardRef = React.useRef<HTMLDivElement | null>(null);
+  const highlightSet = React.useMemo(() => new Set(highlightFields), [highlightFields]);
+
+  // Auto-clear the highlight after 8s and scroll into view when it arrives
+  React.useEffect(() => {
+    if (highlightFields.length === 0) return;
+    cardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    const t = window.setTimeout(() => {
+      onHighlightConsumed?.();
+    }, 8000);
+    return () => window.clearTimeout(t);
+  }, [highlightFields, onHighlightConsumed]);
+
   // Default to most recent unlogged month
   const initial = React.useMemo(() => {
     const now = new Date();
@@ -1251,7 +1470,14 @@ function QuickLogCard({
   ];
 
   return (
-    <Card className="rounded-3xl border-border/70 bg-gradient-to-br from-card to-accent/5 p-6">
+    <Card
+      ref={cardRef}
+      className={`rounded-3xl border bg-gradient-to-br from-card to-accent/5 p-6 transition-all ${
+        highlightFields.length > 0
+          ? "border-primary/60 ring-2 ring-primary/30 shadow-lg"
+          : "border-border/70"
+      }`}
+    >
       <div className="flex items-start justify-between">
         <div>
           <div className="text-xs uppercase tracking-wider text-muted-foreground">
@@ -1275,15 +1501,41 @@ function QuickLogCard({
         )}
       </div>
 
+      {/* Highlight banner from chart explainer action */}
+      <AnimatePresence>
+        {highlightFields.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            className="mt-4 flex items-start gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 text-xs text-primary"
+          >
+            <Target className="mt-0.5 h-4 w-4 shrink-0" />
+            <span className="leading-relaxed">
+              Sera flagged{" "}
+              <strong>{highlightFields.map((f) => labelOf(f)).join(", ")}</strong>{" "}
+              based on your selected chart. Review the highlighted fields below.
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="mt-5 space-y-3">
         {FIELDS.map((f) => {
           const Icon = f.icon;
           const hasErr = fieldErrors.has(f.key);
+          const isHi = highlightSet.has(f.key);
           return (
-            <div
+            <motion.div
               key={f.key}
-              className={`flex items-center gap-3 rounded-xl border bg-background/60 px-3 py-2 ${
-                hasErr ? "border-destructive/60" : "border-border"
+              animate={isHi ? { scale: [1, 1.015, 1] } : { scale: 1 }}
+              transition={{ duration: 0.6, repeat: isHi ? 2 : 0 }}
+              className={`flex items-center gap-3 rounded-xl border bg-background/60 px-3 py-2 transition-all ${
+                hasErr
+                  ? "border-destructive/60"
+                  : isHi
+                    ? "border-primary/60 ring-2 ring-primary/30 bg-primary/5"
+                    : "border-border"
               }`}
             >
               <div
@@ -1300,34 +1552,48 @@ function QuickLogCard({
                 onChange={(e) => setForm((s) => ({ ...s, [f.key]: e.target.value }))}
                 placeholder="0"
                 aria-invalid={hasErr}
+                autoFocus={isHi && highlightFields[0] === f.key}
                 className={`num h-9 w-24 rounded-lg bg-background text-right text-sm ${
-                  hasErr ? "border-destructive" : "border-border"
+                  hasErr ? "border-destructive" : isHi ? "border-primary" : "border-border"
                 }`}
               />
               <span className="w-10 text-xs text-muted-foreground">{f.unit}</span>
-            </div>
+            </motion.div>
           );
         })}
-        <div
-          className={`flex items-center gap-3 rounded-xl border bg-background/60 px-3 py-2 ${
-            fieldErrors.has("occupied_room_nights") ? "border-destructive/60" : "border-border"
-          }`}
-        >
-          <span className="ml-11 flex-1 text-sm font-medium">Occupied room-nights</span>
-          <Input
-            type="number"
-            value={form.occupied_room_nights}
-            onChange={(e) =>
-              setForm((s) => ({ ...s, occupied_room_nights: e.target.value }))
-            }
-            placeholder="0"
-            aria-invalid={fieldErrors.has("occupied_room_nights")}
-            className={`num h-9 w-24 rounded-lg bg-background text-right text-sm ${
-              fieldErrors.has("occupied_room_nights") ? "border-destructive" : "border-border"
-            }`}
-          />
-          <span className="w-10 text-xs text-muted-foreground">rn</span>
-        </div>
+        {(() => {
+          const isHi = highlightSet.has("occupied_room_nights");
+          const hasErr = fieldErrors.has("occupied_room_nights");
+          return (
+            <motion.div
+              animate={isHi ? { scale: [1, 1.015, 1] } : { scale: 1 }}
+              transition={{ duration: 0.6, repeat: isHi ? 2 : 0 }}
+              className={`flex items-center gap-3 rounded-xl border bg-background/60 px-3 py-2 transition-all ${
+                hasErr
+                  ? "border-destructive/60"
+                  : isHi
+                    ? "border-primary/60 ring-2 ring-primary/30 bg-primary/5"
+                    : "border-border"
+              }`}
+            >
+              <span className="ml-11 flex-1 text-sm font-medium">Occupied room-nights</span>
+              <Input
+                type="number"
+                value={form.occupied_room_nights}
+                onChange={(e) =>
+                  setForm((s) => ({ ...s, occupied_room_nights: e.target.value }))
+                }
+                placeholder="0"
+                aria-invalid={hasErr}
+                autoFocus={isHi && highlightFields[0] === "occupied_room_nights"}
+                className={`num h-9 w-24 rounded-lg bg-background text-right text-sm ${
+                  hasErr ? "border-destructive" : isHi ? "border-primary" : "border-border"
+                }`}
+              />
+              <span className="w-10 text-xs text-muted-foreground">rn</span>
+            </motion.div>
+          );
+        })()}
       </div>
 
       {/* Validation summary */}
@@ -1835,11 +2101,15 @@ function MiniAssistantCard({
   subtitle = "Grounded in your data",
   starters,
   height = "default",
+  pendingPrompt = null,
+  onPromptConsumed,
 }: {
   title?: string;
   subtitle?: string;
   starters: string[];
   height?: "default" | "tall";
+  pendingPrompt?: string | null;
+  onPromptConsumed?: () => void;
 }) {
   const send = useServerFn(sendAssistantMessage);
   const [messages, setMessages] = React.useState<ChatMsg[]>([]);
@@ -1854,28 +2124,45 @@ function MiniAssistantCard({
     });
   }, [messages, loading]);
 
-  async function handleSend(text: string) {
-    if (!text.trim() || loading) return;
-    const userMsg: ChatMsg = { role: "user", content: text.trim() };
-    const history = messages.slice(-10);
-    setMessages((m) => [...m, userMsg]);
-    setInput("");
-    setLoading(true);
-    try {
-      const res = await send({ data: { message: userMsg.content, history } });
-      if (res.ok) {
-        setMessages((m) => [...m, { role: "assistant", content: res.content }]);
-      } else {
-        toast.error(res.error);
-        setMessages((m) => m.slice(0, -1));
-      }
-    } catch {
-      toast.error("Something went wrong");
-      setMessages((m) => m.slice(0, -1));
-    } finally {
-      setLoading(false);
+  const handleSend = React.useCallback(
+    async (text: string) => {
+      if (!text.trim() || loading) return;
+      const userMsg: ChatMsg = { role: "user", content: text.trim() };
+      setMessages((m) => {
+        const history = m.slice(-10);
+        // Use functional updater to capture latest history; fire request afterwards.
+        void (async () => {
+          setLoading(true);
+          try {
+            const res = await send({ data: { message: userMsg.content, history } });
+            if (res.ok) {
+              setMessages((cur) => [...cur, { role: "assistant", content: res.content }]);
+            } else {
+              toast.error(res.error);
+              setMessages((cur) => cur.slice(0, -1));
+            }
+          } catch {
+            toast.error("Something went wrong");
+            setMessages((cur) => cur.slice(0, -1));
+          } finally {
+            setLoading(false);
+          }
+        })();
+        return [...m, userMsg];
+      });
+      setInput("");
+    },
+    [loading, send],
+  );
+
+  // Auto-send a prompt that arrives from outside (e.g. chart explainer action)
+  React.useEffect(() => {
+    if (pendingPrompt && !loading) {
+      void handleSend(pendingPrompt);
+      onPromptConsumed?.();
     }
-  }
+  }, [pendingPrompt, loading, handleSend, onPromptConsumed]);
+
 
   const heightClass =
     height === "tall"
