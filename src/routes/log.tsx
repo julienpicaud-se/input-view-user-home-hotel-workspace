@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { DEMO_HOTEL_ID, type MonthlyEntry } from "@/lib/hotel";
+import { getActiveHotelId, type MonthlyEntry } from "@/lib/hotel";
 import { MONTH_NAMES, formatNumber, pctChange, formatPct } from "@/lib/format";
 import { PageContainer, PageHeader } from "@/components/page-shell";
 import { Card } from "@/components/ui/card";
@@ -107,7 +107,7 @@ function LogPage() {
     void supabase
       .from("monthly_entries")
       .select("*")
-      .eq("hotel_id", DEMO_HOTEL_ID)
+      .eq("hotel_id", getActiveHotelId())
       .order("year", { ascending: false })
       .order("month", { ascending: false })
       .then(({ data }) => setEntries((data as MonthlyEntry[]) ?? []));
@@ -167,7 +167,7 @@ function LogPage() {
 
       const { error } = await supabase.from("monthly_entries").upsert(
         {
-          hotel_id: DEMO_HOTEL_ID,
+          hotel_id: getActiveHotelId(),
           ...parsed,
         },
         { onConflict: "hotel_id,year,month" }

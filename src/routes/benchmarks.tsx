@@ -12,7 +12,7 @@ import {
 } from "recharts";
 import { Bolt, Droplets, Flame, Trash2, Trophy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { DEMO_HOTEL_ID, type Hotel, type MonthlyEntry } from "@/lib/hotel";
+import { getActiveHotelId, type Hotel, type MonthlyEntry } from "@/lib/hotel";
 import { MONTH_SHORT, formatNumber } from "@/lib/format";
 import {
   getPeerCohortSize,
@@ -59,12 +59,13 @@ function BenchmarksPage() {
 
   React.useEffect(() => {
     void (async () => {
+      const hotelId = getActiveHotelId();
       const [{ data: h }, { data: e }] = await Promise.all([
-        supabase.from("hotels").select("*").eq("id", DEMO_HOTEL_ID).maybeSingle(),
+        supabase.from("hotels").select("*").eq("id", hotelId).maybeSingle(),
         supabase
           .from("monthly_entries")
           .select("*")
-          .eq("hotel_id", DEMO_HOTEL_ID)
+          .eq("hotel_id", hotelId)
           .order("year", { ascending: true })
           .order("month", { ascending: true }),
       ]);

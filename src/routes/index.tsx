@@ -53,7 +53,8 @@ import {
   Legend,
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
-import { DEMO_HOTEL_ID, type Hotel, type MonthlyEntry } from "@/lib/hotel";
+import { getActiveHotelId, type Hotel, type MonthlyEntry } from "@/lib/hotel";
+import { HotelSwitcher } from "@/components/hotel-switcher";
 import {
   MONTH_NAMES,
   MONTH_SHORT,
@@ -172,12 +173,13 @@ function HomePage() {
   const [savingProfile, setSavingProfile] = React.useState(false);
 
   const reload = React.useCallback(async () => {
+    const hotelId = getActiveHotelId();
     const [{ data: h }, { data: e }] = await Promise.all([
-      supabase.from("hotels").select("*").eq("id", DEMO_HOTEL_ID).maybeSingle(),
+      supabase.from("hotels").select("*").eq("id", hotelId).maybeSingle(),
       supabase
         .from("monthly_entries")
         .select("*")
-        .eq("hotel_id", DEMO_HOTEL_ID)
+        .eq("hotel_id", hotelId)
         .order("year", { ascending: true })
         .order("month", { ascending: true }),
     ]);
@@ -193,7 +195,7 @@ function HomePage() {
   React.useEffect(() => {
     if (!loading) {
       setInsightsLoading(true);
-      generateInsights()
+      generateInsights({ data: { hotelId: getActiveHotelId() } })
         .then((r) => setInsights(r.insights))
         .catch(() => setInsights([]))
         .finally(() => setInsightsLoading(false));
@@ -423,7 +425,8 @@ function HomePage() {
 
       {/* Tabbed workspace — Ask Sera is now embedded inside Overview & Analyze */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="mb-6 inline-flex h-auto w-full justify-start gap-1 rounded-2xl border border-border bg-card p-1.5 sm:w-auto">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <TabsList className="inline-flex h-auto w-full justify-start gap-1 rounded-2xl border border-border bg-card p-1.5 sm:w-auto">
           <TabsTrigger value="overview" className="rounded-xl px-4 py-2 text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
             Overview
           </TabsTrigger>
@@ -440,6 +443,8 @@ function HomePage() {
             Peers Benchmark
           </Link>
         </TabsList>
+        <HotelSwitcher />
+        </div>
 
         {/* OVERVIEW — score, KPIs, insights + Sera chat */}
         <TabsContent value="overview" className="mt-0 space-y-6 focus-visible:outline-none">
@@ -1062,7 +1067,7 @@ function ChartExplainerCard({
     setLoading(true);
     setError(null);
     setData(null);
-    explain({ data: { chartId } })
+    explain({ data: { chartId, hotelId: getActiveHotelId() } })
       .then((r) => {
         if (cancelled) return;
         if (r.ok) setData(r.explanation);
@@ -3016,7 +3021,7 @@ function QuickLogCard({
       const parsed = quickEntrySchema.parse(draft);
       const { error } = await supabase.from("monthly_entries").upsert(
         {
-          hotel_id: DEMO_HOTEL_ID,
+          hotel_id: getActiveHotelId(),
           year: initial.y,
           month: initial.m,
           ...parsed,
@@ -3332,7 +3337,7 @@ function SurveyLogCard({
       }
       const { error } = await supabase.from("monthly_entries").upsert(
         {
-          hotel_id: DEMO_HOTEL_ID,
+          hotel_id: getActiveHotelId(),
           year: initial.y,
           month: initial.m,
           ...parsed,
@@ -3530,7 +3535,7 @@ function ImportLogCard({ onSaved }: { onSaved: () => void }) {
     setSubmitting(true);
     try {
       const payload = rows.map((r) => ({
-        hotel_id: DEMO_HOTEL_ID,
+        hotel_id: getActiveHotelId(),
         year: r.year,
         month: r.month,
         electricity_kwh: r.electricity_kwh,
@@ -3721,7 +3726,7 @@ function MiniAssistantCard({
         void (async () => {
           setLoading(true);
           try {
-            const res = await send({ data: { message: userMsg.content, history } });
+            const res = await send({ data: { message: userMsg.content, history, hotelId: getActiveHotelId() } });
             if (res.ok) {
               setMessages((cur) => [...cur, { role: "assistant", content: res.content }]);
             } else {

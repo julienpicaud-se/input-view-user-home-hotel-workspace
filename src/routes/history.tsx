@@ -3,7 +3,7 @@ import * as React from "react";
 import { Download, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { DEMO_HOTEL_ID, type MonthlyEntry } from "@/lib/hotel";
+import { getActiveHotelId, type MonthlyEntry } from "@/lib/hotel";
 import {
   MONTH_SHORT,
   calculateCO2e,
@@ -49,7 +49,7 @@ function HistoryPage() {
     void supabase
       .from("monthly_entries")
       .select("*")
-      .eq("hotel_id", DEMO_HOTEL_ID)
+      .eq("hotel_id", getActiveHotelId())
       .order("year", { ascending: false })
       .order("month", { ascending: false })
       .then(({ data }) => setEntries((data as MonthlyEntry[]) ?? []));
@@ -103,7 +103,7 @@ function HistoryPage() {
         const [y, m] = k.split("-").map(Number);
         const existing = entries.find((e) => e.year === y && e.month === m);
         return {
-          hotel_id: DEMO_HOTEL_ID,
+          hotel_id: getActiveHotelId(),
           year: y,
           month: m,
           electricity_kwh: existing?.electricity_kwh ?? null,
