@@ -42,7 +42,7 @@ const UTILITIES: {
   label: string;
   unit: string;
   entryKey: keyof MonthlyEntry;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   color: string;
 }[] = [
   { key: "electricity", label: "Electricity", unit: "kWh/room-night", entryKey: "electricity_kwh", icon: Bolt, color: "var(--chart-3)" },

@@ -68,7 +68,7 @@ interface KpiDef {
   key: "electricity_kwh" | "gas_kwh" | "water_m3" | "waste_kg";
   label: string;
   unit: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   color: string;
 }
 
