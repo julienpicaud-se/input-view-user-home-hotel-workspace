@@ -117,6 +117,9 @@ function HomePage() {
   const [insights, setInsights] = React.useState<Insight[]>([]);
   const [insightsLoading, setInsightsLoading] = React.useState(false);
   const [activeChart, setActiveChart] = React.useState<ChartId>("consumption");
+  const [activeTab, setActiveTab] = React.useState<string>("overview");
+  const [pendingPrompt, setPendingPrompt] = React.useState<string | null>(null);
+  const [highlightFields, setHighlightFields] = React.useState<HighlightedField[]>([]);
 
   const reload = React.useCallback(async () => {
     const [{ data: h }, { data: e }] = await Promise.all([
