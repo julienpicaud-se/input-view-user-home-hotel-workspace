@@ -80,6 +80,13 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
   generateInsights,
   sendAssistantMessage,
   explainChart,
@@ -173,32 +180,59 @@ function HomePage() {
     starRating: hotel?.star_rating ?? 4,
   };
 
-  const computeScore = React.useCallback(
+  const computeScoreBreakdown = React.useCallback(
     (entry: MonthlyEntry | undefined) => {
-      if (!entry || !entry.occupied_room_nights) return null;
-      const utils: { key: keyof MonthlyEntry; util: Utility; weight: number }[] = [
-        { key: "electricity_kwh", util: "electricity", weight: 0.35 },
-        { key: "gas_kwh", util: "gas", weight: 0.2 },
-        { key: "water_m3", util: "water", weight: 0.25 },
-        { key: "waste_kg", util: "waste", weight: 0.2 },
+      const utils: { key: keyof MonthlyEntry; util: Utility; weight: number; label: string; unit: string }[] = [
+        { key: "electricity_kwh", util: "electricity", weight: 0.35, label: "Electricity", unit: "kWh" },
+        { key: "gas_kwh", util: "gas", weight: 0.2, label: "Gas", unit: "kWh" },
+        { key: "water_m3", util: "water", weight: 0.25, label: "Water", unit: "m³" },
+        { key: "waste_kg", util: "waste", weight: 0.2, label: "Waste", unit: "kg" },
       ];
+      const parts: {
+        key: string;
+        label: string;
+        unit: string;
+        weight: number;
+        sub: number | null;
+        intensity: number | null;
+        contribution: number;
+      }[] = utils.map((u) => ({
+        key: u.key as string,
+        label: u.label,
+        unit: u.unit,
+        weight: u.weight,
+        sub: null,
+        intensity: null,
+        contribution: 0,
+      }));
+      if (!entry || !entry.occupied_room_nights) {
+        return { score: null as number | null, parts };
+      }
       let total = 0;
       let weightUsed = 0;
-      for (const u of utils) {
+      utils.forEach((u, i) => {
         const v = entry[u.key] as number | null;
-        if (v === null || v === undefined) continue;
-        const intensity = v / entry.occupied_room_nights;
+        if (v === null || v === undefined) return;
+        const intensity = v / entry.occupied_room_nights!;
         const stats = getPeerStats(u.util, entry.month, filters);
         const span = stats.p90 - stats.p10 || 1;
         const ratio = (intensity - stats.p10) / span;
         const sub = Math.max(0, Math.min(100, 100 - ratio * 80));
+        parts[i].sub = Math.round(sub);
+        parts[i].intensity = intensity;
+        parts[i].contribution = sub * u.weight;
         total += sub * u.weight;
         weightUsed += u.weight;
-      }
-      if (weightUsed === 0) return null;
-      return Math.round(total / weightUsed);
+      });
+      if (weightUsed === 0) return { score: null, parts };
+      return { score: Math.round(total / weightUsed), parts };
     },
     [filters],
+  );
+
+  const computeScore = React.useCallback(
+    (entry: MonthlyEntry | undefined) => computeScoreBreakdown(entry).score,
+    [computeScoreBreakdown],
   );
 
   const sustainabilityScore = computeScore(latest) ?? 70;
@@ -396,7 +430,11 @@ function HomePage() {
             onGoToAnalyze={() => setActiveTab("analyze")}
           />
 
-          <TodoCompletionInsights sorted={sorted} computeScore={computeScore} />
+          <TodoCompletionInsights
+            sorted={sorted}
+            computeScore={computeScore}
+            computeScoreBreakdown={computeScoreBreakdown}
+          />
 
           {/* Insights + Sera chat side-by-side */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
@@ -1448,14 +1486,50 @@ function TodosCard({
 
 /* ---------- To-do completion insights ---------- */
 
+// Friendly labels for known to-do IDs (matches TodosCard generators).
+const TODO_LABELS: Record<string, string> = {
+  "log-month": "Log this month's consumption",
+  "missing-electricity_kwh": "Add electricity invoice",
+  "missing-gas_kwh": "Add gas reading",
+  "missing-water_m3": "Add water meter reading",
+  "missing-waste_kg": "Add waste collection data",
+  "missing-occupied_room_nights": "Confirm occupied room-nights",
+  "investigate-worst": "Investigate worst-performing utility",
+  "quarterly": "Review last quarter's trends",
+  "attach-invoice": "Attach supporting invoices",
+  "all-good": "Caught up — explored trends",
+};
+
+function humanizeTodoId(id: string): string {
+  if (TODO_LABELS[id]) return TODO_LABELS[id];
+  return id
+    .replace(/^missing-/, "Add ")
+    .replace(/[-_]/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 function TodoCompletionInsights({
   sorted,
   computeScore,
+  computeScoreBreakdown,
 }: {
   sorted: MonthlyEntry[];
   computeScore: (entry: MonthlyEntry | undefined) => number | null;
+  computeScoreBreakdown: (entry: MonthlyEntry | undefined) => {
+    score: number | null;
+    parts: {
+      key: string;
+      label: string;
+      unit: string;
+      weight: number;
+      sub: number | null;
+      intensity: number | null;
+      contribution: number;
+    }[];
+  };
 }) {
   const [completionMap, setCompletionMap] = React.useState<Record<string, string[]>>({});
+  const [selectedKey, setSelectedKey] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     setCompletionMap(loadCompletionMap());
@@ -1484,7 +1558,12 @@ function TodoCompletionInsights({
       const key = `${entry.year}-${String(entry.month).padStart(2, "0")}`;
       const ids = completionMap[key] ?? [];
       const counts: Record<TodoCategory, number> = { cost: 0, compliance: 0, waste: 0, data: 0 };
-      for (const id of ids) counts[categorize(id)]++;
+      const idsByCategory: Record<TodoCategory, string[]> = { cost: [], compliance: [], waste: [], data: [] };
+      for (const id of ids) {
+        const c = categorize(id);
+        counts[c]++;
+        idsByCategory[c].push(id);
+      }
       const total = ids.length;
       const score = computeScore(entry);
       const prevEntry = idx > 0 ? arr[idx - 1] : undefined;
@@ -1494,13 +1573,22 @@ function TodoCompletionInsights({
       return {
         key,
         label: `${MONTH_SHORT[entry.month - 1]} ${String(entry.year).slice(2)}`,
+        fullLabel: `${MONTH_NAMES[entry.month - 1]} ${entry.year}`,
         score,
         delta,
         total,
         counts,
+        idsByCategory,
+        entry,
+        prevEntry,
       };
     });
   }, [sorted, completionMap, categorize, computeScore]);
+
+  const selectedMonth = React.useMemo(
+    () => monthlyData.find((m) => m.key === selectedKey) ?? null,
+    [monthlyData, selectedKey],
+  );
 
   // Correlation: Pearson between completions count and score delta across months where both exist.
   const correlation = React.useMemo(() => {
@@ -1559,6 +1647,7 @@ function TodoCompletionInsights({
   if (monthlyData.length === 0) return null;
 
   return (
+    <>
     <Card className="rounded-3xl border-border/70 p-6">
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
@@ -1603,10 +1692,13 @@ function TodoCompletionInsights({
                       ? "text-destructive"
                       : "text-muted-foreground";
               return (
-                <li
-                  key={m.key}
-                  className="flex flex-col items-stretch gap-2 rounded-2xl border border-border/70 bg-card/40 p-3"
-                >
+                <li key={m.key}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedKey(m.key)}
+                    className="group flex w-full flex-col items-stretch gap-2 rounded-2xl border border-border/70 bg-card/40 p-3 text-left transition hover:bg-card hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    aria-label={`View ${m.fullLabel} to-do breakdown`}
+                  >
                   <div className="flex items-baseline justify-between">
                     <span className="text-xs font-medium text-foreground">{m.label}</span>
                     <span className="text-[11px] text-muted-foreground">
@@ -1652,6 +1744,10 @@ function TodoCompletionInsights({
                             : m.delta}
                     </span>
                   </div>
+                  <span className="mt-1 text-[10px] uppercase tracking-wider text-muted-foreground/70 opacity-0 transition group-hover:opacity-100">
+                    Click for details →
+                  </span>
+                  </button>
                 </li>
               );
             })}
@@ -1696,6 +1792,192 @@ function TodoCompletionInsights({
         </>
       )}
     </Card>
+
+    <Dialog open={!!selectedKey} onOpenChange={(o) => !o && setSelectedKey(null)}>
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        {selectedMonth && (() => {
+          const breakdown = computeScoreBreakdown(selectedMonth.entry);
+          const prevBreakdown = computeScoreBreakdown(selectedMonth.prevEntry);
+          const subDeltas = breakdown.parts.map((p, i) => {
+            const prev = prevBreakdown.parts[i];
+            const subDelta =
+              p.sub !== null && prev?.sub !== null && prev?.sub !== undefined
+                ? p.sub - prev.sub
+                : null;
+            const contribDelta =
+              prev !== undefined ? (p.contribution - prev.contribution) * (1 / 1) : 0;
+            return { ...p, prevSub: prev?.sub ?? null, subDelta, contribDelta };
+          });
+          const orderedCats: TodoCategory[] = ["cost", "compliance", "waste", "data"];
+          return (
+            <>
+              <DialogHeader>
+                <DialogTitle className="font-serif text-2xl">
+                  {selectedMonth.fullLabel}
+                </DialogTitle>
+                <DialogDescription>
+                  {selectedMonth.total} to-do{selectedMonth.total !== 1 ? "s" : ""} completed
+                  {selectedMonth.score !== null ? ` · score ${selectedMonth.score}` : ""}
+                  {selectedMonth.delta !== null
+                    ? ` (${selectedMonth.delta > 0 ? "+" : ""}${selectedMonth.delta} vs previous)`
+                    : ""}
+                </DialogDescription>
+              </DialogHeader>
+
+              {/* Completed to-dos by category */}
+              <section className="mt-2 space-y-3">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Completed actions by category
+                </h3>
+                {selectedMonth.total === 0 ? (
+                  <div className="rounded-xl border border-dashed border-border bg-card/40 p-4 text-sm text-muted-foreground">
+                    No to-dos completed for this month.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {orderedCats
+                      .filter((c) => selectedMonth.idsByCategory[c].length > 0)
+                      .map((c) => {
+                        const ids = selectedMonth.idsByCategory[c];
+                        const meta = CATEGORY_META[c];
+                        const Icon = meta.icon;
+                        return (
+                          <div
+                            key={c}
+                            className="rounded-xl border border-border bg-card p-3"
+                          >
+                            <div className="mb-2 flex items-center gap-2">
+                              <span
+                                className="inline-block h-2.5 w-2.5 rounded-sm"
+                                style={{ backgroundColor: catColor[c] }}
+                              />
+                              <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span className="text-sm font-medium">{meta.label}</span>
+                              <span className="ml-auto text-xs text-muted-foreground">
+                                {ids.length} done
+                              </span>
+                            </div>
+                            <ul className="space-y-1.5 pl-1">
+                              {ids.map((id) => (
+                                <li
+                                  key={id}
+                                  className="flex items-start gap-2 text-sm text-foreground"
+                                >
+                                  <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                                  <span>{humanizeTodoId(id)}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
+              </section>
+
+              {/* Score delta breakdown */}
+              <section className="mt-5 space-y-3">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Score breakdown
+                </h3>
+                {selectedMonth.score === null ? (
+                  <div className="rounded-xl border border-dashed border-border bg-card/40 p-4 text-sm text-muted-foreground">
+                    Not enough data this month to compute a score.
+                  </div>
+                ) : (
+                  <div className="overflow-hidden rounded-xl border border-border">
+                    <table className="w-full text-sm">
+                      <thead className="bg-muted/40 text-xs text-muted-foreground">
+                        <tr>
+                          <th className="px-3 py-2 text-left font-medium">Utility</th>
+                          <th className="px-3 py-2 text-right font-medium">Weight</th>
+                          <th className="px-3 py-2 text-right font-medium">Sub-score</th>
+                          <th className="px-3 py-2 text-right font-medium">vs prev</th>
+                          <th className="px-3 py-2 text-right font-medium">Weighted Δ</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {subDeltas.map((p) => {
+                          const tone =
+                            p.subDelta === null
+                              ? "text-muted-foreground"
+                              : p.subDelta > 0
+                                ? "text-primary"
+                                : p.subDelta < 0
+                                  ? "text-destructive"
+                                  : "text-muted-foreground";
+                          const wDelta = (p.subDelta ?? 0) * p.weight;
+                          return (
+                            <tr key={p.key} className="border-t border-border">
+                              <td className="px-3 py-2 font-medium text-foreground">
+                                {p.label}
+                              </td>
+                              <td className="px-3 py-2 text-right text-muted-foreground">
+                                {Math.round(p.weight * 100)}%
+                              </td>
+                              <td className="px-3 py-2 text-right">
+                                {p.sub ?? "—"}
+                              </td>
+                              <td className={`px-3 py-2 text-right font-medium ${tone}`}>
+                                {p.subDelta === null
+                                  ? "—"
+                                  : p.subDelta > 0
+                                    ? `+${p.subDelta}`
+                                    : p.subDelta === 0
+                                      ? "±0"
+                                      : p.subDelta}
+                              </td>
+                              <td className={`px-3 py-2 text-right ${tone}`}>
+                                {p.subDelta === null
+                                  ? "—"
+                                  : `${wDelta > 0 ? "+" : ""}${wDelta.toFixed(1)}`}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                      <tfoot className="bg-muted/40">
+                        <tr>
+                          <td className="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground" colSpan={3}>
+                            Total score change
+                          </td>
+                          <td
+                            colSpan={2}
+                            className={`px-3 py-2 text-right font-semibold ${
+                              selectedMonth.delta === null
+                                ? "text-muted-foreground"
+                                : selectedMonth.delta > 0
+                                  ? "text-primary"
+                                  : selectedMonth.delta < 0
+                                    ? "text-destructive"
+                                    : "text-muted-foreground"
+                            }`}
+                          >
+                            {selectedMonth.delta === null
+                              ? "—"
+                              : selectedMonth.delta > 0
+                                ? `+${selectedMonth.delta}`
+                                : selectedMonth.delta === 0
+                                  ? "±0"
+                                  : selectedMonth.delta}
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Each utility's sub-score (0–100) reflects your intensity per occupied
+                  room-night vs similar hotels. Weighted Δ shows how much each utility moved
+                  the overall score this month.
+                </p>
+              </section>
+            </>
+          );
+        })()}
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
 
