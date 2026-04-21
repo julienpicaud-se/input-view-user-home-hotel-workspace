@@ -76,6 +76,7 @@ function BenchmarksPage() {
   if (!hotel) {
     return (
       <PageContainer>
+        <WorkspaceTabsNav active="benchmarks" />
         <div className="space-y-4">
           <div className="h-12 w-72 animate-pulse rounded-lg bg-muted" />
         </div>
