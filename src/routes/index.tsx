@@ -396,6 +396,8 @@ function HomePage() {
             onGoToAnalyze={() => setActiveTab("analyze")}
           />
 
+          <TodoCompletionInsights sorted={sorted} computeScore={computeScore} />
+
           {/* Insights + Sera chat side-by-side */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
             <Card className="rounded-3xl border-border/70 p-6 lg:col-span-3">
