@@ -728,11 +728,13 @@ function LogDataTabs({
   isCurrentLogged,
   onSaved,
   sorted,
+  rooms,
 }: {
   entries: MonthlyEntry[];
   isCurrentLogged: boolean;
   onSaved: () => void;
   sorted: MonthlyEntry[];
+  rooms: number;
 }) {
   const [method, setMethod] = React.useState<"manual" | "survey" | "import">(
     "manual",
