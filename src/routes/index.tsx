@@ -930,29 +930,151 @@ function HomePage() {
                   <Users className="h-4 w-4" />
                 </div>
                 <div>
+          {/* Peer benchmarking — full comparison view */}
+          <Card className="rounded-3xl border-border/70 p-6">
+            <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/30 text-accent-foreground">
+                  <Users className="h-4 w-4" />
+                </div>
+                <div>
                   <h2 className="font-serif text-xl font-semibold">
                     Benchmark vs similar hotels
                   </h2>
                   <p className="mt-0.5 text-sm text-muted-foreground">
                     {hotel
-                      ? `${hotel.name} compared against ${cohortSize} similar ${hotel.region} hotels (${hotel.size_band} rooms, ${hotel.star_rating}-star).`
-                      : `Compared against ${cohortSize} similar hotels.`}{" "}
+                      ? `${hotel.name} compared against ${benchmarkCohortSize} similar hotels.`
+                      : `Compared against ${benchmarkCohortSize} similar hotels.`}{" "}
                     Per occupied room-night. Anonymous.
                   </p>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-1.5">
-                <span className="inline-flex items-center rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
-                  {hotel?.size_band ?? "—"} rooms
-                </span>
-                <span className="inline-flex items-center rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
-                  {hotel?.region ?? "—"}
-                </span>
-                <span className="inline-flex items-center rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
-                  {hotel?.star_rating ?? "—"}-star
+            </div>
+
+            {/* Profiling step */}
+            <div className="mb-6 rounded-2xl border border-border/70 bg-muted/30 p-4">
+              <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <Settings2 className="h-3.5 w-3.5" />
+                    Step 1 — Confirm your hotel profile
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Adjust to benchmark against the most similar hotels. Cohort updates instantly.
+                  </p>
+                </div>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary">
+                  <Users className="h-3 w-3" />
+                  {benchmarkCohortSize} matching hotels
                 </span>
               </div>
+
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                <div>
+                  <Label htmlFor="bm-region" className="text-[11px] font-medium text-muted-foreground">
+                    Region / climate
+                  </Label>
+                  <Select
+                    value={benchmarkFilters.region || "Mediterranean"}
+                    onValueChange={(v) =>
+                      setBenchmarkOverride({ ...benchmarkFilters, region: v })
+                    }
+                  >
+                    <SelectTrigger id="bm-region" className="mt-1 h-9 rounded-lg bg-background text-sm">
+                      <SelectValue placeholder="Select region" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Mediterranean">Mediterranean</SelectItem>
+                      <SelectItem value="Northern Europe">Northern Europe</SelectItem>
+                      <SelectItem value="Central Europe">Central Europe</SelectItem>
+                      <SelectItem value="Tropical">Tropical</SelectItem>
+                      <SelectItem value="Arid / Desert">Arid / Desert</SelectItem>
+                      <SelectItem value="Temperate Coastal">Temperate Coastal</SelectItem>
+                      <SelectItem value="Mountain / Alpine">Mountain / Alpine</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="bm-size" className="text-[11px] font-medium text-muted-foreground">
+                    Property size (rooms)
+                  </Label>
+                  <Select
+                    value={benchmarkFilters.sizeBand || "100-150"}
+                    onValueChange={(v) =>
+                      setBenchmarkOverride({ ...benchmarkFilters, sizeBand: v })
+                    }
+                  >
+                    <SelectTrigger id="bm-size" className="mt-1 h-9 rounded-lg bg-background text-sm">
+                      <SelectValue placeholder="Select size band" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="<50">Boutique (under 50)</SelectItem>
+                      <SelectItem value="50-100">Small (50–100)</SelectItem>
+                      <SelectItem value="100-150">Mid (100–150)</SelectItem>
+                      <SelectItem value="150-250">Large (150–250)</SelectItem>
+                      <SelectItem value="250-500">Resort (250–500)</SelectItem>
+                      <SelectItem value="500+">Mega (500+)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="bm-star" className="text-[11px] font-medium text-muted-foreground">
+                    Star rating / segment
+                  </Label>
+                  <Select
+                    value={String(benchmarkFilters.starRating ?? 4)}
+                    onValueChange={(v) =>
+                      setBenchmarkOverride({ ...benchmarkFilters, starRating: Number(v) })
+                    }
+                  >
+                    <SelectTrigger id="bm-star" className="mt-1 h-9 rounded-lg bg-background text-sm">
+                      <SelectValue placeholder="Select star rating" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="3">3-star — Midscale</SelectItem>
+                      <SelectItem value="4">4-star — Upscale</SelectItem>
+                      <SelectItem value="5">5-star — Luxury</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {!profileMatchesHotel && (
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2 text-xs">
+                  <span className="text-muted-foreground">
+                    These differ from your saved hotel profile.
+                  </span>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs"
+                      onClick={() => setBenchmarkOverride(null)}
+                    >
+                      Reset
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="h-7 gap-1 px-2.5 text-xs"
+                      disabled={savingProfile || !hotel}
+                      onClick={handleSaveProfile}
+                    >
+                      {savingProfile ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="h-3 w-3" />
+                      )}
+                      Save to my hotel profile
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
+
             <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
               {KPIS.filter((kpi) => !utilityFilter || kpi.utility === utilityFilter).map(
                 (kpi) => (
@@ -960,8 +1082,8 @@ function HomePage() {
                     key={kpi.key}
                     kpi={kpi}
                     entries={sorted}
-                    filters={filters}
-                    cohortSize={cohortSize}
+                    filters={benchmarkFilters}
+                    cohortSize={benchmarkCohortSize}
                     hotelName={hotel?.name ?? "Your hotel"}
                   />
                 ),
