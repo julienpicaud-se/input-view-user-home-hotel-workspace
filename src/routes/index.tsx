@@ -139,6 +139,12 @@ function HomePage() {
   const [pendingPrompt, setPendingPrompt] = React.useState<string | null>(null);
   const [highlightFields, setHighlightFields] = React.useState<HighlightedField[]>([]);
   const [utilityFilter, setUtilityFilter] = React.useState<Utility | null>(null);
+  const [benchmarkOverride, setBenchmarkOverride] = React.useState<{
+    sizeBand: string;
+    region: string;
+    starRating: number;
+  } | null>(null);
+  const [savingProfile, setSavingProfile] = React.useState(false);
 
   const reload = React.useCallback(async () => {
     const [{ data: h }, { data: e }] = await Promise.all([
