@@ -3018,6 +3018,15 @@ function QuickLogCard({
       const { error } = await supabase.from("monthly_entries").upsert(
         {
           hotel_id: getActiveHotelId(),
+          year: initial.y,
+          month: initial.m,
+          ...parsed,
+        },
+        { onConflict: "hotel_id,year,month" },
+      );
+      if (error) throw error;
+      toast.success(`${MONTH_NAMES[initial.m - 1]} ${initial.y} saved`);
+      setSaved(true);
       setForm({
         electricity_kwh: "",
         gas_kwh: "",
