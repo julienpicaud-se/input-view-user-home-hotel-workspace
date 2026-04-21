@@ -1743,6 +1743,10 @@ function TodoCompletionInsights({
                             : m.delta}
                     </span>
                   </div>
+                  <span className="mt-1 text-[10px] uppercase tracking-wider text-muted-foreground/70 opacity-0 transition group-hover:opacity-100">
+                    Click for details →
+                  </span>
+                  </button>
                 </li>
               );
             })}
