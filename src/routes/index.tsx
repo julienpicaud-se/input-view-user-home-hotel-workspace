@@ -136,6 +136,7 @@ function HomePage() {
   const [activeTab, setActiveTab] = React.useState<string>("overview");
   const [pendingPrompt, setPendingPrompt] = React.useState<string | null>(null);
   const [highlightFields, setHighlightFields] = React.useState<HighlightedField[]>([]);
+  const [utilityFilter, setUtilityFilter] = React.useState<Utility | null>(null);
 
   const reload = React.useCallback(async () => {
     const [{ data: h }, { data: e }] = await Promise.all([
@@ -547,8 +548,15 @@ function HomePage() {
             currentBreakdown={computeScoreBreakdown(latest)}
             previousBreakdown={computeScoreBreakdown(prev)}
             onDriverClick={(fieldKey) => {
+              const kpi = KPIS.find((k) => k.key === fieldKey);
               setActiveTab("analyze");
               setActiveChart("peer");
+              if (kpi) {
+                setUtilityFilter(kpi.utility);
+                toast.success(`Filtered Analyze to ${kpi.label}`, {
+                  description: "Charts and KPIs now show only this utility.",
+                });
+              }
               // Defer scroll until the analyze tab content is mounted
               window.setTimeout(() => {
                 const el = document.getElementById(`kpi-${fieldKey}`);
@@ -635,9 +643,42 @@ function HomePage() {
 
         {/* ANALYZE — KPIs, multiple charts, peer benchmarks + Sera chart chat */}
         <TabsContent value="analyze" className="mt-0 space-y-6 focus-visible:outline-none">
+          {/* Active utility filter chip */}
+          {utilityFilter && (() => {
+            const activeKpi = KPIS.find((k) => k.utility === utilityFilter);
+            if (!activeKpi) return null;
+            const FilterIcon = activeKpi.icon;
+            return (
+              <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-primary/30 bg-primary/5 px-4 py-2.5">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Filtered by driver
+                </span>
+                <span
+                  className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium"
+                  style={{ borderColor: activeKpi.color, color: activeKpi.color }}
+                >
+                  <FilterIcon className="h-3.5 w-3.5" />
+                  {activeKpi.label}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  Showing only {activeKpi.label.toLowerCase()} across all charts.
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setUtilityFilter(null)}
+                  className="ml-auto inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                  aria-label="Clear utility filter"
+                >
+                  <RotateCcw className="h-3 w-3" />
+                  Show all utilities
+                </button>
+              </div>
+            );
+          })()}
+
           {/* KPIs again here as quick reference */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {KPIS.map((kpi) => (
+            {KPIS.filter((kpi) => !utilityFilter || kpi.utility === utilityFilter).map((kpi) => (
               <KpiCard
                 key={kpi.key}
                 kpi={kpi}
@@ -685,10 +726,18 @@ function HomePage() {
                           fontSize: 12,
                         }}
                       />
-                      <Area dataKey="electricity" stackId="1" stroke="var(--chart-3)" fill="var(--chart-3)" fillOpacity={0.65} />
-                      <Area dataKey="gas" stackId="1" stroke="var(--chart-1)" fill="var(--chart-1)" fillOpacity={0.65} />
-                      <Area dataKey="water" stackId="1" stroke="var(--chart-2)" fill="var(--chart-2)" fillOpacity={0.45} />
-                      <Area dataKey="waste" stackId="1" stroke="var(--chart-5)" fill="var(--chart-5)" fillOpacity={0.45} />
+                      {(!utilityFilter || utilityFilter === "electricity") && (
+                        <Area dataKey="electricity" stackId="1" stroke="var(--chart-3)" fill="var(--chart-3)" fillOpacity={0.65} />
+                      )}
+                      {(!utilityFilter || utilityFilter === "gas") && (
+                        <Area dataKey="gas" stackId="1" stroke="var(--chart-1)" fill="var(--chart-1)" fillOpacity={0.65} />
+                      )}
+                      {(!utilityFilter || utilityFilter === "water") && (
+                        <Area dataKey="water" stackId="1" stroke="var(--chart-2)" fill="var(--chart-2)" fillOpacity={0.45} />
+                      )}
+                      {(!utilityFilter || utilityFilter === "waste") && (
+                        <Area dataKey="waste" stackId="1" stroke="var(--chart-5)" fill="var(--chart-5)" fillOpacity={0.45} />
+                      )}
                       <Line dataKey="co2e" stroke="var(--champagne)" strokeWidth={2.5} dot={false} />
                     </ComposedChart>
                   </ResponsiveContainer>
@@ -754,9 +803,15 @@ function HomePage() {
                         }}
                       />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
-                      <Line type="monotone" dataKey="electricity" stroke="var(--chart-3)" strokeWidth={2} dot={false} name="Elec kWh/rn" />
-                      <Line type="monotone" dataKey="gas" stroke="var(--chart-1)" strokeWidth={2} dot={false} name="Gas kWh/rn" />
-                      <Line type="monotone" dataKey="water" stroke="var(--chart-2)" strokeWidth={2} dot={false} name="Water m³/rn" />
+                      {(!utilityFilter || utilityFilter === "electricity") && (
+                        <Line type="monotone" dataKey="electricity" stroke="var(--chart-3)" strokeWidth={2} dot={false} name="Elec kWh/rn" />
+                      )}
+                      {(!utilityFilter || utilityFilter === "gas") && (
+                        <Line type="monotone" dataKey="gas" stroke="var(--chart-1)" strokeWidth={2} dot={false} name="Gas kWh/rn" />
+                      )}
+                      {(!utilityFilter || utilityFilter === "water") && (
+                        <Line type="monotone" dataKey="water" stroke="var(--chart-2)" strokeWidth={2} dot={false} name="Water m³/rn" />
+                      )}
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -772,7 +827,7 @@ function HomePage() {
                 aside={<Trophy className="h-5 w-5" style={{ color: "var(--champagne)" }} />}
               >
                 <div className="grid grid-cols-1 gap-3 px-6 pb-6 sm:grid-cols-2">
-                  {KPIS.map((kpi) => (
+                  {KPIS.filter((kpi) => !utilityFilter || kpi.utility === utilityFilter).map((kpi) => (
                     <PeerMiniCard
                       key={kpi.key}
                       kpi={kpi}
