@@ -574,6 +574,186 @@ function LegendDot({ color, label, line }: { color: string; label: string; line?
   );
 }
 
+/* ---------- Chart wrapper + Explainer ---------- */
+
+type ChartId = "consumption" | "co2e" | "intensity" | "peer";
+
+function ChartCard({
+  id,
+  active,
+  onSelect,
+  title,
+  subtitle,
+  aside,
+  children,
+}: {
+  id: ChartId;
+  active: ChartId;
+  onSelect: (id: ChartId) => void;
+  title: string;
+  subtitle: string;
+  aside?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  const isActive = active === id;
+  return (
+    <Card
+      role="button"
+      tabIndex={0}
+      onClick={() => onSelect(id)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelect(id);
+        }
+      }}
+      aria-pressed={isActive}
+      className={`cursor-pointer rounded-3xl border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+        isActive
+          ? "border-primary/60 ring-2 ring-primary/30 shadow-md"
+          : "border-border/70 hover:border-primary/40"
+      }`}
+    >
+      <div className="px-6 pt-6 pb-2">
+        <div className="flex items-baseline justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="font-serif text-xl font-semibold">{title}</h2>
+              {isActive && (
+                <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-primary">
+                  Selected
+                </span>
+              )}
+            </div>
+            <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
+          </div>
+          {aside}
+        </div>
+      </div>
+      {children}
+    </Card>
+  );
+}
+
+const CHART_TITLES: Record<ChartId, string> = {
+  consumption: "12-month consumption",
+  co2e: "CO₂e emissions",
+  intensity: "Intensity per room-night",
+  peer: "Peer comparison",
+};
+
+function ChartExplainerCard({ chartId }: { chartId: ChartId }) {
+  const explain = useServerFn(explainChart);
+  const [data, setData] = React.useState<ChartExplanation | null>(null);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    setData(null);
+    explain({ data: { chartId } })
+      .then((r) => {
+        if (cancelled) return;
+        if (r.ok) setData(r.explanation);
+        else setError(r.error);
+      })
+      .catch(() => !cancelled && setError("Could not load explanation."))
+      .finally(() => !cancelled && setLoading(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [chartId, explain]);
+
+  return (
+    <Card className="rounded-3xl border-border/70 bg-gradient-to-br from-card to-accent/5 p-5">
+      <div className="flex items-start gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
+          <BookOpen className="h-4 w-4" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
+            How to read this chart
+          </div>
+          <h3 className="mt-0.5 font-serif text-lg font-semibold leading-tight">
+            {CHART_TITLES[chartId]}
+          </h3>
+        </div>
+      </div>
+
+      <div className="mt-4 min-h-[180px]">
+        {loading && (
+          <div className="space-y-2">
+            <div className="h-3 w-full animate-pulse rounded bg-muted" />
+            <div className="h-3 w-5/6 animate-pulse rounded bg-muted" />
+            <div className="h-3 w-4/6 animate-pulse rounded bg-muted" />
+            <div className="mt-3 h-3 w-3/4 animate-pulse rounded bg-muted" />
+          </div>
+        )}
+        {error && !loading && (
+          <p className="text-sm text-muted-foreground">{error}</p>
+        )}
+        {data && !loading && (
+          <div className="space-y-3 text-sm">
+            <p className="leading-snug text-foreground">{data.summary}</p>
+            <ExplainerSection
+              icon={<Info className="h-3.5 w-3.5" />}
+              label="How to read it"
+              items={data.read}
+            />
+            <ExplainerSection
+              icon={<Sparkles className="h-3.5 w-3.5" />}
+              label="What Sera sees in your data"
+              items={data.signals}
+              accent
+            />
+            <ExplainerSection
+              icon={<ChevronRight className="h-3.5 w-3.5" />}
+              label="Next steps"
+              items={data.actions}
+            />
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+function ExplainerSection({
+  icon,
+  label,
+  items,
+  accent,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  items: string[];
+  accent?: boolean;
+}) {
+  if (!items?.length) return null;
+  return (
+    <div>
+      <div
+        className={`mb-1.5 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider ${
+          accent ? "text-primary" : "text-muted-foreground"
+        }`}
+      >
+        {icon}
+        {label}
+      </div>
+      <ul className="space-y-1">
+        {items.map((it, i) => (
+          <li key={i} className="flex gap-2 text-xs leading-relaxed text-foreground/85">
+            <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/60" />
+            <span>{it}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function KpiCard({
   kpi,
   latest,
