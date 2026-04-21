@@ -13,10 +13,10 @@ import { sendAssistantMessage } from "@/server/assistant.functions";
 export const Route = createFileRoute("/assistant")({
   head: () => ({
     meta: [
-      { title: "AI assistant — Verdance" },
+      { title: "AI assistant — RA+" },
       {
         name: "description",
-        content: "Ask Verdance about your hotel's energy, water, waste and emissions.",
+        content: "Ask RA+ about your hotel's energy, water, waste and emissions.",
       },
     ],
   }),
@@ -76,7 +76,7 @@ function AssistantPage() {
     <PageContainer>
       <PageHeader
         eyebrow="AI assistant"
-        title="Ask Verdance"
+        title="Ask RA+"
         subtitle="Your AI sustainability consultant. Grounded in your hotel's actual data."
         actions={
           <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs">
@@ -122,7 +122,7 @@ function AssistantPage() {
               {loading && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Verdance is thinking…
+                  RA+ is thinking…
                 </div>
               )}
             </div>

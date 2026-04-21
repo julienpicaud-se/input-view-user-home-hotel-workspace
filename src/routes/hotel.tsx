@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 export const Route = createFileRoute("/hotel")({
   head: () => ({
     meta: [
-      { title: "Hotel profile — Verdance" },
+      { title: "Hotel profile — RA+" },
       { name: "description", content: "Your property's profile and configuration." },
     ],
   }),
@@ -68,7 +68,7 @@ function HotelPage() {
       )}
 
       <Card className="mt-6 rounded-2xl border-dashed bg-card/50 p-5 text-sm text-muted-foreground">
-        <strong className="text-foreground">Demo property.</strong> In v1, Verdance
+        <strong className="text-foreground">Demo property.</strong> In v1, RA+
         manages a single hotel. Multi-property management, user accounts and
         roles arrive in a future release.
       </Card>

@@ -40,7 +40,7 @@ import { Textarea } from "@/components/ui/textarea";
 export const Route = createFileRoute("/log")({
   head: () => ({
     meta: [
-      { title: "Log monthly data — Verdance" },
+      { title: "Log monthly data — RA+" },
       {
         name: "description",
         content: "Enter your hotel's monthly utility consumption in two minutes.",
