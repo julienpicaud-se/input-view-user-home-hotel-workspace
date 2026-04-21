@@ -190,6 +190,35 @@ function HomePage() {
     starRating: hotel?.star_rating ?? 4,
   };
 
+  const benchmarkFilters = benchmarkOverride ?? filters;
+  const benchmarkCohortSize = getPeerCohortSize(benchmarkFilters);
+  const profileMatchesHotel =
+    !benchmarkOverride ||
+    (benchmarkOverride.sizeBand === filters.sizeBand &&
+      benchmarkOverride.region === filters.region &&
+      benchmarkOverride.starRating === filters.starRating);
+
+  const handleSaveProfile = React.useCallback(async () => {
+    if (!hotel || !benchmarkOverride) return;
+    setSavingProfile(true);
+    const { error } = await supabase
+      .from("hotels")
+      .update({
+        size_band: benchmarkOverride.sizeBand,
+        region: benchmarkOverride.region,
+        star_rating: benchmarkOverride.starRating,
+      })
+      .eq("id", hotel.id);
+    setSavingProfile(false);
+    if (error) {
+      toast.error("Could not save profile");
+      return;
+    }
+    toast.success("Hotel profile updated");
+    setBenchmarkOverride(null);
+    void reload();
+  }, [hotel, benchmarkOverride, reload]);
+
   const computeScoreBreakdown = React.useCallback(
     (entry: MonthlyEntry | undefined) => {
       const utils: { key: keyof MonthlyEntry; util: Utility; weight: number; label: string; unit: string }[] = [
