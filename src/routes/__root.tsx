@@ -38,14 +38,14 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Verdance — Sustainability for Hotels" },
+      { title: "RA+ — Sustainability for Hotels" },
       {
         name: "description",
         content:
           "Track gas, electricity, water and waste, benchmark against peers, and get AI-driven sustainability insights for your hotel.",
       },
-      { name: "author", content: "Verdance" },
-      { property: "og:title", content: "Verdance — Sustainability for Hotels" },
+      { name: "author", content: "RA+" },
+      { property: "og:title", content: "RA+ — Sustainability for Hotels" },
       {
         property: "og:description",
         content:
@@ -96,7 +96,7 @@ function TopBar() {
             <span className="font-serif text-lg font-semibold">V</span>
           </div>
           <div className="leading-tight">
-            <div className="font-serif text-lg">Verdance</div>
+            <div className="font-serif text-lg">RA+</div>
             <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
               The Marbella Grand · 120 rooms
             </div>

@@ -27,7 +27,7 @@ import { Badge } from "@/components/ui/badge";
 export const Route = createFileRoute("/benchmarks")({
   head: () => ({
     meta: [
-      { title: "Benchmarks — Verdance" },
+      { title: "Benchmarks — RA+" },
       {
         name: "description",
         content: "Compare your hotel against similar Mediterranean properties.",

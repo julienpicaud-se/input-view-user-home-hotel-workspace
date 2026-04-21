@@ -23,7 +23,7 @@ import {
 export const Route = createFileRoute("/history")({
   head: () => ({
     meta: [
-      { title: "History — Verdance" },
+      { title: "History — RA+" },
       {
         name: "description",
         content: "All your monthly utility entries in one editable table.",
