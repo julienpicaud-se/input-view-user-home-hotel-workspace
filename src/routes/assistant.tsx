@@ -57,7 +57,7 @@ function AssistantPage() {
     setInput("");
     setLoading(true);
     try {
-      const res = await send({ data: { message: userMsg.content, history } });
+      const res = await send({ data: { message: userMsg.content, history, hotelId: getActiveHotelId() } });
       if (res.ok) {
         setMessages((m) => [...m, { role: "assistant", content: res.content }]);
       } else {

@@ -1067,7 +1067,7 @@ function ChartExplainerCard({
     setLoading(true);
     setError(null);
     setData(null);
-    explain({ data: { chartId } })
+    explain({ data: { chartId, hotelId: getActiveHotelId() } })
       .then((r) => {
         if (cancelled) return;
         if (r.ok) setData(r.explanation);
@@ -3726,7 +3726,7 @@ function MiniAssistantCard({
         void (async () => {
           setLoading(true);
           try {
-            const res = await send({ data: { message: userMsg.content, history } });
+            const res = await send({ data: { message: userMsg.content, history, hotelId: getActiveHotelId() } });
             if (res.ok) {
               setMessages((cur) => [...cur, { role: "assistant", content: res.content }]);
             } else {
