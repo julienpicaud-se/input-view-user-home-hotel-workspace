@@ -803,9 +803,15 @@ function HomePage() {
                         }}
                       />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
-                      <Line type="monotone" dataKey="electricity" stroke="var(--chart-3)" strokeWidth={2} dot={false} name="Elec kWh/rn" />
-                      <Line type="monotone" dataKey="gas" stroke="var(--chart-1)" strokeWidth={2} dot={false} name="Gas kWh/rn" />
-                      <Line type="monotone" dataKey="water" stroke="var(--chart-2)" strokeWidth={2} dot={false} name="Water m³/rn" />
+                      {(!utilityFilter || utilityFilter === "electricity") && (
+                        <Line type="monotone" dataKey="electricity" stroke="var(--chart-3)" strokeWidth={2} dot={false} name="Elec kWh/rn" />
+                      )}
+                      {(!utilityFilter || utilityFilter === "gas") && (
+                        <Line type="monotone" dataKey="gas" stroke="var(--chart-1)" strokeWidth={2} dot={false} name="Gas kWh/rn" />
+                      )}
+                      {(!utilityFilter || utilityFilter === "water") && (
+                        <Line type="monotone" dataKey="water" stroke="var(--chart-2)" strokeWidth={2} dot={false} name="Water m³/rn" />
+                      )}
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
