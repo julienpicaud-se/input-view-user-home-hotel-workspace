@@ -45,7 +45,7 @@ Recent monthly utility data (most recent first):
 ${recent}`;
 }
 
-const SYSTEM_PROMPT = `You are Verdance, a sustainability and energy consultant for hotel managers.
+const SYSTEM_PROMPT = `You are Sera, a sustainability and energy consultant for hotel managers.
 You speak in warm, plain language — never use jargon.
 You always ground your answers in the hotel's actual data when relevant.
 Use bullet points and short paragraphs. When you give advice, prioritise actions by impact and ease.
@@ -139,7 +139,7 @@ export const generateInsights = createServerFn({ method: "POST" }).handler(
     const messages: ChatMsg[] = [
       {
         role: "system",
-        content: `You are Verdance, a sustainability consultant. Based on the hotel data below, produce EXACTLY 3 short insight cards. Return ONLY valid JSON of shape: {"insights":[{"title":"...","body":"...","tone":"positive"|"warning"|"neutral"}]}. Each title <= 8 words, body <= 22 words, mention real numbers from the data.\n\n${context}`,
+        content: `You are Sera, a sustainability consultant. Based on the hotel data below, produce EXACTLY 3 short insight cards. Return ONLY valid JSON of shape: {"insights":[{"title":"...","body":"...","tone":"positive"|"warning"|"neutral"}]}. Each title <= 8 words, body <= 22 words, mention real numbers from the data.\n\n${context}`,
       },
       { role: "user", content: "Generate this month's insights." },
     ];

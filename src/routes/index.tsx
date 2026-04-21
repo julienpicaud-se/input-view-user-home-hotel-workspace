@@ -19,17 +19,27 @@ import {
   CheckCircle2,
   Trophy,
   ChevronRight,
+  ChevronLeft,
+  Pencil,
+  ClipboardList,
+  Upload,
+  FileSpreadsheet,
+  BarChart3,
 } from "lucide-react";
 import {
   ResponsiveContainer,
   AreaChart,
   Area,
   Line,
+  LineChart,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   Tooltip as ReTooltip,
   CartesianGrid,
   ComposedChart,
+  Legend,
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { DEMO_HOTEL_ID, type Hotel, type MonthlyEntry } from "@/lib/hotel";
@@ -71,7 +81,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Your hotel's full sustainability workspace — log data, see trends, compare peers and ask the AI assistant, all in one view.",
+          "Your hotel's full sustainability workspace — log data, see trends, compare peers and ask Sera, all in one view.",
       },
     ],
   }),
@@ -200,6 +210,24 @@ function HomePage() {
     co2e: calculateCO2e(e),
   }));
 
+  // Per-utility intensity (per occupied room-night) for 12 months
+  const intensityData = sorted.slice(-12).map((e) => {
+    const rn = e.occupied_room_nights || 1;
+    return {
+      label: `${MONTH_SHORT[e.month - 1]} ${String(e.year).slice(2)}`,
+      electricity: e.electricity_kwh ? e.electricity_kwh / rn : 0,
+      gas: e.gas_kwh ? e.gas_kwh / rn : 0,
+      water: e.water_m3 ? e.water_m3 / rn : 0,
+      waste: e.waste_kg ? e.waste_kg / rn : 0,
+    };
+  });
+
+  // CO2e bar data (12 months)
+  const co2Data = sorted.slice(-12).map((e) => ({
+    label: `${MONTH_SHORT[e.month - 1]} ${String(e.year).slice(2)}`,
+    co2e: Math.round(calculateCO2e(e)),
+  }));
+
   const currentMonth = new Date();
   const isCurrentLogged =
     latest &&
@@ -230,7 +258,7 @@ function HomePage() {
         <div className="mt-6 h-px gold-divider" />
       </header>
 
-      {/* Tabbed workspace */}
+      {/* Tabbed workspace — Ask Sera is now embedded inside Overview & Analyze */}
       <Tabs defaultValue="overview" className="w-full">
         <TabsList className="mb-6 inline-flex h-auto w-full justify-start gap-1 rounded-2xl border border-border bg-card p-1.5 sm:w-auto">
           <TabsTrigger value="overview" className="rounded-xl px-4 py-2 text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
@@ -242,12 +270,9 @@ function HomePage() {
           <TabsTrigger value="analyze" className="rounded-xl px-4 py-2 text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
             Analyze
           </TabsTrigger>
-          <TabsTrigger value="assistant" className="rounded-xl px-4 py-2 text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
-            Ask Verdance
-          </TabsTrigger>
         </TabsList>
 
-        {/* OVERVIEW — score, KPIs, insights */}
+        {/* OVERVIEW — score, KPIs, insights + Sera chat */}
         <TabsContent value="overview" className="mt-0 space-y-6 focus-visible:outline-none">
           <Card className="overflow-hidden rounded-3xl border-border/70 bg-gradient-to-br from-secondary to-primary text-primary-foreground">
             <div className="flex flex-wrap items-center justify-between gap-6 px-8 py-7">
@@ -305,157 +330,232 @@ function HomePage() {
             ))}
           </div>
 
-          <Card className="rounded-3xl border-border/70 p-6">
-            <div className="mb-4 flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/30 text-accent-foreground">
-                <Sparkles className="h-4 w-4" />
-              </div>
-              <h2 className="font-serif text-xl font-semibold">This month's insights</h2>
-            </div>
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-              {insightsLoading && insights.length === 0
-                ? [0, 1, 2].map((i) => (
-                    <div key={i} className="h-32 animate-pulse rounded-2xl bg-muted" />
-                  ))
-                : insights.length === 0
-                  ? (
-                    <div className="col-span-full rounded-2xl border border-dashed border-border bg-card/50 p-6 text-sm text-muted-foreground">
-                      Insights will appear here once enough data is logged.
-                    </div>
-                  )
-                  : insights.map((ins, i) => <InsightCard key={i} insight={ins} />)}
-            </div>
-          </Card>
-        </TabsContent>
-
-        {/* LOG DATA — quick log + recent history */}
-        <TabsContent value="log" className="mt-0 focus-visible:outline-none">
+          {/* Insights + Sera chat side-by-side */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-            <div className="lg:col-span-2">
-              <QuickLogCard
-                entries={entries}
-                isCurrentLogged={!!isCurrentLogged}
-                onSaved={() => void reload()}
-              />
-            </div>
-            <Card className="overflow-hidden rounded-3xl border-border/70 lg:col-span-3">
-              <div className="flex items-center justify-between px-6 pt-6 pb-3">
-                <div>
-                  <h2 className="font-serif text-xl font-semibold">Recent history</h2>
-                  <p className="mt-1 text-xs text-muted-foreground">Last 12 months of logged data</p>
+            <Card className="rounded-3xl border-border/70 p-6 lg:col-span-3">
+              <div className="mb-4 flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/30 text-accent-foreground">
+                  <Sparkles className="h-4 w-4" />
                 </div>
-                <span className="text-xs text-muted-foreground">{sorted.length} entries</span>
+                <h2 className="font-serif text-xl font-semibold">Smart insights</h2>
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted/40 text-left text-xs uppercase tracking-wider text-muted-foreground">
-                    <tr>
-                      <th className="px-6 py-3 font-medium">Period</th>
-                      <th className="px-4 py-3 font-medium text-right">Elec</th>
-                      <th className="px-4 py-3 font-medium text-right">Gas</th>
-                      <th className="px-4 py-3 font-medium text-right">Water</th>
-                      <th className="px-4 py-3 font-medium text-right">Waste</th>
-                      <th className="px-4 py-3 font-medium text-right">Occ.</th>
-                      <th className="px-6 py-3 font-medium text-right">CO₂e</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[...sorted].reverse().slice(0, 12).map((e) => (
-                      <tr key={`${e.year}-${e.month}`} className="border-t border-border">
-                        <td className="px-6 py-3 font-medium">
-                          {MONTH_SHORT[e.month - 1]} {e.year}
-                        </td>
-                        <td className="num px-4 py-3 text-right">{formatNumber(e.electricity_kwh)}</td>
-                        <td className="num px-4 py-3 text-right">{formatNumber(e.gas_kwh)}</td>
-                        <td className="num px-4 py-3 text-right">{formatNumber(e.water_m3)}</td>
-                        <td className="num px-4 py-3 text-right">{formatNumber(e.waste_kg)}</td>
-                        <td className="num px-4 py-3 text-right text-muted-foreground">
-                          {formatNumber(e.occupied_room_nights)}
-                        </td>
-                        <td className="num px-6 py-3 text-right font-medium">
-                          {formatNumber(calculateCO2e(e))} kg
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                {insightsLoading && insights.length === 0
+                  ? [0, 1, 2].map((i) => (
+                      <div key={i} className="h-32 animate-pulse rounded-2xl bg-muted" />
+                    ))
+                  : insights.length === 0
+                    ? (
+                      <div className="col-span-full rounded-2xl border border-dashed border-border bg-card/50 p-6 text-sm text-muted-foreground">
+                        Insights will appear here once enough data is logged.
+                      </div>
+                    )
+                    : insights.map((ins, i) => <InsightCard key={i} insight={ins} />)}
               </div>
             </Card>
+
+            <div className="lg:col-span-2">
+              <MiniAssistantCard
+                title="Ask Sera"
+                subtitle="Your sustainability copilot"
+                starters={[
+                  "Why did electricity rise?",
+                  "Top 3 actions to cut water?",
+                  "How do I compare to peers?",
+                ]}
+              />
+            </div>
           </div>
         </TabsContent>
 
-        {/* ANALYZE — trend chart + peer benchmarks */}
-        <TabsContent value="analyze" className="mt-0 space-y-6 focus-visible:outline-none">
-          <Card className="rounded-3xl border-border/70">
-            <div className="px-6 pt-6 pb-2 md:px-8 md:pt-8">
-              <div className="flex items-baseline justify-between">
-                <div>
-                  <h2 className="font-serif text-2xl font-semibold">12-month trend</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Utility consumption with CO₂e overlay.
-                  </p>
-                </div>
-                <div className="hidden items-center gap-3 text-xs text-muted-foreground md:flex">
-                  <LegendDot color="var(--chart-3)" label="Elec" />
-                  <LegendDot color="var(--chart-1)" label="Gas" />
-                  <LegendDot color="var(--chart-2)" label="Water" />
-                  <LegendDot color="var(--chart-5)" label="Waste" />
-                  <LegendDot color="var(--champagne)" label="CO₂e" line />
-                </div>
-              </div>
-            </div>
-            <div className="h-80 px-2 pb-4 md:px-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={trendData} margin={{ top: 16, right: 16, left: 0, bottom: 8 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                  <XAxis dataKey="label" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
-                  <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
-                  <ReTooltip
-                    contentStyle={{
-                      backgroundColor: "var(--card)",
-                      border: "1px solid var(--border)",
-                      borderRadius: 12,
-                      fontSize: 12,
-                    }}
-                  />
-                  <Area dataKey="electricity" stackId="1" stroke="var(--chart-3)" fill="var(--chart-3)" fillOpacity={0.65} />
-                  <Area dataKey="gas" stackId="1" stroke="var(--chart-1)" fill="var(--chart-1)" fillOpacity={0.65} />
-                  <Area dataKey="water" stackId="1" stroke="var(--chart-2)" fill="var(--chart-2)" fillOpacity={0.45} />
-                  <Area dataKey="waste" stackId="1" stroke="var(--chart-5)" fill="var(--chart-5)" fillOpacity={0.45} />
-                  <Line dataKey="co2e" stroke="var(--champagne)" strokeWidth={2.5} dot={false} />
-                </ComposedChart>
-              </ResponsiveContainer>
-            </div>
-          </Card>
-
-          <Card className="rounded-3xl border-border/70 p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Trophy className="h-5 w-5" style={{ color: "var(--champagne)" }} />
-                <h2 className="font-serif text-xl font-semibold">Peer comparison</h2>
-              </div>
-              <span className="text-xs text-muted-foreground">
-                vs {cohortSize} similar Mediterranean hotels
-              </span>
-            </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {KPIS.map((kpi) => (
-                <PeerMiniCard
-                  key={kpi.key}
-                  kpi={kpi}
-                  latest={latest}
-                  filters={filters}
-                  cohortSize={cohortSize}
-                />
-              ))}
-            </div>
-          </Card>
+        {/* LOG DATA — three methods: Manual, Survey, Import */}
+        <TabsContent value="log" className="mt-0 focus-visible:outline-none">
+          <LogDataTabs
+            entries={entries}
+            isCurrentLogged={!!isCurrentLogged}
+            onSaved={() => void reload()}
+            sorted={sorted}
+          />
         </TabsContent>
 
-        {/* ASK VERDANCE — full assistant */}
-        <TabsContent value="assistant" className="mt-0 focus-visible:outline-none">
-          <div className="mx-auto max-w-3xl">
-            <MiniAssistantCard />
+        {/* ANALYZE — KPIs, multiple charts, peer benchmarks + Sera chart chat */}
+        <TabsContent value="analyze" className="mt-0 space-y-6 focus-visible:outline-none">
+          {/* KPIs again here as quick reference */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {KPIS.map((kpi) => (
+              <KpiCard
+                key={kpi.key}
+                kpi={kpi}
+                latest={latest}
+                prev={prev}
+                lastYearSame={lastYearSame}
+                sorted={sorted}
+                perRoom={perRoom}
+                filters={filters}
+              />
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+            {/* Charts column */}
+            <div className="space-y-6 lg:col-span-3">
+              {/* Stacked utility chart */}
+              <Card className="rounded-3xl border-border/70">
+                <div className="px-6 pt-6 pb-2">
+                  <div className="flex items-baseline justify-between">
+                    <div>
+                      <h2 className="font-serif text-xl font-semibold">12-month consumption</h2>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        Stacked utilities with CO₂e overlay.
+                      </p>
+                    </div>
+                    <div className="hidden items-center gap-3 text-xs text-muted-foreground md:flex">
+                      <LegendDot color="var(--chart-3)" label="Elec" />
+                      <LegendDot color="var(--chart-1)" label="Gas" />
+                      <LegendDot color="var(--chart-2)" label="Water" />
+                      <LegendDot color="var(--chart-5)" label="Waste" />
+                      <LegendDot color="var(--champagne)" label="CO₂e" line />
+                    </div>
+                  </div>
+                </div>
+                <div className="h-72 px-2 pb-4 md:px-4">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ComposedChart data={trendData} margin={{ top: 16, right: 16, left: 0, bottom: 8 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                      <XAxis dataKey="label" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
+                      <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
+                      <ReTooltip
+                        contentStyle={{
+                          backgroundColor: "var(--card)",
+                          border: "1px solid var(--border)",
+                          borderRadius: 12,
+                          fontSize: 12,
+                        }}
+                      />
+                      <Area dataKey="electricity" stackId="1" stroke="var(--chart-3)" fill="var(--chart-3)" fillOpacity={0.65} />
+                      <Area dataKey="gas" stackId="1" stroke="var(--chart-1)" fill="var(--chart-1)" fillOpacity={0.65} />
+                      <Area dataKey="water" stackId="1" stroke="var(--chart-2)" fill="var(--chart-2)" fillOpacity={0.45} />
+                      <Area dataKey="waste" stackId="1" stroke="var(--chart-5)" fill="var(--chart-5)" fillOpacity={0.45} />
+                      <Line dataKey="co2e" stroke="var(--champagne)" strokeWidth={2.5} dot={false} />
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                </div>
+              </Card>
+
+              {/* CO2e bar chart */}
+              <Card className="rounded-3xl border-border/70">
+                <div className="px-6 pt-6 pb-2">
+                  <div className="flex items-baseline justify-between">
+                    <div>
+                      <h2 className="font-serif text-xl font-semibold">CO₂e emissions</h2>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        Estimated kg CO₂e per month.
+                      </p>
+                    </div>
+                    <BarChart3 className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                </div>
+                <div className="h-60 px-2 pb-4 md:px-4">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={co2Data} margin={{ top: 12, right: 16, left: 0, bottom: 8 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                      <XAxis dataKey="label" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
+                      <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
+                      <ReTooltip
+                        contentStyle={{
+                          backgroundColor: "var(--card)",
+                          border: "1px solid var(--border)",
+                          borderRadius: 12,
+                          fontSize: 12,
+                        }}
+                      />
+                      <Bar dataKey="co2e" fill="var(--champagne)" radius={[6, 6, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </Card>
+
+              {/* Intensity chart (per room-night) */}
+              <Card className="rounded-3xl border-border/70">
+                <div className="px-6 pt-6 pb-2">
+                  <div className="flex items-baseline justify-between">
+                    <div>
+                      <h2 className="font-serif text-xl font-semibold">Intensity per room-night</h2>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        Normalised consumption — independent of occupancy.
+                      </p>
+                    </div>
+                    <div className="hidden items-center gap-3 text-xs text-muted-foreground md:flex">
+                      <LegendDot color="var(--chart-3)" label="Elec" line />
+                      <LegendDot color="var(--chart-1)" label="Gas" line />
+                      <LegendDot color="var(--chart-2)" label="Water" line />
+                    </div>
+                  </div>
+                </div>
+                <div className="h-60 px-2 pb-4 md:px-4">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={intensityData} margin={{ top: 12, right: 16, left: 0, bottom: 8 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                      <XAxis dataKey="label" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
+                      <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
+                      <ReTooltip
+                        contentStyle={{
+                          backgroundColor: "var(--card)",
+                          border: "1px solid var(--border)",
+                          borderRadius: 12,
+                          fontSize: 12,
+                        }}
+                      />
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                      <Line type="monotone" dataKey="electricity" stroke="var(--chart-3)" strokeWidth={2} dot={false} name="Elec kWh/rn" />
+                      <Line type="monotone" dataKey="gas" stroke="var(--chart-1)" strokeWidth={2} dot={false} name="Gas kWh/rn" />
+                      <Line type="monotone" dataKey="water" stroke="var(--chart-2)" strokeWidth={2} dot={false} name="Water m³/rn" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </Card>
+
+              {/* Peer comparison */}
+              <Card className="rounded-3xl border-border/70 p-6">
+                <div className="mb-4 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Trophy className="h-5 w-5" style={{ color: "var(--champagne)" }} />
+                    <h2 className="font-serif text-xl font-semibold">Peer comparison</h2>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    vs {cohortSize} similar Mediterranean hotels
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {KPIS.map((kpi) => (
+                    <PeerMiniCard
+                      key={kpi.key}
+                      kpi={kpi}
+                      latest={latest}
+                      filters={filters}
+                      cohortSize={cohortSize}
+                    />
+                  ))}
+                </div>
+              </Card>
+            </div>
+
+            {/* Sera chart-aware chat — sticky */}
+            <div className="lg:col-span-2">
+              <div className="lg:sticky lg:top-6">
+                <MiniAssistantCard
+                  title="Ask Sera about your charts"
+                  subtitle="Spot trends, compare months, plan actions"
+                  starters={[
+                    "What does my CO₂e trend tell me?",
+                    "Which utility moved the most this month?",
+                    "Where am I worst vs peers?",
+                    "Explain my intensity per room-night",
+                  ]}
+                  height="tall"
+                />
+              </div>
+            </div>
           </div>
         </TabsContent>
       </Tabs>
@@ -615,7 +715,119 @@ function InsightCard({ insight }: { insight: Insight }) {
   );
 }
 
-/* ---------- Quick Log Card ---------- */
+/* ---------- LOG DATA — multi-method (Manual / Survey / Import) ---------- */
+
+function LogDataTabs({
+  entries,
+  isCurrentLogged,
+  onSaved,
+  sorted,
+}: {
+  entries: MonthlyEntry[];
+  isCurrentLogged: boolean;
+  onSaved: () => void;
+  sorted: MonthlyEntry[];
+}) {
+  const [method, setMethod] = React.useState<"manual" | "survey" | "import">(
+    "manual",
+  );
+
+  const METHODS: {
+    key: "manual" | "survey" | "import";
+    label: string;
+    desc: string;
+    icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  }[] = [
+    { key: "manual", label: "Manual entry", desc: "Type values from your bills", icon: Pencil },
+    { key: "survey", label: "Guided survey", desc: "Step-by-step questions", icon: ClipboardList },
+    { key: "import", label: "Import CSV", desc: "Bulk upload past months", icon: Upload },
+  ];
+
+  return (
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+      <div className="space-y-3 lg:col-span-2">
+        <div className="text-xs uppercase tracking-wider text-muted-foreground">
+          Choose a method
+        </div>
+        {METHODS.map((m) => {
+          const Icon = m.icon;
+          const active = method === m.key;
+          return (
+            <button
+              key={m.key}
+              onClick={() => setMethod(m.key)}
+              className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition ${
+                active
+                  ? "border-primary bg-primary/5 shadow-sm"
+                  : "border-border bg-card hover:border-accent hover:bg-accent/10"
+              }`}
+            >
+              <div
+                className={`flex h-10 w-10 items-center justify-center rounded-xl ${
+                  active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                }`}
+              >
+                <Icon className="h-5 w-5" />
+              </div>
+              <div className="flex-1">
+                <div className="text-sm font-semibold">{m.label}</div>
+                <div className="text-xs text-muted-foreground">{m.desc}</div>
+              </div>
+              <ChevronRight
+                className={`h-4 w-4 ${active ? "text-primary" : "text-muted-foreground"}`}
+              />
+            </button>
+          );
+        })}
+
+        <Card className="mt-6 rounded-2xl border-border/70 p-4">
+          <div className="mb-2 flex items-center justify-between">
+            <h3 className="text-sm font-semibold">Recent history</h3>
+            <span className="text-xs text-muted-foreground">{sorted.length} entries</span>
+          </div>
+          <div className="max-h-[320px] overflow-y-auto">
+            <table className="w-full text-xs">
+              <thead className="sticky top-0 bg-card text-left text-[10px] uppercase tracking-wider text-muted-foreground">
+                <tr>
+                  <th className="py-2 font-medium">Period</th>
+                  <th className="py-2 text-right font-medium">CO₂e</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...sorted].reverse().slice(0, 12).map((e) => (
+                  <tr key={`${e.year}-${e.month}`} className="border-t border-border">
+                    <td className="py-2 font-medium">
+                      {MONTH_SHORT[e.month - 1]} {e.year}
+                    </td>
+                    <td className="num py-2 text-right">
+                      {formatNumber(calculateCO2e(e))} kg
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      </div>
+
+      <div className="lg:col-span-3">
+        {method === "manual" && (
+          <QuickLogCard
+            entries={entries}
+            isCurrentLogged={isCurrentLogged}
+            onSaved={onSaved}
+          />
+        )}
+        {method === "survey" && (
+          <SurveyLogCard entries={entries} onSaved={onSaved} />
+        )}
+        {method === "import" && <ImportLogCard onSaved={onSaved} />}
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Manual Quick Log Card ---------- */
 
 const quickEntrySchema = z.object({
   electricity_kwh: z.number().min(0).max(10_000_000).nullable(),
@@ -675,7 +887,6 @@ function QuickLogCard({
         waste_kg: num(form.waste_kg),
         occupied_room_nights: num(form.occupied_room_nights),
       });
-      // Need at least one value
       if (Object.values(parsed).every((v) => v === null)) {
         toast.error("Enter at least one value before saving");
         return;
@@ -727,7 +938,7 @@ function QuickLogCard({
       <div className="flex items-start justify-between">
         <div>
           <div className="text-xs uppercase tracking-wider text-muted-foreground">
-            Log monthly data
+            Manual entry
           </div>
           <h2 className="mt-1 font-serif text-2xl font-semibold">
             {MONTH_NAMES[initial.m - 1]} {initial.y}
@@ -801,20 +1012,474 @@ function QuickLogCard({
   );
 }
 
-/* ---------- Mini Assistant Card ---------- */
+/* ---------- Survey Log Card — guided step-by-step ---------- */
+
+interface SurveyStep {
+  key: keyof typeof BLANK_FORM;
+  question: string;
+  helper: string;
+  unit: string;
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  color: string;
+}
+
+const BLANK_FORM = {
+  electricity_kwh: "",
+  gas_kwh: "",
+  water_m3: "",
+  waste_kg: "",
+  occupied_room_nights: "",
+};
+
+const SURVEY_STEPS: SurveyStep[] = [
+  {
+    key: "electricity_kwh",
+    question: "How much electricity did you use?",
+    helper: "Find this on your power bill, in kWh.",
+    unit: "kWh",
+    icon: Bolt,
+    color: "var(--chart-3)",
+  },
+  {
+    key: "gas_kwh",
+    question: "How much gas did you use?",
+    helper: "Look for kWh or convert m³ × 10.55.",
+    unit: "kWh",
+    icon: Flame,
+    color: "var(--chart-1)",
+  },
+  {
+    key: "water_m3",
+    question: "How much water did you consume?",
+    helper: "Cubic metres (m³) from your water bill.",
+    unit: "m³",
+    icon: Droplets,
+    color: "var(--chart-2)",
+  },
+  {
+    key: "waste_kg",
+    question: "How much waste did you produce?",
+    helper: "Total kilograms collected this month.",
+    unit: "kg",
+    icon: Trash2,
+    color: "var(--chart-5)",
+  },
+  {
+    key: "occupied_room_nights",
+    question: "How many occupied room-nights?",
+    helper: "Rooms × nights occupied. Used to normalise.",
+    unit: "rn",
+    icon: ClipboardList,
+    color: "var(--champagne)",
+  },
+];
+
+function SurveyLogCard({
+  entries,
+  onSaved,
+}: {
+  entries: MonthlyEntry[];
+  onSaved: () => void;
+}) {
+  const initial = React.useMemo(() => {
+    const now = new Date();
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const y = d.getFullYear();
+      const m = d.getMonth() + 1;
+      const found = entries.find((e) => e.year === y && e.month === m);
+      if (!found || found.electricity_kwh === null) return { y, m };
+    }
+    return { y: now.getFullYear(), m: now.getMonth() + 1 };
+  }, [entries]);
+
+  const [step, setStep] = React.useState(0);
+  const [form, setForm] = React.useState({ ...BLANK_FORM });
+  const [submitting, setSubmitting] = React.useState(false);
+  const total = SURVEY_STEPS.length;
+  const progress = ((step + 1) / total) * 100;
+  const current = SURVEY_STEPS[step];
+  const Icon = current.icon;
+
+  async function handleFinish() {
+    setSubmitting(true);
+    try {
+      const num = (s: string) => (s.trim() === "" ? null : Number(s));
+      const parsed = quickEntrySchema.parse({
+        electricity_kwh: num(form.electricity_kwh),
+        gas_kwh: num(form.gas_kwh),
+        water_m3: num(form.water_m3),
+        waste_kg: num(form.waste_kg),
+        occupied_room_nights: num(form.occupied_room_nights),
+      });
+      if (Object.values(parsed).every((v) => v === null)) {
+        toast.error("Enter at least one value before saving");
+        return;
+      }
+      const { error } = await supabase.from("monthly_entries").upsert(
+        {
+          hotel_id: DEMO_HOTEL_ID,
+          year: initial.y,
+          month: initial.m,
+          ...parsed,
+        },
+        { onConflict: "hotel_id,year,month" },
+      );
+      if (error) throw error;
+      toast.success(`${MONTH_NAMES[initial.m - 1]} ${initial.y} saved`);
+      setForm({ ...BLANK_FORM });
+      setStep(0);
+      onSaved();
+    } catch (e) {
+      const msg = e instanceof z.ZodError ? e.issues[0].message : "Could not save";
+      toast.error(msg);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  const isLast = step === total - 1;
+
+  return (
+    <Card className="rounded-3xl border-border/70 bg-gradient-to-br from-card to-accent/5 p-6">
+      <div className="flex items-start justify-between">
+        <div>
+          <div className="text-xs uppercase tracking-wider text-muted-foreground">
+            Guided survey · {MONTH_NAMES[initial.m - 1]} {initial.y}
+          </div>
+          <h2 className="mt-1 font-serif text-xl font-semibold">
+            Step {step + 1} of {total}
+          </h2>
+        </div>
+        <div className="text-xs text-muted-foreground">
+          {Math.round(progress)}% complete
+        </div>
+      </div>
+
+      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted">
+        <motion.div
+          className="h-full bg-primary"
+          animate={{ width: `${progress}%` }}
+          transition={{ duration: 0.35 }}
+        />
+      </div>
+
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={step}
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          transition={{ duration: 0.2 }}
+          className="mt-6"
+        >
+          <div className="flex items-center gap-3">
+            <div
+              className="flex h-12 w-12 items-center justify-center rounded-2xl"
+              style={{ backgroundColor: `color-mix(in oklab, ${current.color} 15%, transparent)` }}
+            >
+              <Icon className="h-6 w-6" style={{ color: current.color }} />
+            </div>
+            <div>
+              <div className="font-serif text-lg font-semibold">{current.question}</div>
+              <div className="text-xs text-muted-foreground">{current.helper}</div>
+            </div>
+          </div>
+
+          <div className="mt-5 flex items-center gap-3 rounded-xl border border-border bg-background px-4 py-3">
+            <Input
+              autoFocus
+              type="number"
+              inputMode="decimal"
+              value={form[current.key]}
+              onChange={(e) =>
+                setForm((s) => ({ ...s, [current.key]: e.target.value }))
+              }
+              placeholder="Enter a number"
+              className="num h-10 flex-1 border-0 bg-transparent text-right text-2xl font-semibold focus-visible:ring-0"
+            />
+            <span className="text-sm text-muted-foreground">{current.unit}</span>
+          </div>
+        </motion.div>
+      </AnimatePresence>
+
+      <div className="mt-6 flex items-center justify-between">
+        <Button
+          variant="ghost"
+          onClick={() => setStep((s) => Math.max(0, s - 1))}
+          disabled={step === 0}
+          className="rounded-xl"
+        >
+          <ChevronLeft className="mr-1 h-4 w-4" />
+          Back
+        </Button>
+        {isLast ? (
+          <Button
+            onClick={handleFinish}
+            disabled={submitting}
+            className="rounded-xl px-6"
+          >
+            {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Finish & save
+          </Button>
+        ) : (
+          <Button
+            onClick={() => setStep((s) => Math.min(total - 1, s + 1))}
+            className="rounded-xl px-6"
+          >
+            Next
+            <ChevronRight className="ml-1 h-4 w-4" />
+          </Button>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+/* ---------- Import CSV Card ---------- */
+
+interface ParsedRow {
+  year: number;
+  month: number;
+  electricity_kwh: number | null;
+  gas_kwh: number | null;
+  water_m3: number | null;
+  waste_kg: number | null;
+  occupied_room_nights: number | null;
+}
+
+function ImportLogCard({ onSaved }: { onSaved: () => void }) {
+  const [rows, setRows] = React.useState<ParsedRow[]>([]);
+  const [errors, setErrors] = React.useState<string[]>([]);
+  const [submitting, setSubmitting] = React.useState(false);
+  const [fileName, setFileName] = React.useState<string | null>(null);
+  const fileRef = React.useRef<HTMLInputElement | null>(null);
+
+  function parseCSV(text: string) {
+    const lines = text.trim().split(/\r?\n/);
+    if (lines.length < 2) {
+      setErrors(["CSV must have a header row and at least one data row"]);
+      setRows([]);
+      return;
+    }
+    const header = lines[0].split(",").map((h) => h.trim().toLowerCase());
+    const required = ["year", "month"];
+    for (const r of required) {
+      if (!header.includes(r)) {
+        setErrors([`Missing required column: ${r}`]);
+        setRows([]);
+        return;
+      }
+    }
+    const idx = (k: string) => header.indexOf(k);
+    const out: ParsedRow[] = [];
+    const errs: string[] = [];
+    for (let i = 1; i < lines.length; i++) {
+      const cols = lines[i].split(",").map((c) => c.trim());
+      const num = (k: string): number | null => {
+        const j = idx(k);
+        if (j < 0 || !cols[j]) return null;
+        const n = Number(cols[j]);
+        return isNaN(n) ? null : n;
+      };
+      const y = num("year");
+      const m = num("month");
+      if (!y || !m || m < 1 || m > 12) {
+        errs.push(`Row ${i + 1}: invalid year/month`);
+        continue;
+      }
+      out.push({
+        year: y,
+        month: m,
+        electricity_kwh: num("electricity_kwh"),
+        gas_kwh: num("gas_kwh"),
+        water_m3: num("water_m3"),
+        waste_kg: num("waste_kg"),
+        occupied_room_nights: num("occupied_room_nights"),
+      });
+    }
+    setRows(out);
+    setErrors(errs);
+  }
+
+  function handleFile(file: File) {
+    setFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = () => {
+      parseCSV(String(reader.result ?? ""));
+    };
+    reader.readAsText(file);
+  }
+
+  async function handleImport() {
+    if (rows.length === 0) return;
+    setSubmitting(true);
+    try {
+      const payload = rows.map((r) => ({
+        hotel_id: DEMO_HOTEL_ID,
+        year: r.year,
+        month: r.month,
+        electricity_kwh: r.electricity_kwh,
+        gas_kwh: r.gas_kwh,
+        water_m3: r.water_m3,
+        waste_kg: r.waste_kg,
+        occupied_room_nights: r.occupied_room_nights,
+      }));
+      const { error } = await supabase
+        .from("monthly_entries")
+        .upsert(payload, { onConflict: "hotel_id,year,month" });
+      if (error) throw error;
+      toast.success(`Imported ${rows.length} months`);
+      setRows([]);
+      setFileName(null);
+      setErrors([]);
+      onSaved();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Import failed";
+      toast.error(msg);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  function downloadTemplate() {
+    const csv =
+      "year,month,electricity_kwh,gas_kwh,water_m3,waste_kg,occupied_room_nights\n" +
+      "2025,1,42000,18000,650,1200,2400\n" +
+      "2025,2,39000,17000,610,1150,2200\n";
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "verdance-template.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <Card className="rounded-3xl border-border/70 bg-gradient-to-br from-card to-accent/5 p-6">
+      <div className="flex items-start justify-between">
+        <div>
+          <div className="text-xs uppercase tracking-wider text-muted-foreground">
+            Import CSV
+          </div>
+          <h2 className="mt-1 font-serif text-2xl font-semibold">Bulk upload</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Upload many months at once from a spreadsheet export.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={downloadTemplate}
+          className="rounded-xl"
+        >
+          <FileSpreadsheet className="mr-1.5 h-3.5 w-3.5" />
+          Template
+        </Button>
+      </div>
+
+      <div
+        className="mt-5 cursor-pointer rounded-2xl border-2 border-dashed border-border bg-background/40 p-8 text-center transition hover:border-primary hover:bg-primary/5"
+        onClick={() => fileRef.current?.click()}
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={(e) => {
+          e.preventDefault();
+          const f = e.dataTransfer.files?.[0];
+          if (f) handleFile(f);
+        }}
+      >
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".csv,text/csv"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) handleFile(f);
+          }}
+        />
+        <Upload className="mx-auto h-8 w-8 text-muted-foreground" />
+        <div className="mt-2 text-sm font-medium">
+          {fileName ? fileName : "Drop CSV here or click to browse"}
+        </div>
+        <div className="mt-1 text-xs text-muted-foreground">
+          Columns: year, month, electricity_kwh, gas_kwh, water_m3, waste_kg, occupied_room_nights
+        </div>
+      </div>
+
+      {errors.length > 0 && (
+        <div className="mt-4 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">
+          {errors.map((e, i) => (
+            <div key={i}>{e}</div>
+          ))}
+        </div>
+      )}
+
+      {rows.length > 0 && (
+        <div className="mt-4">
+          <div className="mb-2 text-xs font-medium text-muted-foreground">
+            Preview ({rows.length} rows)
+          </div>
+          <div className="max-h-48 overflow-y-auto rounded-xl border border-border">
+            <table className="w-full text-xs">
+              <thead className="sticky top-0 bg-muted/50 text-left text-[10px] uppercase tracking-wider text-muted-foreground">
+                <tr>
+                  <th className="px-3 py-2">Period</th>
+                  <th className="px-3 py-2 text-right">Elec</th>
+                  <th className="px-3 py-2 text-right">Gas</th>
+                  <th className="px-3 py-2 text-right">Water</th>
+                  <th className="px-3 py-2 text-right">Waste</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.slice(0, 24).map((r, i) => (
+                  <tr key={i} className="border-t border-border">
+                    <td className="px-3 py-1.5 font-medium">
+                      {MONTH_SHORT[r.month - 1]} {r.year}
+                    </td>
+                    <td className="num px-3 py-1.5 text-right">{formatNumber(r.electricity_kwh)}</td>
+                    <td className="num px-3 py-1.5 text-right">{formatNumber(r.gas_kwh)}</td>
+                    <td className="num px-3 py-1.5 text-right">{formatNumber(r.water_m3)}</td>
+                    <td className="num px-3 py-1.5 text-right">{formatNumber(r.waste_kg)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      <Button
+        onClick={handleImport}
+        disabled={submitting || rows.length === 0}
+        className="mt-5 w-full rounded-xl py-5"
+      >
+        {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        Import {rows.length > 0 ? `${rows.length} months` : ""}
+      </Button>
+    </Card>
+  );
+}
+
+/* ---------- Mini Assistant Card (Sera) ---------- */
 
 interface ChatMsg {
   role: "user" | "assistant";
   content: string;
 }
 
-const STARTERS = [
-  "Why did electricity rise?",
-  "Top 3 actions to cut water?",
-  "How do I compare?",
-];
-
-function MiniAssistantCard() {
+function MiniAssistantCard({
+  title = "Ask Sera",
+  subtitle = "Grounded in your data",
+  starters,
+  height = "default",
+}: {
+  title?: string;
+  subtitle?: string;
+  starters: string[];
+  height?: "default" | "tall";
+}) {
   const send = useServerFn(sendAssistantMessage);
   const [messages, setMessages] = React.useState<ChatMsg[]>([]);
   const [input, setInput] = React.useState("");
@@ -851,23 +1516,28 @@ function MiniAssistantCard() {
     }
   }
 
+  const heightClass =
+    height === "tall"
+      ? "max-h-[520px] min-h-[420px]"
+      : "max-h-[360px] min-h-[280px]";
+
   return (
-    <Card className="flex flex-col overflow-hidden rounded-3xl border-border/70 p-0">
+    <Card className="flex h-full flex-col overflow-hidden rounded-3xl border-border/70 p-0">
       <div className="flex items-center gap-2 border-b border-border/60 px-5 py-4">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
           <Sparkles className="h-4 w-4" />
         </div>
         <div>
-          <h2 className="font-serif text-lg font-semibold leading-tight">Ask Verdance</h2>
-          <p className="text-[11px] text-muted-foreground">Grounded in your data</p>
+          <h2 className="font-serif text-lg font-semibold leading-tight">{title}</h2>
+          <p className="text-[11px] text-muted-foreground">{subtitle}</p>
         </div>
       </div>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4 max-h-[360px] min-h-[280px]">
+      <div ref={scrollRef} className={`flex-1 overflow-y-auto px-5 py-4 ${heightClass}`}>
         {messages.length === 0 ? (
           <div className="space-y-2">
             <p className="text-xs text-muted-foreground">Try a quick question:</p>
-            {STARTERS.map((s) => (
+            {starters.map((s) => (
               <button
                 key={s}
                 onClick={() => handleSend(s)}
@@ -927,7 +1597,7 @@ function MiniAssistantCard() {
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask anything…"
+            placeholder="Ask Sera anything…"
             className="flex-1 bg-transparent py-1.5 text-sm focus:outline-none"
           />
           <Button
@@ -980,7 +1650,6 @@ function PeerMiniCard({
   const vsMedianPct = ((intensity - stats.median) / stats.median) * 100;
   const better = vsMedianPct < 0;
 
-  // Position bar: 0 (best p10) → 100 (worst p90)
   const barPos = Math.max(
     0,
     Math.min(100, ((intensity - stats.p10) / (stats.p90 - stats.p10)) * 100),
