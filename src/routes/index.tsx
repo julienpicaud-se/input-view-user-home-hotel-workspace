@@ -1097,16 +1097,27 @@ function LogDataTabs({
   onSaved,
   sorted,
   rooms,
+  highlightFields = [],
+  onHighlightConsumed,
 }: {
   entries: MonthlyEntry[];
   isCurrentLogged: boolean;
   onSaved: () => void;
   sorted: MonthlyEntry[];
   rooms: number;
+  highlightFields?: HighlightedField[];
+  onHighlightConsumed?: () => void;
 }) {
   const [method, setMethod] = React.useState<"manual" | "survey" | "import">(
     "manual",
   );
+
+  // When highlighted fields arrive, force-switch to manual entry so user sees them.
+  React.useEffect(() => {
+    if (highlightFields.length > 0 && method !== "manual") {
+      setMethod("manual");
+    }
+  }, [highlightFields, method]);
 
   const METHODS: {
     key: "manual" | "survey" | "import";
