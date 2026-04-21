@@ -667,6 +667,13 @@ function LegendDot({ color, label, line }: { color: string; label: string; line?
 
 type ChartId = "consumption" | "co2e" | "intensity" | "peer";
 
+type HighlightedField =
+  | "electricity_kwh"
+  | "gas_kwh"
+  | "water_m3"
+  | "waste_kg"
+  | "occupied_room_nights";
+
 function ChartCard({
   id,
   active,
