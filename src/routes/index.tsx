@@ -930,14 +930,6 @@ function HomePage() {
                   <Users className="h-4 w-4" />
                 </div>
                 <div>
-          {/* Peer benchmarking — full comparison view */}
-          <Card className="rounded-3xl border-border/70 p-6">
-            <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
-              <div className="flex items-start gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/30 text-accent-foreground">
-                  <Users className="h-4 w-4" />
-                </div>
-                <div>
                   <h2 className="font-serif text-xl font-semibold">
                     Benchmark vs similar hotels
                   </h2>
