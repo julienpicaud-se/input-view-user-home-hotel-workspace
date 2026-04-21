@@ -1647,6 +1647,7 @@ function TodoCompletionInsights({
   if (monthlyData.length === 0) return null;
 
   return (
+    <>
     <Card className="rounded-3xl border-border/70 p-6">
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
