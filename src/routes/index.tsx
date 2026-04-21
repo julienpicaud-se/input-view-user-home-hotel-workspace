@@ -602,7 +602,7 @@ function HomePage() {
               setActiveChart("peer");
               if (kpi) {
                 setUtilityFilter(kpi.utility);
-                toast.success(`Filtered Analyze to ${kpi.label}`, {
+                toast.success(`Filtered Hotel Insights to ${kpi.label}`, {
                   description: "Charts and KPIs now show only this utility.",
                 });
               }
@@ -1648,7 +1648,7 @@ function MonthlyChangeSummary({
                       onClick={() => onDriverClick!(d.key)}
                       className={baseClass}
                       aria-label={`Open ${d.label} chart and field`}
-                      title={`Review ${d.label} in Analyze`}
+                      title={`Review ${d.label} in Hotel Insights`}
                     >
                       {inner}
                     </button>
