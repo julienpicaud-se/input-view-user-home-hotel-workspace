@@ -3334,6 +3334,15 @@ function SurveyLogCard({
       const { error } = await supabase.from("monthly_entries").upsert(
         {
           hotel_id: getActiveHotelId(),
+          year: initial.y,
+          month: initial.m,
+          ...parsed,
+        },
+        { onConflict: "hotel_id,year,month" },
+      );
+      if (error) throw error;
+      toast.success(`${MONTH_NAMES[initial.m - 1]} ${initial.y} saved`);
+      setForm({ ...BLANK_FORM });
       setStep(0);
       onSaved();
     } catch (e) {
