@@ -104,6 +104,33 @@ function BenchmarksPage() {
         <FilterChip label="All seasons" />
       </div>
 
+      {/* Peer comparison snapshot */}
+      <Card className="mb-8 rounded-3xl border-border/70 p-6">
+        <div className="mb-1 flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <h2 className="font-serif text-xl font-semibold">Peer comparison</h2>
+            <Badge variant="secondary" className="rounded-full text-[10px] uppercase tracking-wider">
+              Selected
+            </Badge>
+          </div>
+          <Trophy className="h-5 w-5" style={{ color: "var(--champagne)" }} />
+        </div>
+        <p className="mb-5 text-sm text-muted-foreground">
+          vs {cohortSize} similar Mediterranean hotels
+        </p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {PEER_MINI_KPIS.map((kpi) => (
+            <PeerMiniCard
+              key={kpi.key}
+              kpi={kpi}
+              latest={entries[entries.length - 1]}
+              filters={filters}
+              cohortSize={cohortSize}
+            />
+          ))}
+        </div>
+      </Card>
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {UTILITIES.map((u) => (
           <BenchmarkCard
