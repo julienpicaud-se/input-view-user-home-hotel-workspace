@@ -175,8 +175,7 @@ export const generateInsights = createServerFn({ method: "POST" })
     } catch {
       return { insights: [] as Insight[] };
     }
-  }
-);
+  });
 
 export interface Insight {
   title: string;
@@ -188,10 +187,12 @@ export const explainChart = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
       chartId: z.enum(["consumption", "co2e", "intensity", "peer"]),
+      hotelId: z.string().uuid().optional(),
     }),
   )
   .handler(async ({ data }) => {
-    const context = await getHotelContext();
+    const hotelId = data.hotelId ?? DEMO_HOTEL_ID;
+    const context = await getHotelContext(hotelId);
 
     const chartBriefs: Record<string, string> = {
       consumption:
