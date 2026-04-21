@@ -4,22 +4,12 @@ import {
   createRootRoute,
   HeadContent,
   Scripts,
-  useLocation,
 } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 import appCss from "../styles.css?url";
-
-const NAV_ITEMS = [
-  { to: "/", label: "Dashboard" },
-  { to: "/log", label: "Log data" },
-  { to: "/history", label: "History" },
-  { to: "/benchmarks", label: "Benchmarks" },
-  { to: "/assistant", label: "Assistant" },
-  { to: "/hotel", label: "Hotel" },
-] as const;
 
 function NotFoundComponent() {
   return (
@@ -65,14 +55,8 @@ export const Route = createRootRoute({
       { name: "twitter:card", content: "summary" },
     ],
     links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
-      {
-        rel: "preconnect",
-        href: "https://fonts.googleapis.com",
-      },
+      { rel: "stylesheet", href: appCss },
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
       {
         rel: "preconnect",
         href: "https://fonts.gstatic.com",
@@ -103,46 +87,25 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
-function TopNav() {
-  const location = useLocation();
-  const path = location.pathname;
+function TopBar() {
   return (
     <header className="sticky top-0 z-30 border-b border-border/60 bg-background/85 backdrop-blur-md">
-      <div className="mx-auto flex w-full max-w-7xl items-center gap-6 px-5 py-4 md:px-10">
-        <Link to="/" className="flex items-center gap-2.5 shrink-0">
+      <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-4 md:px-10">
+        <Link to="/" className="flex items-center gap-2.5">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <span className="font-serif text-lg font-semibold">V</span>
           </div>
-          <div className="hidden sm:block leading-tight">
+          <div className="leading-tight">
             <div className="font-serif text-lg">Verdance</div>
             <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-              The Marbella Grand
+              The Marbella Grand · 120 rooms
             </div>
           </div>
         </Link>
-
-        <nav className="flex-1 overflow-x-auto">
-          <ul className="flex items-center gap-1">
-            {NAV_ITEMS.map((item) => {
-              const active =
-                item.to === "/" ? path === "/" : path.startsWith(item.to);
-              return (
-                <li key={item.to}>
-                  <Link
-                    to={item.to}
-                    className={`inline-flex shrink-0 items-center rounded-full px-3.5 py-1.5 text-sm transition-colors ${
-                      active
-                        ? "bg-primary text-primary-foreground font-medium"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
+        <div className="hidden items-center gap-2 text-xs text-muted-foreground md:flex">
+          <span className="h-1.5 w-1.5 rounded-full bg-success" />
+          All systems live
+        </div>
       </div>
     </header>
   );
@@ -152,7 +115,7 @@ function RootComponent() {
   return (
     <TooltipProvider delayDuration={200}>
       <div className="min-h-screen w-full bg-background text-foreground">
-        <TopNav />
+        <TopBar />
         <main>
           <Outlet />
         </main>
