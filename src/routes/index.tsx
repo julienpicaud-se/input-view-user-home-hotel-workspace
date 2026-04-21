@@ -74,7 +74,9 @@ import {
 import {
   generateInsights,
   sendAssistantMessage,
+  explainChart,
   type Insight,
+  type ChartExplanation,
 } from "@/server/assistant.functions";
 
 export const Route = createFileRoute("/")({
