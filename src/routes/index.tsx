@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
@@ -415,8 +415,14 @@ function HomePage() {
             Log data
           </TabsTrigger>
           <TabsTrigger value="analyze" className="rounded-xl px-4 py-2 text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
-            Analyze
+            Hotel Insights
           </TabsTrigger>
+          <Link
+            to="/benchmarks"
+            className="inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            Peers Benchmark
+          </Link>
         </TabsList>
 
         {/* OVERVIEW — score, KPIs, insights + Sera chat */}
