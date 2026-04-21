@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import * as React from "react";
 import { Building2, MapPin, Star, Sun, Hash } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { DEMO_HOTEL_ID, type Hotel } from "@/lib/hotel";
+import { getActiveHotelId, type Hotel } from "@/lib/hotel";
 import { PageContainer, PageHeader } from "@/components/page-shell";
 import { Card } from "@/components/ui/card";
 
@@ -23,7 +23,7 @@ function HotelPage() {
     void supabase
       .from("hotels")
       .select("*")
-      .eq("id", DEMO_HOTEL_ID)
+      .eq("id", getActiveHotelId())
       .maybeSingle()
       .then(({ data }) => setHotel(data as Hotel | null));
   }, []);
