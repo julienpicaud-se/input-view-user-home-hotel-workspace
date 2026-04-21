@@ -14,7 +14,136 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      assistant_messages: {
+        Row: {
+          content: string
+          created_at: string
+          hotel_id: string
+          id: string
+          role: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          hotel_id: string
+          id?: string
+          role: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          hotel_id?: string
+          id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assistant_messages_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hotels: {
+        Row: {
+          climate_zone: string
+          created_at: string
+          id: string
+          name: string
+          region: string
+          rooms: number
+          size_band: string
+          star_rating: number
+          updated_at: string
+        }
+        Insert: {
+          climate_zone?: string
+          created_at?: string
+          id?: string
+          name: string
+          region: string
+          rooms: number
+          size_band?: string
+          star_rating?: number
+          updated_at?: string
+        }
+        Update: {
+          climate_zone?: string
+          created_at?: string
+          id?: string
+          name?: string
+          region?: string
+          rooms?: number
+          size_band?: string
+          star_rating?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      monthly_entries: {
+        Row: {
+          attachment_url: string | null
+          created_at: string
+          electricity_kwh: number | null
+          gas_kwh: number | null
+          hotel_id: string
+          id: string
+          month: number
+          notes: string | null
+          occupied_room_nights: number | null
+          recycled_pct: number | null
+          renewable_pct: number | null
+          updated_at: string
+          waste_kg: number | null
+          water_m3: number | null
+          year: number
+        }
+        Insert: {
+          attachment_url?: string | null
+          created_at?: string
+          electricity_kwh?: number | null
+          gas_kwh?: number | null
+          hotel_id: string
+          id?: string
+          month: number
+          notes?: string | null
+          occupied_room_nights?: number | null
+          recycled_pct?: number | null
+          renewable_pct?: number | null
+          updated_at?: string
+          waste_kg?: number | null
+          water_m3?: number | null
+          year: number
+        }
+        Update: {
+          attachment_url?: string | null
+          created_at?: string
+          electricity_kwh?: number | null
+          gas_kwh?: number | null
+          hotel_id?: string
+          id?: string
+          month?: number
+          notes?: string | null
+          occupied_room_nights?: number | null
+          recycled_pct?: number | null
+          renewable_pct?: number | null
+          updated_at?: string
+          waste_kg?: number | null
+          water_m3?: number | null
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monthly_entries_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
