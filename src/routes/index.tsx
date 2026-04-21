@@ -217,6 +217,46 @@ function HomePage() {
 
   const cohortSize = getPeerCohortSize(filters);
 
+  // Worst-performing utility vs peers — used for "highlight fields to fix" action
+  const worstUtility = React.useMemo<{
+    key: HighlightedField;
+    label: string;
+    rank: ReturnType<typeof getPeerRank>;
+  } | null>(() => {
+    if (!latest || !latest.occupied_room_nights) return null;
+    const rn = latest.occupied_room_nights;
+    const checks: { key: HighlightedField; label: string; util: Utility; v: number | null }[] = [
+      { key: "electricity_kwh", label: "Electricity", util: "electricity", v: latest.electricity_kwh },
+      { key: "gas_kwh", label: "Gas", util: "gas", v: latest.gas_kwh },
+      { key: "water_m3", label: "Water", util: "water", v: latest.water_m3 },
+      { key: "waste_kg", label: "Waste", util: "waste", v: latest.waste_kg },
+    ];
+    let worst: { key: HighlightedField; label: string; rank: ReturnType<typeof getPeerRank>; ratio: number } | null = null;
+    for (const c of checks) {
+      if (c.v === null || c.v === undefined) continue;
+      const intensity = c.v / rn;
+      const stats = getPeerStats(c.util, latest.month, filters);
+      const span = stats.p90 - stats.p10 || 1;
+      const ratio = (intensity - stats.p10) / span;
+      if (!worst || ratio > worst.ratio) {
+        worst = { key: c.key, label: c.label, rank: getPeerRank(intensity, stats), ratio };
+      }
+    }
+    return worst;
+  }, [latest, filters]);
+
+  // Fields missing in the latest entry — used for "highlight fields to fix"
+  const missingFields = React.useMemo<HighlightedField[]>(() => {
+    if (!latest) return [];
+    const out: HighlightedField[] = [];
+    if (latest.electricity_kwh === null) out.push("electricity_kwh");
+    if (latest.gas_kwh === null) out.push("gas_kwh");
+    if (latest.water_m3 === null) out.push("water_m3");
+    if (latest.waste_kg === null) out.push("waste_kg");
+    if (!latest.occupied_room_nights) out.push("occupied_room_nights");
+    return out;
+  }, [latest]);
+
   const trendData = sorted.slice(-12).map((e) => ({
     label: `${MONTH_SHORT[e.month - 1]} ${String(e.year).slice(2)}`,
     electricity: e.electricity_kwh ?? 0,
