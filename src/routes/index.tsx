@@ -592,7 +592,42 @@ function HomePage() {
             {/* Right rail: chart explainer + Sera chat */}
             <div className="space-y-6 lg:col-span-2">
               <div className="lg:sticky lg:top-6 space-y-6">
-                <ChartExplainerCard chartId={activeChart} />
+                <ChartExplainerCard
+                  chartId={activeChart}
+                  isLatestLogged={!!isCurrentLogged}
+                  hasMissingFields={missingFields.length > 0}
+                  worstUtilityLabel={worstUtility?.label ?? null}
+                  onDraftLog={() => {
+                    setHighlightFields([]);
+                    setActiveTab("log");
+                    toast.success(`Draft started for ${latest ? `${MONTH_NAMES[latest.month - 1]} ${latest.year}` : "this month"}`);
+                  }}
+                  onAskSera={(prompt) => {
+                    setPendingPrompt(prompt);
+                    toast.success("Sera is on it");
+                  }}
+                  onHighlightFix={() => {
+                    const fields =
+                      activeChart === "peer" && worstUtility
+                        ? [worstUtility.key]
+                        : missingFields.length > 0
+                          ? missingFields
+                          : worstUtility
+                            ? [worstUtility.key]
+                            : [];
+                    if (fields.length === 0) {
+                      toast.info("Nothing to flag — your data looks complete.");
+                      return;
+                    }
+                    setHighlightFields(fields);
+                    setActiveTab("log");
+                    toast.success(
+                      fields.length === 1
+                        ? `Highlighted ${labelOf(fields[0])} in the log form`
+                        : `Highlighted ${fields.length} fields in the log form`,
+                    );
+                  }}
+                />
                 <MiniAssistantCard
                   title="Ask Sera about your charts"
                   subtitle="Spot trends, compare months, plan actions"
@@ -603,6 +638,8 @@ function HomePage() {
                     "Explain my intensity per room-night",
                   ]}
                   height="default"
+                  pendingPrompt={pendingPrompt}
+                  onPromptConsumed={() => setPendingPrompt(null)}
                 />
               </div>
             </div>
