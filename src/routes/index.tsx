@@ -584,6 +584,23 @@ function HomePage() {
             onGoToAnalyze={() => setActiveTab("analyze")}
           />
 
+        </TabsContent>
+
+        {/* LOG DATA — three methods: Manual, Survey, Import */}
+        <TabsContent value="log" className="mt-0 focus-visible:outline-none">
+          <LogDataTabs
+            entries={entries}
+            isCurrentLogged={!!isCurrentLogged}
+            onSaved={() => void reload()}
+            sorted={sorted}
+            rooms={hotel.rooms}
+            highlightFields={highlightFields}
+            onHighlightConsumed={() => setHighlightFields([])}
+          />
+        </TabsContent>
+
+        {/* ANALYZE — KPIs, multiple charts, peer benchmarks + Sera chart chat */}
+        <TabsContent value="analyze" className="mt-0 space-y-6 focus-visible:outline-none">
           {/* Smart insights */}
           <Card className="rounded-3xl border-border/70 p-6">
             <div className="mb-4 flex items-center gap-2">
@@ -606,23 +623,7 @@ function HomePage() {
                   : insights.map((ins, i) => <InsightCard key={i} insight={ins} />)}
             </div>
           </Card>
-        </TabsContent>
 
-        {/* LOG DATA — three methods: Manual, Survey, Import */}
-        <TabsContent value="log" className="mt-0 focus-visible:outline-none">
-          <LogDataTabs
-            entries={entries}
-            isCurrentLogged={!!isCurrentLogged}
-            onSaved={() => void reload()}
-            sorted={sorted}
-            rooms={hotel.rooms}
-            highlightFields={highlightFields}
-            onHighlightConsumed={() => setHighlightFields([])}
-          />
-        </TabsContent>
-
-        {/* ANALYZE — KPIs, multiple charts, peer benchmarks + Sera chart chat */}
-        <TabsContent value="analyze" className="mt-0 space-y-6 focus-visible:outline-none">
           {/* Active utility filter chip */}
           {utilityFilter && (() => {
             const activeKpi = KPIS.find((k) => k.utility === utilityFilter);
