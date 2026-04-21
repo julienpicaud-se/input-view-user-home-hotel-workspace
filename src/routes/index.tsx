@@ -380,6 +380,7 @@ function HomePage() {
             isCurrentLogged={!!isCurrentLogged}
             onSaved={() => void reload()}
             sorted={sorted}
+            rooms={hotel.rooms}
           />
         </TabsContent>
 
