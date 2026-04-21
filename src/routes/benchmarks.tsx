@@ -23,6 +23,7 @@ import {
 import { PageContainer, PageHeader } from "@/components/page-shell";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { PeerMiniCard, PEER_MINI_KPIS } from "@/components/peer-mini-card";
 
 export const Route = createFileRoute("/benchmarks")({
   head: () => ({
