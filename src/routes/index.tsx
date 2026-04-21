@@ -34,6 +34,8 @@ import {
   Settings2,
   GripVertical,
   RotateCcw,
+  Download,
+  Users,
 } from "lucide-react";
 import {
   ResponsiveContainer,
