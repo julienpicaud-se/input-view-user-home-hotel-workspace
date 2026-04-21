@@ -407,24 +407,22 @@ function HomePage() {
             {/* Charts column */}
             <div className="space-y-6 lg:col-span-3">
               {/* Stacked utility chart */}
-              <Card className="rounded-3xl border-border/70">
-                <div className="px-6 pt-6 pb-2">
-                  <div className="flex items-baseline justify-between">
-                    <div>
-                      <h2 className="font-serif text-xl font-semibold">12-month consumption</h2>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        Stacked utilities with CO₂e overlay.
-                      </p>
-                    </div>
-                    <div className="hidden items-center gap-3 text-xs text-muted-foreground md:flex">
-                      <LegendDot color="var(--chart-3)" label="Elec" />
-                      <LegendDot color="var(--chart-1)" label="Gas" />
-                      <LegendDot color="var(--chart-2)" label="Water" />
-                      <LegendDot color="var(--chart-5)" label="Waste" />
-                      <LegendDot color="var(--champagne)" label="CO₂e" line />
-                    </div>
+              <ChartCard
+                id="consumption"
+                active={activeChart}
+                onSelect={setActiveChart}
+                title="12-month consumption"
+                subtitle="Stacked utilities with CO₂e overlay."
+                aside={
+                  <div className="hidden items-center gap-3 text-xs text-muted-foreground md:flex">
+                    <LegendDot color="var(--chart-3)" label="Elec" />
+                    <LegendDot color="var(--chart-1)" label="Gas" />
+                    <LegendDot color="var(--chart-2)" label="Water" />
+                    <LegendDot color="var(--chart-5)" label="Waste" />
+                    <LegendDot color="var(--champagne)" label="CO₂e" line />
                   </div>
-                </div>
+                }
+              >
                 <div className="h-72 px-2 pb-4 md:px-4">
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={trendData} margin={{ top: 16, right: 16, left: 0, bottom: 8 }}>
@@ -447,21 +445,17 @@ function HomePage() {
                     </ComposedChart>
                   </ResponsiveContainer>
                 </div>
-              </Card>
+              </ChartCard>
 
               {/* CO2e bar chart */}
-              <Card className="rounded-3xl border-border/70">
-                <div className="px-6 pt-6 pb-2">
-                  <div className="flex items-baseline justify-between">
-                    <div>
-                      <h2 className="font-serif text-xl font-semibold">CO₂e emissions</h2>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        Estimated kg CO₂e per month.
-                      </p>
-                    </div>
-                    <BarChart3 className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                </div>
+              <ChartCard
+                id="co2e"
+                active={activeChart}
+                onSelect={setActiveChart}
+                title="CO₂e emissions"
+                subtitle="Estimated kg CO₂e per month."
+                aside={<BarChart3 className="h-5 w-5 text-muted-foreground" />}
+              >
                 <div className="h-60 px-2 pb-4 md:px-4">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={co2Data} margin={{ top: 12, right: 16, left: 0, bottom: 8 }}>
@@ -480,25 +474,23 @@ function HomePage() {
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
-              </Card>
+              </ChartCard>
 
               {/* Intensity chart (per room-night) */}
-              <Card className="rounded-3xl border-border/70">
-                <div className="px-6 pt-6 pb-2">
-                  <div className="flex items-baseline justify-between">
-                    <div>
-                      <h2 className="font-serif text-xl font-semibold">Intensity per room-night</h2>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        Normalised consumption — independent of occupancy.
-                      </p>
-                    </div>
-                    <div className="hidden items-center gap-3 text-xs text-muted-foreground md:flex">
-                      <LegendDot color="var(--chart-3)" label="Elec" line />
-                      <LegendDot color="var(--chart-1)" label="Gas" line />
-                      <LegendDot color="var(--chart-2)" label="Water" line />
-                    </div>
+              <ChartCard
+                id="intensity"
+                active={activeChart}
+                onSelect={setActiveChart}
+                title="Intensity per room-night"
+                subtitle="Normalised consumption — independent of occupancy."
+                aside={
+                  <div className="hidden items-center gap-3 text-xs text-muted-foreground md:flex">
+                    <LegendDot color="var(--chart-3)" label="Elec" line />
+                    <LegendDot color="var(--chart-1)" label="Gas" line />
+                    <LegendDot color="var(--chart-2)" label="Water" line />
                   </div>
-                </div>
+                }
+              >
                 <div className="h-60 px-2 pb-4 md:px-4">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={intensityData} margin={{ top: 12, right: 16, left: 0, bottom: 8 }}>
@@ -520,20 +512,18 @@ function HomePage() {
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
-              </Card>
+              </ChartCard>
 
               {/* Peer comparison */}
-              <Card className="rounded-3xl border-border/70 p-6">
-                <div className="mb-4 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Trophy className="h-5 w-5" style={{ color: "var(--champagne)" }} />
-                    <h2 className="font-serif text-xl font-semibold">Peer comparison</h2>
-                  </div>
-                  <span className="text-xs text-muted-foreground">
-                    vs {cohortSize} similar Mediterranean hotels
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <ChartCard
+                id="peer"
+                active={activeChart}
+                onSelect={setActiveChart}
+                title="Peer comparison"
+                subtitle={`vs ${cohortSize} similar Mediterranean hotels`}
+                aside={<Trophy className="h-5 w-5" style={{ color: "var(--champagne)" }} />}
+              >
+                <div className="grid grid-cols-1 gap-3 px-6 pb-6 sm:grid-cols-2">
                   {KPIS.map((kpi) => (
                     <PeerMiniCard
                       key={kpi.key}
@@ -544,12 +534,13 @@ function HomePage() {
                     />
                   ))}
                 </div>
-              </Card>
+              </ChartCard>
             </div>
 
-            {/* Sera chart-aware chat — sticky */}
-            <div className="lg:col-span-2">
-              <div className="lg:sticky lg:top-6">
+            {/* Right rail: chart explainer + Sera chat */}
+            <div className="space-y-6 lg:col-span-2">
+              <div className="lg:sticky lg:top-6 space-y-6">
+                <ChartExplainerCard chartId={activeChart} />
                 <MiniAssistantCard
                   title="Ask Sera about your charts"
                   subtitle="Spot trends, compare months, plan actions"
@@ -559,7 +550,7 @@ function HomePage() {
                     "Where am I worst vs peers?",
                     "Explain my intensity per room-night",
                   ]}
-                  height="tall"
+                  height="default"
                 />
               </div>
             </div>
