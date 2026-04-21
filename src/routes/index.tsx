@@ -69,6 +69,7 @@ import {
   type Utility,
 } from "@/lib/peer-benchmarks";
 import { PageContainer } from "@/components/page-shell";
+import { OnboardingWizard } from "@/components/onboarding-wizard";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
@@ -385,6 +386,7 @@ function HomePage() {
 
   return (
     <PageContainer>
+      <OnboardingWizard hotel={hotel} onCompleted={() => void reload()} />
       {/* Hero header */}
       <header className="mb-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
