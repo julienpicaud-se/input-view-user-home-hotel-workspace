@@ -430,7 +430,11 @@ function HomePage() {
             onGoToAnalyze={() => setActiveTab("analyze")}
           />
 
-          <TodoCompletionInsights sorted={sorted} computeScore={computeScore} />
+          <TodoCompletionInsights
+            sorted={sorted}
+            computeScore={computeScore}
+            computeScoreBreakdown={computeScoreBreakdown}
+          />
 
           {/* Insights + Sera chat side-by-side */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
