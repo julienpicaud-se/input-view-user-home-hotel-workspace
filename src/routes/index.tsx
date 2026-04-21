@@ -136,6 +136,7 @@ function HomePage() {
   const [activeTab, setActiveTab] = React.useState<string>("overview");
   const [pendingPrompt, setPendingPrompt] = React.useState<string | null>(null);
   const [highlightFields, setHighlightFields] = React.useState<HighlightedField[]>([]);
+  const [utilityFilter, setUtilityFilter] = React.useState<Utility | null>(null);
 
   const reload = React.useCallback(async () => {
     const [{ data: h }, { data: e }] = await Promise.all([
