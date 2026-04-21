@@ -1415,6 +1415,101 @@ function MonthlyChangeSummary({
               })}
             </div>
           )}
+
+          {latest && prev && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className="mt-3 inline-flex items-center gap-1 rounded-full border border-border/70 bg-background/60 px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <Info className="h-3 w-3" />
+                  How this changed
+                </button>
+              </PopoverTrigger>
+              <PopoverContent
+                align="start"
+                side="bottom"
+                className="w-[22rem] rounded-2xl border-border/70 p-4 text-xs leading-relaxed"
+              >
+                <div className="mb-2 flex items-center gap-1.5">
+                  <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    How this changed
+                  </span>
+                </div>
+
+                {/* Score formula */}
+                <div className="space-y-1.5">
+                  <p className="font-medium text-foreground">Score delta</p>
+                  <p className="text-muted-foreground">
+                    Δscore = score(<span className="text-foreground">{MONTH_NAMES[latest.month - 1]}</span>) − score(<span className="text-foreground">{MONTH_NAMES[prev.month - 1]}</span>)
+                  </p>
+                  <p className="font-mono text-[11px] text-foreground">
+                    {currentScore ?? "—"} − {previousScore ?? "—"} ={" "}
+                    <span className={
+                      currentScore !== null && previousScore !== null && currentScore - previousScore > 0
+                        ? "text-primary"
+                        : currentScore !== null && previousScore !== null && currentScore - previousScore < 0
+                          ? "text-destructive"
+                          : ""
+                    }>
+                      {currentScore !== null && previousScore !== null
+                        ? `${currentScore - previousScore > 0 ? "+" : ""}${currentScore - previousScore}`
+                        : "—"} pts
+                    </span>
+                  </p>
+                </div>
+
+                <Separator className="my-3" />
+
+                {/* Sub-score formula */}
+                <div className="space-y-1.5">
+                  <p className="font-medium text-foreground">Per-utility sub-score</p>
+                  <p className="text-muted-foreground">
+                    Each utility scores 0–100 based on its intensity (per occupied room-night) vs your peer cohort:
+                  </p>
+                  <p className="font-mono text-[11px] text-foreground">
+                    sub = 100 − ((intensity − p10) ÷ (p90 − p10)) × 80
+                  </p>
+                  <p className="text-muted-foreground">
+                    Score is the weighted average: <span className="text-foreground">Electricity 35% · Gas 20% · Water 25% · Waste 20%</span>.
+                  </p>
+                </div>
+
+                <Separator className="my-3" />
+
+                {/* Top driver math */}
+                <div className="space-y-1.5">
+                  <p className="font-medium text-foreground">Top drivers</p>
+                  <p className="text-muted-foreground">
+                    Drivers are ranked by absolute weighted impact: |Δsub × weight|.
+                  </p>
+                  {summary.drivers.length > 0 ? (
+                    <ul className="mt-1 space-y-1">
+                      {summary.drivers.map((d) => {
+                        const part = currentBreakdown.parts.find((p) => p.key === d.key);
+                        const prevPart = previousBreakdown.parts.find((p) => p.key === d.key);
+                        const w = part?.weight ?? 0;
+                        const weighted = d.delta * w;
+                        return (
+                          <li key={d.key} className="font-mono text-[11px] text-foreground">
+                            <span className="font-sans text-muted-foreground">{d.label}: </span>
+                            ({part?.sub ?? "—"} − {prevPart?.sub ?? "—"}) × {w} ={" "}
+                            <span className={d.delta > 0 ? "text-primary" : d.delta < 0 ? "text-destructive" : ""}>
+                              {weighted > 0 ? "+" : ""}{weighted.toFixed(1)} pts
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : (
+                    <p className="text-muted-foreground italic">No drivers — log matching utilities both months.</p>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
         </div>
       </div>
     </Card>
