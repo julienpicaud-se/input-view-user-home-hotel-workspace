@@ -175,3 +175,61 @@ export interface Insight {
   body: string;
   tone: "positive" | "warning" | "neutral";
 }
+
+export const explainChart = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      chartId: z.enum(["consumption", "co2e", "intensity", "peer"]),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const context = await getHotelContext();
+
+    const chartBriefs: Record<string, string> = {
+      consumption:
+        "12-month stacked area chart of electricity, gas, water and waste, with a CO₂e line overlay. X axis = months, Y axis = consumption volumes (mixed units, stacked).",
+      co2e:
+        "Monthly bar chart of estimated CO₂e emissions in kilograms, derived from electricity, gas, water and waste with standard emission factors.",
+      intensity:
+        "Line chart of consumption per occupied room-night for electricity (kWh/rn), gas (kWh/rn) and water (m³/rn). Normalises away occupancy effects.",
+      peer:
+        "Peer comparison cards showing your latest intensity per room-night vs the P10/P50/P90 of similar hotels (size band, region, star rating).",
+    };
+
+    const messages: ChatMsg[] = [
+      {
+        role: "system",
+        content: `You are Sera. Explain the selected chart to a hotel manager in plain language. Return ONLY valid JSON: {"summary":"1 short sentence on what the chart shows","read":["3 bullet points on how to read it"],"signals":["2-3 bullet points on what to look for in THIS hotel's data, citing real numbers/months when possible"],"actions":["2 short next-step actions"]}. Keep every bullet under 18 words. Use units (kWh, m³, kg, %).\n\nCHART: ${chartBriefs[data.chartId]}\n\nHOTEL CONTEXT:\n${context}`,
+      },
+      { role: "user", content: `Explain the "${data.chartId}" chart.` },
+    ];
+
+    let res: Response;
+    try {
+      res = await callLovableAI(messages, false);
+    } catch (e) {
+      console.error("explainChart AI call failed:", e);
+      return { ok: false as const, error: "Explanation unavailable." };
+    }
+    if (!res.ok) {
+      return { ok: false as const, error: "Explanation unavailable." };
+    }
+    const json = (await res.json()) as {
+      choices?: { message?: { content?: string } }[];
+    };
+    const raw = json.choices?.[0]?.message?.content ?? "";
+    const cleaned = raw.replace(/```json\s*|```/g, "").trim();
+    try {
+      const parsed = JSON.parse(cleaned) as ChartExplanation;
+      return { ok: true as const, explanation: parsed };
+    } catch {
+      return { ok: false as const, error: "Could not parse explanation." };
+    }
+  });
+
+export interface ChartExplanation {
+  summary: string;
+  read: string[];
+  signals: string[];
+  actions: string[];
+}

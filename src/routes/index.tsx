@@ -25,6 +25,9 @@ import {
   Upload,
   FileSpreadsheet,
   BarChart3,
+  AlertTriangle,
+  AlertCircle,
+  BookOpen,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -71,7 +74,9 @@ import {
 import {
   generateInsights,
   sendAssistantMessage,
+  explainChart,
   type Insight,
+  type ChartExplanation,
 } from "@/server/assistant.functions";
 
 export const Route = createFileRoute("/")({
@@ -111,6 +116,7 @@ function HomePage() {
   const [perRoom, setPerRoom] = React.useState(false);
   const [insights, setInsights] = React.useState<Insight[]>([]);
   const [insightsLoading, setInsightsLoading] = React.useState(false);
+  const [activeChart, setActiveChart] = React.useState<ChartId>("consumption");
 
   const reload = React.useCallback(async () => {
     const [{ data: h }, { data: e }] = await Promise.all([
@@ -375,6 +381,7 @@ function HomePage() {
             isCurrentLogged={!!isCurrentLogged}
             onSaved={() => void reload()}
             sorted={sorted}
+            rooms={hotel.rooms}
           />
         </TabsContent>
 
@@ -400,24 +407,22 @@ function HomePage() {
             {/* Charts column */}
             <div className="space-y-6 lg:col-span-3">
               {/* Stacked utility chart */}
-              <Card className="rounded-3xl border-border/70">
-                <div className="px-6 pt-6 pb-2">
-                  <div className="flex items-baseline justify-between">
-                    <div>
-                      <h2 className="font-serif text-xl font-semibold">12-month consumption</h2>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        Stacked utilities with CO₂e overlay.
-                      </p>
-                    </div>
-                    <div className="hidden items-center gap-3 text-xs text-muted-foreground md:flex">
-                      <LegendDot color="var(--chart-3)" label="Elec" />
-                      <LegendDot color="var(--chart-1)" label="Gas" />
-                      <LegendDot color="var(--chart-2)" label="Water" />
-                      <LegendDot color="var(--chart-5)" label="Waste" />
-                      <LegendDot color="var(--champagne)" label="CO₂e" line />
-                    </div>
+              <ChartCard
+                id="consumption"
+                active={activeChart}
+                onSelect={setActiveChart}
+                title="12-month consumption"
+                subtitle="Stacked utilities with CO₂e overlay."
+                aside={
+                  <div className="hidden items-center gap-3 text-xs text-muted-foreground md:flex">
+                    <LegendDot color="var(--chart-3)" label="Elec" />
+                    <LegendDot color="var(--chart-1)" label="Gas" />
+                    <LegendDot color="var(--chart-2)" label="Water" />
+                    <LegendDot color="var(--chart-5)" label="Waste" />
+                    <LegendDot color="var(--champagne)" label="CO₂e" line />
                   </div>
-                </div>
+                }
+              >
                 <div className="h-72 px-2 pb-4 md:px-4">
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={trendData} margin={{ top: 16, right: 16, left: 0, bottom: 8 }}>
@@ -440,21 +445,17 @@ function HomePage() {
                     </ComposedChart>
                   </ResponsiveContainer>
                 </div>
-              </Card>
+              </ChartCard>
 
               {/* CO2e bar chart */}
-              <Card className="rounded-3xl border-border/70">
-                <div className="px-6 pt-6 pb-2">
-                  <div className="flex items-baseline justify-between">
-                    <div>
-                      <h2 className="font-serif text-xl font-semibold">CO₂e emissions</h2>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        Estimated kg CO₂e per month.
-                      </p>
-                    </div>
-                    <BarChart3 className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                </div>
+              <ChartCard
+                id="co2e"
+                active={activeChart}
+                onSelect={setActiveChart}
+                title="CO₂e emissions"
+                subtitle="Estimated kg CO₂e per month."
+                aside={<BarChart3 className="h-5 w-5 text-muted-foreground" />}
+              >
                 <div className="h-60 px-2 pb-4 md:px-4">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={co2Data} margin={{ top: 12, right: 16, left: 0, bottom: 8 }}>
@@ -473,25 +474,23 @@ function HomePage() {
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
-              </Card>
+              </ChartCard>
 
               {/* Intensity chart (per room-night) */}
-              <Card className="rounded-3xl border-border/70">
-                <div className="px-6 pt-6 pb-2">
-                  <div className="flex items-baseline justify-between">
-                    <div>
-                      <h2 className="font-serif text-xl font-semibold">Intensity per room-night</h2>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        Normalised consumption — independent of occupancy.
-                      </p>
-                    </div>
-                    <div className="hidden items-center gap-3 text-xs text-muted-foreground md:flex">
-                      <LegendDot color="var(--chart-3)" label="Elec" line />
-                      <LegendDot color="var(--chart-1)" label="Gas" line />
-                      <LegendDot color="var(--chart-2)" label="Water" line />
-                    </div>
+              <ChartCard
+                id="intensity"
+                active={activeChart}
+                onSelect={setActiveChart}
+                title="Intensity per room-night"
+                subtitle="Normalised consumption — independent of occupancy."
+                aside={
+                  <div className="hidden items-center gap-3 text-xs text-muted-foreground md:flex">
+                    <LegendDot color="var(--chart-3)" label="Elec" line />
+                    <LegendDot color="var(--chart-1)" label="Gas" line />
+                    <LegendDot color="var(--chart-2)" label="Water" line />
                   </div>
-                </div>
+                }
+              >
                 <div className="h-60 px-2 pb-4 md:px-4">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={intensityData} margin={{ top: 12, right: 16, left: 0, bottom: 8 }}>
@@ -513,20 +512,18 @@ function HomePage() {
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
-              </Card>
+              </ChartCard>
 
               {/* Peer comparison */}
-              <Card className="rounded-3xl border-border/70 p-6">
-                <div className="mb-4 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Trophy className="h-5 w-5" style={{ color: "var(--champagne)" }} />
-                    <h2 className="font-serif text-xl font-semibold">Peer comparison</h2>
-                  </div>
-                  <span className="text-xs text-muted-foreground">
-                    vs {cohortSize} similar Mediterranean hotels
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <ChartCard
+                id="peer"
+                active={activeChart}
+                onSelect={setActiveChart}
+                title="Peer comparison"
+                subtitle={`vs ${cohortSize} similar Mediterranean hotels`}
+                aside={<Trophy className="h-5 w-5" style={{ color: "var(--champagne)" }} />}
+              >
+                <div className="grid grid-cols-1 gap-3 px-6 pb-6 sm:grid-cols-2">
                   {KPIS.map((kpi) => (
                     <PeerMiniCard
                       key={kpi.key}
@@ -537,12 +534,13 @@ function HomePage() {
                     />
                   ))}
                 </div>
-              </Card>
+              </ChartCard>
             </div>
 
-            {/* Sera chart-aware chat — sticky */}
-            <div className="lg:col-span-2">
-              <div className="lg:sticky lg:top-6">
+            {/* Right rail: chart explainer + Sera chat */}
+            <div className="space-y-6 lg:col-span-2">
+              <div className="lg:sticky lg:top-6 space-y-6">
+                <ChartExplainerCard chartId={activeChart} />
                 <MiniAssistantCard
                   title="Ask Sera about your charts"
                   subtitle="Spot trends, compare months, plan actions"
@@ -552,7 +550,7 @@ function HomePage() {
                     "Where am I worst vs peers?",
                     "Explain my intensity per room-night",
                   ]}
-                  height="tall"
+                  height="default"
                 />
               </div>
             </div>
@@ -573,6 +571,186 @@ function LegendDot({ color, label, line }: { color: string; label: string; line?
       )}
       {label}
     </span>
+  );
+}
+
+/* ---------- Chart wrapper + Explainer ---------- */
+
+type ChartId = "consumption" | "co2e" | "intensity" | "peer";
+
+function ChartCard({
+  id,
+  active,
+  onSelect,
+  title,
+  subtitle,
+  aside,
+  children,
+}: {
+  id: ChartId;
+  active: ChartId;
+  onSelect: (id: ChartId) => void;
+  title: string;
+  subtitle: string;
+  aside?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  const isActive = active === id;
+  return (
+    <Card
+      role="button"
+      tabIndex={0}
+      onClick={() => onSelect(id)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelect(id);
+        }
+      }}
+      aria-pressed={isActive}
+      className={`cursor-pointer rounded-3xl border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+        isActive
+          ? "border-primary/60 ring-2 ring-primary/30 shadow-md"
+          : "border-border/70 hover:border-primary/40"
+      }`}
+    >
+      <div className="px-6 pt-6 pb-2">
+        <div className="flex items-baseline justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="font-serif text-xl font-semibold">{title}</h2>
+              {isActive && (
+                <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-primary">
+                  Selected
+                </span>
+              )}
+            </div>
+            <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
+          </div>
+          {aside}
+        </div>
+      </div>
+      {children}
+    </Card>
+  );
+}
+
+const CHART_TITLES: Record<ChartId, string> = {
+  consumption: "12-month consumption",
+  co2e: "CO₂e emissions",
+  intensity: "Intensity per room-night",
+  peer: "Peer comparison",
+};
+
+function ChartExplainerCard({ chartId }: { chartId: ChartId }) {
+  const explain = useServerFn(explainChart);
+  const [data, setData] = React.useState<ChartExplanation | null>(null);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    setData(null);
+    explain({ data: { chartId } })
+      .then((r) => {
+        if (cancelled) return;
+        if (r.ok) setData(r.explanation);
+        else setError(r.error);
+      })
+      .catch(() => !cancelled && setError("Could not load explanation."))
+      .finally(() => !cancelled && setLoading(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [chartId, explain]);
+
+  return (
+    <Card className="rounded-3xl border-border/70 bg-gradient-to-br from-card to-accent/5 p-5">
+      <div className="flex items-start gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
+          <BookOpen className="h-4 w-4" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
+            How to read this chart
+          </div>
+          <h3 className="mt-0.5 font-serif text-lg font-semibold leading-tight">
+            {CHART_TITLES[chartId]}
+          </h3>
+        </div>
+      </div>
+
+      <div className="mt-4 min-h-[180px]">
+        {loading && (
+          <div className="space-y-2">
+            <div className="h-3 w-full animate-pulse rounded bg-muted" />
+            <div className="h-3 w-5/6 animate-pulse rounded bg-muted" />
+            <div className="h-3 w-4/6 animate-pulse rounded bg-muted" />
+            <div className="mt-3 h-3 w-3/4 animate-pulse rounded bg-muted" />
+          </div>
+        )}
+        {error && !loading && (
+          <p className="text-sm text-muted-foreground">{error}</p>
+        )}
+        {data && !loading && (
+          <div className="space-y-3 text-sm">
+            <p className="leading-snug text-foreground">{data.summary}</p>
+            <ExplainerSection
+              icon={<Info className="h-3.5 w-3.5" />}
+              label="How to read it"
+              items={data.read}
+            />
+            <ExplainerSection
+              icon={<Sparkles className="h-3.5 w-3.5" />}
+              label="What Sera sees in your data"
+              items={data.signals}
+              accent
+            />
+            <ExplainerSection
+              icon={<ChevronRight className="h-3.5 w-3.5" />}
+              label="Next steps"
+              items={data.actions}
+            />
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+function ExplainerSection({
+  icon,
+  label,
+  items,
+  accent,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  items: string[];
+  accent?: boolean;
+}) {
+  if (!items?.length) return null;
+  return (
+    <div>
+      <div
+        className={`mb-1.5 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider ${
+          accent ? "text-primary" : "text-muted-foreground"
+        }`}
+      >
+        {icon}
+        {label}
+      </div>
+      <ul className="space-y-1">
+        {items.map((it, i) => (
+          <li key={i} className="flex gap-2 text-xs leading-relaxed text-foreground/85">
+            <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/60" />
+            <span>{it}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
@@ -722,11 +900,13 @@ function LogDataTabs({
   isCurrentLogged,
   onSaved,
   sorted,
+  rooms,
 }: {
   entries: MonthlyEntry[];
   isCurrentLogged: boolean;
   onSaved: () => void;
   sorted: MonthlyEntry[];
+  rooms: number;
 }) {
   const [method, setMethod] = React.useState<"manual" | "survey" | "import">(
     "manual",
@@ -816,6 +996,7 @@ function LogDataTabs({
             entries={entries}
             isCurrentLogged={isCurrentLogged}
             onSaved={onSaved}
+            rooms={rooms}
           />
         )}
         {method === "survey" && (
@@ -837,14 +1018,132 @@ const quickEntrySchema = z.object({
   occupied_room_nights: z.number().int().min(0).max(100_000).nullable(),
 });
 
+type EntryDraft = {
+  electricity_kwh: number | null;
+  gas_kwh: number | null;
+  water_m3: number | null;
+  waste_kg: number | null;
+  occupied_room_nights: number | null;
+};
+
+interface ValidationIssue {
+  level: "error" | "warning";
+  field?: keyof EntryDraft;
+  message: string;
+}
+
+function labelOf(k: keyof EntryDraft): string {
+  switch (k) {
+    case "electricity_kwh": return "Electricity";
+    case "gas_kwh": return "Gas";
+    case "water_m3": return "Water";
+    case "waste_kg": return "Waste";
+    case "occupied_room_nights": return "Occupied room-nights";
+  }
+}
+
+/**
+ * Validates a manual entry. Errors block save; warnings are advisory.
+ */
+function validateEntry(d: EntryDraft, rooms: number | null): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  const utilKeys: (keyof EntryDraft)[] = [
+    "electricity_kwh",
+    "gas_kwh",
+    "water_m3",
+    "waste_kg",
+  ];
+
+  const utilEntered = utilKeys.filter((k) => d[k] !== null);
+  const allEmpty = utilEntered.length === 0 && d.occupied_room_nights === null;
+  if (allEmpty) {
+    issues.push({ level: "error", message: "Enter at least one value before saving." });
+    return issues;
+  }
+
+  for (const k of [...utilKeys, "occupied_room_nights" as const]) {
+    const v = d[k];
+    if (v !== null && (Number.isNaN(v) || v < 0)) {
+      issues.push({
+        level: "error",
+        field: k,
+        message: `${labelOf(k)} must be a positive number.`,
+      });
+    }
+  }
+
+  const hasAnyUtil = utilEntered.some((k) => (d[k] ?? 0) > 0);
+
+  if (hasAnyUtil && d.occupied_room_nights === 0) {
+    issues.push({
+      level: "error",
+      field: "occupied_room_nights",
+      message:
+        "Occupancy is 0 but utilities were used. Either correct room-nights or set utilities to 0 too.",
+    });
+  }
+
+  if (hasAnyUtil && d.occupied_room_nights === null) {
+    issues.push({
+      level: "warning",
+      field: "occupied_room_nights",
+      message:
+        "Add occupied room-nights — without it we cannot benchmark or normalise this month.",
+    });
+  }
+
+  if (utilEntered.length > 0 && utilEntered.length < utilKeys.length) {
+    const missing = utilKeys.filter((k) => d[k] === null).map(labelOf).join(", ");
+    issues.push({
+      level: "warning",
+      message: `Missing: ${missing}. You can save now and complete later.`,
+    });
+  }
+
+  const orn = d.occupied_room_nights;
+  if (orn && orn > 0) {
+    const checks: { key: keyof EntryDraft; max: number; label: string; unit: string }[] = [
+      { key: "electricity_kwh", max: 200, label: "Electricity", unit: "kWh/rn" },
+      { key: "gas_kwh", max: 200, label: "Gas", unit: "kWh/rn" },
+      { key: "water_m3", max: 2, label: "Water", unit: "m³/rn" },
+      { key: "waste_kg", max: 10, label: "Waste", unit: "kg/rn" },
+    ];
+    for (const c of checks) {
+      const v = d[c.key];
+      if (v !== null && v > 0) {
+        const intensity = v / orn;
+        if (intensity > c.max) {
+          issues.push({
+            level: "warning",
+            field: c.key,
+            message: `${c.label} ≈ ${intensity.toFixed(1)} ${c.unit} — unusually high. Double-check.`,
+          });
+        }
+      }
+    }
+  }
+
+  if (rooms && orn !== null && orn > rooms * 31) {
+    issues.push({
+      level: "error",
+      field: "occupied_room_nights",
+      message: `Room-nights exceed capacity (${rooms} rooms × 31 days = ${rooms * 31}).`,
+    });
+  }
+
+  return issues;
+}
+
 function QuickLogCard({
   entries,
   isCurrentLogged,
   onSaved,
+  rooms,
 }: {
   entries: MonthlyEntry[];
   isCurrentLogged: boolean;
   onSaved: () => void;
+  rooms: number;
 }) {
   // Default to most recent unlogged month
   const initial = React.useMemo(() => {
@@ -877,20 +1176,31 @@ function QuickLogCard({
 
   const num = (s: string) => (s.trim() === "" ? null : Number(s));
 
+  const draft: EntryDraft = React.useMemo(
+    () => ({
+      electricity_kwh: num(form.electricity_kwh),
+      gas_kwh: num(form.gas_kwh),
+      water_m3: num(form.water_m3),
+      waste_kg: num(form.waste_kg),
+      occupied_room_nights: num(form.occupied_room_nights),
+    }),
+    [form],
+  );
+
+  const issues = React.useMemo(() => validateEntry(draft, rooms), [draft, rooms]);
+  const errors = issues.filter((i) => i.level === "error");
+  const warnings = issues.filter((i) => i.level === "warning");
+  const blocked = errors.length > 0;
+  const fieldErrors = new Set(errors.map((e) => e.field).filter(Boolean));
+
   async function handleSave() {
+    if (blocked) {
+      toast.error(errors[0].message);
+      return;
+    }
     setSubmitting(true);
     try {
-      const parsed = quickEntrySchema.parse({
-        electricity_kwh: num(form.electricity_kwh),
-        gas_kwh: num(form.gas_kwh),
-        water_m3: num(form.water_m3),
-        waste_kg: num(form.waste_kg),
-        occupied_room_nights: num(form.occupied_room_nights),
-      });
-      if (Object.values(parsed).every((v) => v === null)) {
-        toast.error("Enter at least one value before saving");
-        return;
-      }
+      const parsed = quickEntrySchema.parse(draft);
       const { error } = await supabase.from("monthly_entries").upsert(
         {
           hotel_id: DEMO_HOTEL_ID,
@@ -961,10 +1271,13 @@ function QuickLogCard({
       <div className="mt-5 space-y-3">
         {FIELDS.map((f) => {
           const Icon = f.icon;
+          const hasErr = fieldErrors.has(f.key);
           return (
             <div
               key={f.key}
-              className="flex items-center gap-3 rounded-xl border border-border bg-background/60 px-3 py-2"
+              className={`flex items-center gap-3 rounded-xl border bg-background/60 px-3 py-2 ${
+                hasErr ? "border-destructive/60" : "border-border"
+              }`}
             >
               <div
                 className="flex h-8 w-8 items-center justify-center rounded-lg"
@@ -979,13 +1292,20 @@ function QuickLogCard({
                 value={form[f.key]}
                 onChange={(e) => setForm((s) => ({ ...s, [f.key]: e.target.value }))}
                 placeholder="0"
-                className="num h-9 w-24 rounded-lg border-border bg-background text-right text-sm"
+                aria-invalid={hasErr}
+                className={`num h-9 w-24 rounded-lg bg-background text-right text-sm ${
+                  hasErr ? "border-destructive" : "border-border"
+                }`}
               />
               <span className="w-10 text-xs text-muted-foreground">{f.unit}</span>
             </div>
           );
         })}
-        <div className="flex items-center gap-3 rounded-xl border border-border bg-background/60 px-3 py-2">
+        <div
+          className={`flex items-center gap-3 rounded-xl border bg-background/60 px-3 py-2 ${
+            fieldErrors.has("occupied_room_nights") ? "border-destructive/60" : "border-border"
+          }`}
+        >
           <span className="ml-11 flex-1 text-sm font-medium">Occupied room-nights</span>
           <Input
             type="number"
@@ -994,19 +1314,53 @@ function QuickLogCard({
               setForm((s) => ({ ...s, occupied_room_nights: e.target.value }))
             }
             placeholder="0"
-            className="num h-9 w-24 rounded-lg border-border bg-background text-right text-sm"
+            aria-invalid={fieldErrors.has("occupied_room_nights")}
+            className={`num h-9 w-24 rounded-lg bg-background text-right text-sm ${
+              fieldErrors.has("occupied_room_nights") ? "border-destructive" : "border-border"
+            }`}
           />
           <span className="w-10 text-xs text-muted-foreground">rn</span>
         </div>
       </div>
 
+      {/* Validation summary */}
+      <AnimatePresence>
+        {(errors.length > 0 || warnings.length > 0) && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mt-4 space-y-2 overflow-hidden"
+          >
+            {errors.map((iss, i) => (
+              <div
+                key={`e-${i}`}
+                className="flex items-start gap-2 rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+              >
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{iss.message}</span>
+              </div>
+            ))}
+            {warnings.map((iss, i) => (
+              <div
+                key={`w-${i}`}
+                className="flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300"
+              >
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{iss.message}</span>
+              </div>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <Button
         onClick={handleSave}
-        disabled={submitting}
+        disabled={submitting || blocked}
         className="mt-5 w-full rounded-xl py-5"
       >
         {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        Save {MONTH_SHORT[initial.m - 1]} {initial.y}
+        {blocked ? "Fix errors to save" : `Save ${MONTH_SHORT[initial.m - 1]} ${initial.y}`}
       </Button>
     </Card>
   );
