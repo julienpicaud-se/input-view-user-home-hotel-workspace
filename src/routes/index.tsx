@@ -878,6 +878,53 @@ function HomePage() {
               </div>
             </div>
           </div>
+
+          {/* Peer benchmarking — full comparison view */}
+          <Card className="rounded-3xl border-border/70 p-6">
+            <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/30 text-accent-foreground">
+                  <Users className="h-4 w-4" />
+                </div>
+                <div>
+                  <h2 className="font-serif text-xl font-semibold">
+                    Benchmark vs similar hotels
+                  </h2>
+                  <p className="mt-0.5 text-sm text-muted-foreground">
+                    {hotel
+                      ? `${hotel.name} compared against ${cohortSize} similar ${hotel.region} hotels (${hotel.size_band} rooms, ${hotel.star_rating}-star).`
+                      : `Compared against ${cohortSize} similar hotels.`}{" "}
+                    Per occupied room-night. Anonymous.
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                <span className="inline-flex items-center rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+                  {hotel?.size_band ?? "—"} rooms
+                </span>
+                <span className="inline-flex items-center rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+                  {hotel?.region ?? "—"}
+                </span>
+                <span className="inline-flex items-center rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+                  {hotel?.star_rating ?? "—"}-star
+                </span>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+              {KPIS.filter((kpi) => !utilityFilter || kpi.utility === utilityFilter).map(
+                (kpi) => (
+                  <BenchmarkComparisonCard
+                    key={kpi.key}
+                    kpi={kpi}
+                    entries={sorted}
+                    filters={filters}
+                    cohortSize={cohortSize}
+                    hotelName={hotel?.name ?? "Your hotel"}
+                  />
+                ),
+              )}
+            </div>
+          </Card>
         </TabsContent>
       </Tabs>
     </PageContainer>
