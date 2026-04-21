@@ -25,6 +25,9 @@ import {
   Upload,
   FileSpreadsheet,
   BarChart3,
+  AlertTriangle,
+  AlertCircle,
+  BookOpen,
 } from "lucide-react";
 import {
   ResponsiveContainer,
