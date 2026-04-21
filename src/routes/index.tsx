@@ -584,28 +584,6 @@ function HomePage() {
             onGoToAnalyze={() => setActiveTab("analyze")}
           />
 
-          {/* Smart insights */}
-          <Card className="rounded-3xl border-border/70 p-6">
-            <div className="mb-4 flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/30 text-accent-foreground">
-                <Sparkles className="h-4 w-4" />
-              </div>
-              <h2 className="font-serif text-xl font-semibold">Smart insights</h2>
-            </div>
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-              {insightsLoading && insights.length === 0
-                ? [0, 1, 2].map((i) => (
-                    <div key={i} className="h-32 animate-pulse rounded-2xl bg-muted" />
-                  ))
-                : insights.length === 0
-                  ? (
-                    <div className="col-span-full rounded-2xl border border-dashed border-border bg-card/50 p-6 text-sm text-muted-foreground">
-                      Insights will appear here once enough data is logged.
-                    </div>
-                  )
-                  : insights.map((ins, i) => <InsightCard key={i} insight={ins} />)}
-            </div>
-          </Card>
         </TabsContent>
 
         {/* LOG DATA — three methods: Manual, Survey, Import */}
