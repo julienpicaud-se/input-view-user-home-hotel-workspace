@@ -374,20 +374,18 @@ function HomePage() {
             </div>
           </Card>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {KPIS.map((kpi) => (
-              <KpiCard
-                key={kpi.key}
-                kpi={kpi}
-                latest={latest}
-                prev={prev}
-                lastYearSame={lastYearSame}
-                sorted={sorted}
-                perRoom={perRoom}
-                filters={filters}
-              />
-            ))}
-          </div>
+          <TodosCard
+            latest={latest}
+            sorted={sorted}
+            isCurrentLogged={!!isCurrentLogged}
+            worstUtility={worstUtility}
+            missingFields={missingFields}
+            onGoToLog={(fields) => {
+              if (fields && fields.length) setHighlightFields(fields);
+              setActiveTab("log");
+            }}
+            onGoToAnalyze={() => setActiveTab("analyze")}
+          />
 
           {/* Insights + Sera chat side-by-side */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
