@@ -726,10 +726,18 @@ function HomePage() {
                           fontSize: 12,
                         }}
                       />
-                      <Area dataKey="electricity" stackId="1" stroke="var(--chart-3)" fill="var(--chart-3)" fillOpacity={0.65} />
-                      <Area dataKey="gas" stackId="1" stroke="var(--chart-1)" fill="var(--chart-1)" fillOpacity={0.65} />
-                      <Area dataKey="water" stackId="1" stroke="var(--chart-2)" fill="var(--chart-2)" fillOpacity={0.45} />
-                      <Area dataKey="waste" stackId="1" stroke="var(--chart-5)" fill="var(--chart-5)" fillOpacity={0.45} />
+                      {(!utilityFilter || utilityFilter === "electricity") && (
+                        <Area dataKey="electricity" stackId="1" stroke="var(--chart-3)" fill="var(--chart-3)" fillOpacity={0.65} />
+                      )}
+                      {(!utilityFilter || utilityFilter === "gas") && (
+                        <Area dataKey="gas" stackId="1" stroke="var(--chart-1)" fill="var(--chart-1)" fillOpacity={0.65} />
+                      )}
+                      {(!utilityFilter || utilityFilter === "water") && (
+                        <Area dataKey="water" stackId="1" stroke="var(--chart-2)" fill="var(--chart-2)" fillOpacity={0.45} />
+                      )}
+                      {(!utilityFilter || utilityFilter === "waste") && (
+                        <Area dataKey="waste" stackId="1" stroke="var(--chart-5)" fill="var(--chart-5)" fillOpacity={0.45} />
+                      )}
                       <Line dataKey="co2e" stroke="var(--champagne)" strokeWidth={2.5} dot={false} />
                     </ComposedChart>
                   </ResponsiveContainer>
