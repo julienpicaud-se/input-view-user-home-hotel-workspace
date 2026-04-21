@@ -9,6 +9,7 @@ import { PageContainer, PageHeader } from "@/components/page-shell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { sendAssistantMessage } from "@/server/assistant.functions";
+import { getActiveHotelId } from "@/lib/hotel";
 
 export const Route = createFileRoute("/assistant")({
   head: () => ({
