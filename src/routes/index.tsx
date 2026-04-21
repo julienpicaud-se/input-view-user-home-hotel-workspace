@@ -106,7 +106,16 @@ import {
   type ChartExplanation,
 } from "@/server/assistant.functions";
 
+type IndexSearch = { tab?: "overview" | "log" | "analyze" };
+
 export const Route = createFileRoute("/")({
+  validateSearch: (search: Record<string, unknown>): IndexSearch => {
+    const tab = search.tab;
+    if (tab === "overview" || tab === "log" || tab === "analyze") {
+      return { tab };
+    }
+    return {};
+  },
   head: () => ({
     meta: [
       { title: "Dashboard — RA+" },
