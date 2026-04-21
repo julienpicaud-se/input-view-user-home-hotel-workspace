@@ -31,6 +31,9 @@ import {
   Target,
   FilePlus,
   Wand2,
+  Settings2,
+  GripVertical,
+  RotateCcw,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -74,6 +77,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   generateInsights,
   sendAssistantMessage,
@@ -950,6 +955,8 @@ function ExplainerSection({
 
 /* ---------- To-dos of the day ---------- */
 
+type TodoCategory = "cost" | "compliance" | "waste" | "data";
+
 interface TodoItem {
   id: string;
   title: string;
@@ -957,7 +964,65 @@ interface TodoItem {
   cta: string;
   icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   tone: "urgent" | "important" | "routine";
+  category: TodoCategory;
   onClick: () => void;
+}
+
+const PRIORITY_STORAGE_KEY = "verdance:todo-priorities:v1";
+const COMPLETION_STORAGE_KEY = "verdance:todo-completion:v1";
+
+const DEFAULT_PRIORITY_ORDER: TodoCategory[] = ["data", "compliance", "cost", "waste"];
+
+const CATEGORY_META: Record<
+  TodoCategory,
+  { label: string; description: string; icon: React.ComponentType<React.SVGProps<SVGSVGElement>> }
+> = {
+  cost: {
+    label: "Cost savings",
+    description: "Spikes vs peers, energy efficiency",
+    icon: Bolt,
+  },
+  compliance: {
+    label: "Compliance & reporting",
+    description: "Invoices, audit-ready logs",
+    icon: ClipboardList,
+  },
+  waste: {
+    label: "Waste reduction",
+    description: "Recycling, waste volumes",
+    icon: Trash2,
+  },
+  data: {
+    label: "Data quality",
+    description: "Missing readings, complete months",
+    icon: FilePlus,
+  },
+};
+
+function loadPriorityOrder(): TodoCategory[] {
+  if (typeof window === "undefined") return DEFAULT_PRIORITY_ORDER;
+  try {
+    const raw = window.localStorage.getItem(PRIORITY_STORAGE_KEY);
+    if (!raw) return DEFAULT_PRIORITY_ORDER;
+    const parsed = JSON.parse(raw) as TodoCategory[];
+    const valid = parsed.filter((c): c is TodoCategory => c in CATEGORY_META);
+    // ensure all categories present
+    const merged = [...valid, ...DEFAULT_PRIORITY_ORDER.filter((c) => !valid.includes(c))];
+    return merged.slice(0, 4);
+  } catch {
+    return DEFAULT_PRIORITY_ORDER;
+  }
+}
+
+function loadCompletionMap(): Record<string, string[]> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(COMPLETION_STORAGE_KEY);
+    if (!raw) return {};
+    return JSON.parse(raw) as Record<string, string[]>;
+  } catch {
+    return {};
+  }
 }
 
 function TodosCard({
@@ -982,7 +1047,71 @@ function TodosCard({
   const prevMonthIdx = today.getMonth() === 0 ? 11 : today.getMonth() - 1;
   const prevMonthLabel = MONTH_NAMES[prevMonthIdx];
 
-  const todos = React.useMemo<TodoItem[]>(() => {
+  // Per-month completion key: YYYY-MM of the latest logged month (or current month)
+  const periodKey = React.useMemo(() => {
+    const y = latest?.year ?? today.getFullYear();
+    const m = latest?.month ?? today.getMonth() + 1;
+    return `${y}-${String(m).padStart(2, "0")}`;
+  }, [latest, today]);
+
+  const [priorityOrder, setPriorityOrder] = React.useState<TodoCategory[]>(DEFAULT_PRIORITY_ORDER);
+  const [completionMap, setCompletionMap] = React.useState<Record<string, string[]>>({});
+  const [settingsOpen, setSettingsOpen] = React.useState(false);
+
+  // Load from localStorage on mount
+  React.useEffect(() => {
+    setPriorityOrder(loadPriorityOrder());
+    setCompletionMap(loadCompletionMap());
+  }, []);
+
+  const completedIds = React.useMemo(
+    () => new Set(completionMap[periodKey] ?? []),
+    [completionMap, periodKey],
+  );
+
+  const toggleComplete = React.useCallback(
+    (id: string) => {
+      setCompletionMap((prev) => {
+        const current = new Set(prev[periodKey] ?? []);
+        if (current.has(id)) current.delete(id);
+        else current.add(id);
+        const next = { ...prev, [periodKey]: Array.from(current) };
+        try {
+          window.localStorage.setItem(COMPLETION_STORAGE_KEY, JSON.stringify(next));
+        } catch {
+          // ignore quota
+        }
+        return next;
+      });
+    },
+    [periodKey],
+  );
+
+  const persistOrder = React.useCallback((order: TodoCategory[]) => {
+    setPriorityOrder(order);
+    try {
+      window.localStorage.setItem(PRIORITY_STORAGE_KEY, JSON.stringify(order));
+    } catch {
+      // ignore quota
+    }
+  }, []);
+
+  const movePriority = React.useCallback(
+    (index: number, dir: -1 | 1) => {
+      const next = [...priorityOrder];
+      const target = index + dir;
+      if (target < 0 || target >= next.length) return;
+      [next[index], next[target]] = [next[target], next[index]];
+      persistOrder(next);
+    },
+    [priorityOrder, persistOrder],
+  );
+
+  const resetPriorities = React.useCallback(() => {
+    persistOrder(DEFAULT_PRIORITY_ORDER);
+  }, [persistOrder]);
+
+  const baseTodos = React.useMemo<TodoItem[]>(() => {
     const items: TodoItem[] = [];
 
     if (!isCurrentLogged) {
@@ -993,16 +1122,17 @@ function TodosCard({
         cta: "Open log form",
         icon: ClipboardList,
         tone: "urgent",
+        category: "data",
         onClick: () => onGoToLog(),
       });
     }
 
-    const fieldMeta: Record<HighlightedField, { label: string; verb: string; icon: React.ComponentType<React.SVGProps<SVGSVGElement>> }> = {
-      electricity_kwh: { label: "electricity invoice", verb: "Add", icon: Bolt },
-      gas_kwh: { label: "gas reading", verb: "Add", icon: Flame },
-      water_m3: { label: "water meter reading", verb: "Add", icon: Droplets },
-      waste_kg: { label: "waste collection data", verb: "Add", icon: Trash2 },
-      occupied_room_nights: { label: "occupied room-nights", verb: "Confirm", icon: FilePlus },
+    const fieldMeta: Record<HighlightedField, { label: string; verb: string; icon: React.ComponentType<React.SVGProps<SVGSVGElement>>; category: TodoCategory }> = {
+      electricity_kwh: { label: "electricity invoice", verb: "Add", icon: Bolt, category: "cost" },
+      gas_kwh: { label: "gas reading", verb: "Add", icon: Flame, category: "cost" },
+      water_m3: { label: "water meter reading", verb: "Add", icon: Droplets, category: "data" },
+      waste_kg: { label: "waste collection data", verb: "Add", icon: Trash2, category: "waste" },
+      occupied_room_nights: { label: "occupied room-nights", verb: "Confirm", icon: FilePlus, category: "data" },
     };
     const missingPriority: HighlightedField[] = [
       "electricity_kwh",
@@ -1021,11 +1151,13 @@ function TodosCard({
         cta: "Open form",
         icon: meta.icon,
         tone: "important",
+        category: meta.category,
         onClick: () => onGoToLog([f]),
       });
     }
 
     if (worstUtility && worstUtility.rank > 50) {
+      const cat: TodoCategory = worstUtility.key === "waste_kg" ? "waste" : "cost";
       items.push({
         id: "investigate-worst",
         title: `Investigate ${worstUtility.label.toLowerCase()} spike`,
@@ -1033,6 +1165,7 @@ function TodosCard({
         cta: "Open analysis",
         icon: AlertTriangle,
         tone: "important",
+        category: cat,
         onClick: onGoToAnalyze,
       });
     }
@@ -1045,6 +1178,7 @@ function TodosCard({
         cta: "Open analysis",
         icon: BarChart3,
         tone: "routine",
+        category: "compliance",
         onClick: onGoToAnalyze,
       });
     }
@@ -1057,6 +1191,7 @@ function TodosCard({
         cta: "Open log form",
         icon: Upload,
         tone: "routine",
+        category: "compliance",
         onClick: () => onGoToLog(),
       });
     }
@@ -1069,11 +1204,12 @@ function TodosCard({
         cta: "Open analysis",
         icon: CheckCircle2,
         tone: "routine",
+        category: "data",
         onClick: onGoToAnalyze,
       });
     }
 
-    return items.slice(0, 5);
+    return items;
   }, [
     isCurrentLogged,
     monthLabel,
@@ -1087,8 +1223,28 @@ function TodosCard({
     today,
   ]);
 
-  const completedCount = isCurrentLogged ? 1 : 0;
-  const totalCount = todos.length + completedCount;
+  // Sort by priority order (urgent always first within its category bucket)
+  const sortedTodos = React.useMemo<TodoItem[]>(() => {
+    const toneRank: Record<TodoItem["tone"], number> = { urgent: 0, important: 1, routine: 2 };
+    const catRank = (c: TodoCategory) => {
+      const idx = priorityOrder.indexOf(c);
+      return idx === -1 ? 99 : idx;
+    };
+    return [...baseTodos]
+      .sort((a, b) => {
+        // Always show urgent first regardless of priority preference
+        if (a.tone === "urgent" && b.tone !== "urgent") return -1;
+        if (b.tone === "urgent" && a.tone !== "urgent") return 1;
+        const c = catRank(a.category) - catRank(b.category);
+        if (c !== 0) return c;
+        return toneRank[a.tone] - toneRank[b.tone];
+      })
+      .slice(0, 5);
+  }, [baseTodos, priorityOrder]);
+
+  const totalCount = sortedTodos.length;
+  const completedCount = sortedTodos.filter((t) => completedIds.has(t.id)).length;
+  const allDone = totalCount > 0 && completedCount === totalCount;
 
   return (
     <Card className="rounded-3xl border-border/70 p-6">
@@ -1101,67 +1257,189 @@ function TodosCard({
             <h2 className="font-serif text-xl font-semibold">To-dos of the day</h2>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
-            {todos.length === 1 && todos[0].id === "all-good"
-              ? "You're on top of things."
-              : `${todos.length} action${todos.length > 1 ? "s" : ""} to keep your data and score on track.`}
+            {allDone
+              ? `All done for ${MONTH_NAMES[Number(periodKey.slice(5, 7)) - 1]} — great work.`
+              : sortedTodos.length === 1 && sortedTodos[0].id === "all-good"
+                ? "You're on top of things."
+                : `${totalCount - completedCount} action${totalCount - completedCount !== 1 ? "s" : ""} left to keep your data and score on track.`}
           </p>
         </div>
-        <div className="rounded-full border border-border bg-muted/40 px-3 py-1 text-xs text-muted-foreground">
-          {completedCount}/{totalCount} done today
+        <div className="flex items-center gap-2">
+          <div className="rounded-full border border-border bg-muted/40 px-3 py-1 text-xs text-muted-foreground">
+            {completedCount}/{totalCount} done this month
+          </div>
+          <Popover open={settingsOpen} onOpenChange={setSettingsOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1.5"
+                aria-label="Priority settings"
+              >
+                <Settings2 className="h-3.5 w-3.5" />
+                Priorities
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-80 p-4">
+              <div className="mb-3 flex items-start justify-between gap-2">
+                <div>
+                  <h3 className="text-sm font-semibold">What matters most?</h3>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    Reorder to control how to-dos are sorted.
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1 px-2 text-xs"
+                  onClick={resetPriorities}
+                >
+                  <RotateCcw className="h-3 w-3" />
+                  Reset
+                </Button>
+              </div>
+              <ol className="space-y-1.5">
+                {priorityOrder.map((cat, i) => {
+                  const meta = CATEGORY_META[cat];
+                  const CatIcon = meta.icon;
+                  return (
+                    <li
+                      key={cat}
+                      className="flex items-center gap-2 rounded-lg border border-border bg-card p-2"
+                    >
+                      <GripVertical className="h-4 w-4 text-muted-foreground" />
+                      <div className="flex h-7 w-7 items-center justify-center rounded-md bg-accent/30 text-accent-foreground">
+                        <CatIcon className="h-3.5 w-3.5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold">{i + 1}.</span>
+                          <span className="text-sm font-medium">{meta.label}</span>
+                        </div>
+                        <div className="text-[11px] text-muted-foreground">{meta.description}</div>
+                      </div>
+                      <div className="flex flex-col">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-5 w-6 p-0"
+                          onClick={() => movePriority(i, -1)}
+                          disabled={i === 0}
+                          aria-label={`Move ${meta.label} up`}
+                        >
+                          <ChevronLeft className="h-3 w-3 rotate-90" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-5 w-6 p-0"
+                          onClick={() => movePriority(i, 1)}
+                          disabled={i === priorityOrder.length - 1}
+                          aria-label={`Move ${meta.label} down`}
+                        >
+                          <ChevronRight className="h-3 w-3 rotate-90" />
+                        </Button>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
+              <p className="mt-3 text-[11px] text-muted-foreground">
+                Urgent tasks (like logging this month) always appear first.
+              </p>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
       <ul className="space-y-3">
-        {todos.map((todo) => {
-          const Icon = todo.icon;
-          const toneStyles =
-            todo.tone === "urgent"
-              ? "border-l-4 border-l-destructive bg-destructive/5"
-              : todo.tone === "important"
-                ? "border-l-4 border-l-primary/70 bg-primary/5"
-                : "border-l-4 border-l-muted bg-card";
-          const iconBg =
-            todo.tone === "urgent"
-              ? "bg-destructive/15 text-destructive"
-              : todo.tone === "important"
-                ? "bg-primary/15 text-primary"
-                : "bg-muted text-muted-foreground";
+        <AnimatePresence initial={false}>
+          {sortedTodos.map((todo) => {
+            const Icon = todo.icon;
+            const done = completedIds.has(todo.id);
+            const toneStyles = done
+              ? "border-l-4 border-l-muted bg-muted/30 opacity-70"
+              : todo.tone === "urgent"
+                ? "border-l-4 border-l-destructive bg-destructive/5"
+                : todo.tone === "important"
+                  ? "border-l-4 border-l-primary/70 bg-primary/5"
+                  : "border-l-4 border-l-muted bg-card";
+            const iconBg = done
+              ? "bg-muted text-muted-foreground"
+              : todo.tone === "urgent"
+                ? "bg-destructive/15 text-destructive"
+                : todo.tone === "important"
+                  ? "bg-primary/15 text-primary"
+                  : "bg-muted text-muted-foreground";
+            const catLabel = CATEGORY_META[todo.category].label;
 
-          return (
-            <li
-              key={todo.id}
-              className={`group flex flex-wrap items-center gap-4 rounded-2xl border border-border/70 p-4 transition hover:bg-card/80 ${toneStyles}`}
-            >
-              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${iconBg}`}>
-                <Icon className="h-5 w-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-semibold text-foreground">{todo.title}</h3>
-                  {todo.tone === "urgent" && (
-                    <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-destructive">
-                      Today
-                    </span>
-                  )}
-                </div>
-                <p className="mt-0.5 text-xs text-muted-foreground">{todo.description}</p>
-              </div>
-              <Button
-                size="sm"
-                variant={todo.tone === "urgent" ? "default" : "outline"}
-                onClick={todo.onClick}
-                className="shrink-0"
+            return (
+              <motion.li
+                key={todo.id}
+                layout
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.18 }}
+                className={`group flex flex-wrap items-center gap-4 rounded-2xl border border-border/70 p-4 transition hover:bg-card/80 ${toneStyles}`}
               >
-                {todo.cta}
-                <ChevronRight className="ml-1 h-4 w-4" />
-              </Button>
-            </li>
-          );
-        })}
+                <div className="flex shrink-0 items-center gap-3">
+                  <Checkbox
+                    checked={done}
+                    onCheckedChange={() => toggleComplete(todo.id)}
+                    aria-label={done ? `Mark "${todo.title}" not done` : `Mark "${todo.title}" done`}
+                    className="h-5 w-5"
+                  />
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${iconBg}`}>
+                    <Icon className="h-5 w-5" />
+                  </div>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3
+                      className={`text-sm font-semibold text-foreground ${done ? "line-through" : ""}`}
+                    >
+                      {todo.title}
+                    </h3>
+                    {todo.tone === "urgent" && !done && (
+                      <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-destructive">
+                        Today
+                      </span>
+                    )}
+                    <span className="rounded-full border border-border bg-card px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                      {catLabel}
+                    </span>
+                    {done && (
+                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-primary">
+                        Done
+                      </span>
+                    )}
+                  </div>
+                  <p
+                    className={`mt-0.5 text-xs text-muted-foreground ${done ? "line-through" : ""}`}
+                  >
+                    {todo.description}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant={done ? "ghost" : todo.tone === "urgent" ? "default" : "outline"}
+                  onClick={todo.onClick}
+                  className="shrink-0"
+                  disabled={done}
+                >
+                  {done ? "Completed" : todo.cta}
+                  {!done && <ChevronRight className="ml-1 h-4 w-4" />}
+                </Button>
+              </motion.li>
+            );
+          })}
+        </AnimatePresence>
       </ul>
     </Card>
   );
 }
+
 
 function KpiCard({
   kpi,
