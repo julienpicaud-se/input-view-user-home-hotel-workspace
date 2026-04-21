@@ -1691,10 +1691,13 @@ function TodoCompletionInsights({
                       ? "text-destructive"
                       : "text-muted-foreground";
               return (
-                <li
-                  key={m.key}
-                  className="flex flex-col items-stretch gap-2 rounded-2xl border border-border/70 bg-card/40 p-3"
-                >
+                <li key={m.key}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedKey(m.key)}
+                    className="group flex w-full flex-col items-stretch gap-2 rounded-2xl border border-border/70 bg-card/40 p-3 text-left transition hover:bg-card hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    aria-label={`View ${m.fullLabel} to-do breakdown`}
+                  >
                   <div className="flex items-baseline justify-between">
                     <span className="text-xs font-medium text-foreground">{m.label}</span>
                     <span className="text-[11px] text-muted-foreground">
