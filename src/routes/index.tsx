@@ -173,32 +173,36 @@ function HomePage() {
     starRating: hotel?.star_rating ?? 4,
   };
 
-  const sustainabilityScore = (() => {
-    if (!latest || !latest.occupied_room_nights) return 70;
-    const utils: { key: keyof MonthlyEntry; util: Utility; weight: number }[] = [
-      { key: "electricity_kwh", util: "electricity", weight: 0.35 },
-      { key: "gas_kwh", util: "gas", weight: 0.2 },
-      { key: "water_m3", util: "water", weight: 0.25 },
-      { key: "waste_kg", util: "waste", weight: 0.2 },
-    ];
-    let total = 0;
-    let weightUsed = 0;
-    for (const u of utils) {
-      const v = latest[u.key] as number | null;
-      if (v === null || v === undefined) continue;
-      const intensity = v / latest.occupied_room_nights;
-      const stats = getPeerStats(u.util, latest.month, filters);
-      // Map intensity to a 0..100 sub-score using p10 (best) → 100 and p90 (worst) → 20.
-      // Intensities beyond p90 still earn some points (down to 0); intensities below p10 cap at 100.
-      const span = stats.p90 - stats.p10 || 1;
-      const ratio = (intensity - stats.p10) / span;
-      const sub = Math.max(0, Math.min(100, 100 - ratio * 80));
-      total += sub * u.weight;
-      weightUsed += u.weight;
-    }
-    if (weightUsed === 0) return 70;
-    return Math.round(total / weightUsed);
-  })();
+  const computeScore = React.useCallback(
+    (entry: MonthlyEntry | undefined) => {
+      if (!entry || !entry.occupied_room_nights) return null;
+      const utils: { key: keyof MonthlyEntry; util: Utility; weight: number }[] = [
+        { key: "electricity_kwh", util: "electricity", weight: 0.35 },
+        { key: "gas_kwh", util: "gas", weight: 0.2 },
+        { key: "water_m3", util: "water", weight: 0.25 },
+        { key: "waste_kg", util: "waste", weight: 0.2 },
+      ];
+      let total = 0;
+      let weightUsed = 0;
+      for (const u of utils) {
+        const v = entry[u.key] as number | null;
+        if (v === null || v === undefined) continue;
+        const intensity = v / entry.occupied_room_nights;
+        const stats = getPeerStats(u.util, entry.month, filters);
+        const span = stats.p90 - stats.p10 || 1;
+        const ratio = (intensity - stats.p10) / span;
+        const sub = Math.max(0, Math.min(100, 100 - ratio * 80));
+        total += sub * u.weight;
+        weightUsed += u.weight;
+      }
+      if (weightUsed === 0) return null;
+      return Math.round(total / weightUsed);
+    },
+    [filters],
+  );
+
+  const sustainabilityScore = computeScore(latest) ?? 70;
+
 
   const peerPosition = (() => {
     if (!latest || !latest.electricity_kwh || !latest.occupied_room_nights)
