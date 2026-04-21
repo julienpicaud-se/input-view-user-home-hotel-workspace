@@ -28,6 +28,9 @@ import {
   AlertTriangle,
   AlertCircle,
   BookOpen,
+  Target,
+  FilePlus,
+  Wand2,
 } from "lucide-react";
 import {
   ResponsiveContainer,
