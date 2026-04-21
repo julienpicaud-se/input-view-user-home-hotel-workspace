@@ -2334,7 +2334,7 @@ function KpiCard({
       : "text-muted-foreground";
 
   return (
-    <Card className="group relative overflow-hidden rounded-2xl border-border/70 p-5 transition hover:shadow-lg">
+    <Card id={`kpi-${kpi.key}`} className="group relative scroll-mt-24 overflow-hidden rounded-2xl border-border/70 p-5 transition hover:shadow-lg target:ring-2 target:ring-primary/60">
       <div className="flex items-start justify-between">
         <div>
           <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
