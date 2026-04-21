@@ -966,10 +966,12 @@ function QuickLogCard({
   entries,
   isCurrentLogged,
   onSaved,
+  rooms,
 }: {
   entries: MonthlyEntry[];
   isCurrentLogged: boolean;
   onSaved: () => void;
+  rooms: number;
 }) {
   // Default to most recent unlogged month
   const initial = React.useMemo(() => {
@@ -1002,20 +1004,31 @@ function QuickLogCard({
 
   const num = (s: string) => (s.trim() === "" ? null : Number(s));
 
+  const draft: EntryDraft = React.useMemo(
+    () => ({
+      electricity_kwh: num(form.electricity_kwh),
+      gas_kwh: num(form.gas_kwh),
+      water_m3: num(form.water_m3),
+      waste_kg: num(form.waste_kg),
+      occupied_room_nights: num(form.occupied_room_nights),
+    }),
+    [form],
+  );
+
+  const issues = React.useMemo(() => validateEntry(draft, rooms), [draft, rooms]);
+  const errors = issues.filter((i) => i.level === "error");
+  const warnings = issues.filter((i) => i.level === "warning");
+  const blocked = errors.length > 0;
+  const fieldErrors = new Set(errors.map((e) => e.field).filter(Boolean));
+
   async function handleSave() {
+    if (blocked) {
+      toast.error(errors[0].message);
+      return;
+    }
     setSubmitting(true);
     try {
-      const parsed = quickEntrySchema.parse({
-        electricity_kwh: num(form.electricity_kwh),
-        gas_kwh: num(form.gas_kwh),
-        water_m3: num(form.water_m3),
-        waste_kg: num(form.waste_kg),
-        occupied_room_nights: num(form.occupied_room_nights),
-      });
-      if (Object.values(parsed).every((v) => v === null)) {
-        toast.error("Enter at least one value before saving");
-        return;
-      }
+      const parsed = quickEntrySchema.parse(draft);
       const { error } = await supabase.from("monthly_entries").upsert(
         {
           hotel_id: DEMO_HOTEL_ID,
@@ -1086,10 +1099,13 @@ function QuickLogCard({
       <div className="mt-5 space-y-3">
         {FIELDS.map((f) => {
           const Icon = f.icon;
+          const hasErr = fieldErrors.has(f.key);
           return (
             <div
               key={f.key}
-              className="flex items-center gap-3 rounded-xl border border-border bg-background/60 px-3 py-2"
+              className={`flex items-center gap-3 rounded-xl border bg-background/60 px-3 py-2 ${
+                hasErr ? "border-destructive/60" : "border-border"
+              }`}
             >
               <div
                 className="flex h-8 w-8 items-center justify-center rounded-lg"
@@ -1104,13 +1120,20 @@ function QuickLogCard({
                 value={form[f.key]}
                 onChange={(e) => setForm((s) => ({ ...s, [f.key]: e.target.value }))}
                 placeholder="0"
-                className="num h-9 w-24 rounded-lg border-border bg-background text-right text-sm"
+                aria-invalid={hasErr}
+                className={`num h-9 w-24 rounded-lg bg-background text-right text-sm ${
+                  hasErr ? "border-destructive" : "border-border"
+                }`}
               />
               <span className="w-10 text-xs text-muted-foreground">{f.unit}</span>
             </div>
           );
         })}
-        <div className="flex items-center gap-3 rounded-xl border border-border bg-background/60 px-3 py-2">
+        <div
+          className={`flex items-center gap-3 rounded-xl border bg-background/60 px-3 py-2 ${
+            fieldErrors.has("occupied_room_nights") ? "border-destructive/60" : "border-border"
+          }`}
+        >
           <span className="ml-11 flex-1 text-sm font-medium">Occupied room-nights</span>
           <Input
             type="number"
@@ -1119,19 +1142,53 @@ function QuickLogCard({
               setForm((s) => ({ ...s, occupied_room_nights: e.target.value }))
             }
             placeholder="0"
-            className="num h-9 w-24 rounded-lg border-border bg-background text-right text-sm"
+            aria-invalid={fieldErrors.has("occupied_room_nights")}
+            className={`num h-9 w-24 rounded-lg bg-background text-right text-sm ${
+              fieldErrors.has("occupied_room_nights") ? "border-destructive" : "border-border"
+            }`}
           />
           <span className="w-10 text-xs text-muted-foreground">rn</span>
         </div>
       </div>
 
+      {/* Validation summary */}
+      <AnimatePresence>
+        {(errors.length > 0 || warnings.length > 0) && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mt-4 space-y-2 overflow-hidden"
+          >
+            {errors.map((iss, i) => (
+              <div
+                key={`e-${i}`}
+                className="flex items-start gap-2 rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+              >
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{iss.message}</span>
+              </div>
+            ))}
+            {warnings.map((iss, i) => (
+              <div
+                key={`w-${i}`}
+                className="flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300"
+              >
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{iss.message}</span>
+              </div>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <Button
         onClick={handleSave}
-        disabled={submitting}
+        disabled={submitting || blocked}
         className="mt-5 w-full rounded-xl py-5"
       >
         {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        Save {MONTH_SHORT[initial.m - 1]} {initial.y}
+        {blocked ? "Fix errors to save" : `Save ${MONTH_SHORT[initial.m - 1]} ${initial.y}`}
       </Button>
     </Card>
   );
