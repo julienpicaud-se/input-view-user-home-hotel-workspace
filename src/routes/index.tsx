@@ -245,6 +245,21 @@ function HomePage() {
     return out;
   }, [latest]);
 
+  if (loading || !hotel) {
+    return (
+      <PageContainer>
+        <div className="space-y-4">
+          <div className="h-12 w-72 animate-pulse rounded-lg bg-muted" />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="h-40 animate-pulse rounded-2xl bg-muted" />
+            ))}
+          </div>
+        </div>
+      </PageContainer>
+    );
+  }
+
   const trendData = sorted.slice(-12).map((e) => ({
     label: `${MONTH_SHORT[e.month - 1]} ${String(e.year).slice(2)}`,
     electricity: e.electricity_kwh ?? 0,
