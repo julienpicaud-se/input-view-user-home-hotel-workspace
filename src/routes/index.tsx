@@ -842,6 +842,122 @@ const quickEntrySchema = z.object({
   occupied_room_nights: z.number().int().min(0).max(100_000).nullable(),
 });
 
+type EntryDraft = {
+  electricity_kwh: number | null;
+  gas_kwh: number | null;
+  water_m3: number | null;
+  waste_kg: number | null;
+  occupied_room_nights: number | null;
+};
+
+interface ValidationIssue {
+  level: "error" | "warning";
+  field?: keyof EntryDraft;
+  message: string;
+}
+
+function labelOf(k: keyof EntryDraft): string {
+  switch (k) {
+    case "electricity_kwh": return "Electricity";
+    case "gas_kwh": return "Gas";
+    case "water_m3": return "Water";
+    case "waste_kg": return "Waste";
+    case "occupied_room_nights": return "Occupied room-nights";
+  }
+}
+
+/**
+ * Validates a manual entry. Errors block save; warnings are advisory.
+ */
+function validateEntry(d: EntryDraft, rooms: number | null): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  const utilKeys: (keyof EntryDraft)[] = [
+    "electricity_kwh",
+    "gas_kwh",
+    "water_m3",
+    "waste_kg",
+  ];
+
+  const utilEntered = utilKeys.filter((k) => d[k] !== null);
+  const allEmpty = utilEntered.length === 0 && d.occupied_room_nights === null;
+  if (allEmpty) {
+    issues.push({ level: "error", message: "Enter at least one value before saving." });
+    return issues;
+  }
+
+  for (const k of [...utilKeys, "occupied_room_nights" as const]) {
+    const v = d[k];
+    if (v !== null && (Number.isNaN(v) || v < 0)) {
+      issues.push({
+        level: "error",
+        field: k,
+        message: `${labelOf(k)} must be a positive number.`,
+      });
+    }
+  }
+
+  const hasAnyUtil = utilEntered.some((k) => (d[k] ?? 0) > 0);
+
+  if (hasAnyUtil && d.occupied_room_nights === 0) {
+    issues.push({
+      level: "error",
+      field: "occupied_room_nights",
+      message:
+        "Occupancy is 0 but utilities were used. Either correct room-nights or set utilities to 0 too.",
+    });
+  }
+
+  if (hasAnyUtil && d.occupied_room_nights === null) {
+    issues.push({
+      level: "warning",
+      field: "occupied_room_nights",
+      message:
+        "Add occupied room-nights — without it we cannot benchmark or normalise this month.",
+    });
+  }
+
+  if (utilEntered.length > 0 && utilEntered.length < utilKeys.length) {
+    const missing = utilKeys.filter((k) => d[k] === null).map(labelOf).join(", ");
+    issues.push({
+      level: "warning",
+      message: `Missing: ${missing}. You can save now and complete later.`,
+    });
+  }
+
+  const orn = d.occupied_room_nights;
+  if (orn && orn > 0) {
+    const checks: { key: keyof EntryDraft; max: number; label: string; unit: string }[] = [
+      { key: "electricity_kwh", max: 200, label: "Electricity", unit: "kWh/rn" },
+      { key: "gas_kwh", max: 200, label: "Gas", unit: "kWh/rn" },
+      { key: "water_m3", max: 2, label: "Water", unit: "m³/rn" },
+      { key: "waste_kg", max: 10, label: "Waste", unit: "kg/rn" },
+    ];
+    for (const c of checks) {
+      const v = d[c.key];
+      if (v !== null && v > 0) {
+        const intensity = v / orn;
+        if (intensity > c.max) {
+          issues.push({
+            level: "warning",
+            field: c.key,
+            message: `${c.label} ≈ ${intensity.toFixed(1)} ${c.unit} — unusually high. Double-check.`,
+          });
+        }
+      }
+    }
+  }
+
+  if (rooms && orn !== null && orn > rooms * 31) {
+    issues.push({
+      level: "error",
+      field: "occupied_room_nights",
+      message: `Room-nights exceed capacity (${rooms} rooms × 31 days = ${rooms * 31}).`,
+    });
+  }
+
+  return issues;
+}
+
 function QuickLogCard({
   entries,
   isCurrentLogged,
