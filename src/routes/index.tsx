@@ -52,6 +52,7 @@ import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Tooltip,
   TooltipContent,
@@ -208,7 +209,7 @@ function HomePage() {
   return (
     <PageContainer>
       {/* Hero header */}
-      <header className="mb-8">
+      <header className="mb-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
@@ -218,7 +219,7 @@ function HomePage() {
               Sustainability workspace
             </h1>
             <p className="mt-3 max-w-xl text-sm md:text-base text-muted-foreground">
-              Everything you need in one view — log this month, see how you're doing, compare to peers, and ask Verdance.
+              Log data, spot trends, compare to peers and act on insights — all in one focused workspace.
             </p>
           </div>
           <div className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-2.5 text-sm">
@@ -229,211 +230,235 @@ function HomePage() {
         <div className="mt-6 h-px gold-divider" />
       </header>
 
-      {/* Score hero strip */}
-      <Card className="mb-6 overflow-hidden rounded-3xl border-border/70 bg-gradient-to-br from-secondary to-primary text-primary-foreground">
-        <div className="flex flex-wrap items-center justify-between gap-6 px-8 py-7">
-          <div>
-            <div className="text-xs uppercase tracking-[0.18em] text-primary-foreground/70">
-              Sustainability score
-            </div>
-            <div className="mt-2 flex items-baseline gap-3">
-              <span className="font-serif num text-6xl md:text-7xl font-semibold leading-none">
-                {sustainabilityScore}
-              </span>
-              <span className="text-primary-foreground/70">/100</span>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Info className="h-4 w-4 cursor-help text-primary-foreground/60" />
-                </TooltipTrigger>
-                <TooltipContent className="max-w-xs">
-                  Weighted average of your performance versus similar
-                  Mediterranean hotels (electricity, gas, water, waste).
-                </TooltipContent>
-              </Tooltip>
-            </div>
-            <div className="mt-2 text-sm text-primary-foreground/70">
-              Updated {latest ? `${MONTH_NAMES[latest.month - 1]} ${latest.year}` : "—"}
-            </div>
-          </div>
-          {peerPosition !== null && (
-            <div className="rounded-2xl bg-primary-foreground/10 px-5 py-4 text-left backdrop-blur-sm">
-              <div className="text-xs uppercase tracking-[0.14em] text-primary-foreground/70">
-                Peer position
-              </div>
-              <div className="mt-1 font-serif text-2xl">
-                Top {peerPosition}%
-              </div>
-              <div className="mt-0.5 text-xs text-primary-foreground/70">
-                vs {cohortSize} similar hotels
-              </div>
-            </div>
-          )}
-        </div>
-      </Card>
+      {/* Tabbed workspace */}
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList className="mb-6 inline-flex h-auto w-full justify-start gap-1 rounded-2xl border border-border bg-card p-1.5 sm:w-auto">
+          <TabsTrigger value="overview" className="rounded-xl px-4 py-2 text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
+            Overview
+          </TabsTrigger>
+          <TabsTrigger value="log" className="rounded-xl px-4 py-2 text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
+            Log data
+          </TabsTrigger>
+          <TabsTrigger value="analyze" className="rounded-xl px-4 py-2 text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
+            Analyze
+          </TabsTrigger>
+          <TabsTrigger value="assistant" className="rounded-xl px-4 py-2 text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
+            Ask Verdance
+          </TabsTrigger>
+        </TabsList>
 
-      {/* KPI smart cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {KPIS.map((kpi) => (
-          <KpiCard
-            key={kpi.key}
-            kpi={kpi}
-            latest={latest}
-            prev={prev}
-            lastYearSame={lastYearSame}
-            sorted={sorted}
-            perRoom={perRoom}
-            filters={filters}
-          />
-        ))}
-      </div>
-
-      {/* Main grid: trend + log */}
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Trend card */}
-        <Card className="rounded-3xl border-border/70 lg:col-span-2">
-          <div className="px-6 pt-6 pb-2 md:px-8 md:pt-8">
-            <div className="flex items-baseline justify-between">
+        {/* OVERVIEW — score, KPIs, insights */}
+        <TabsContent value="overview" className="mt-0 space-y-6 focus-visible:outline-none">
+          <Card className="overflow-hidden rounded-3xl border-border/70 bg-gradient-to-br from-secondary to-primary text-primary-foreground">
+            <div className="flex flex-wrap items-center justify-between gap-6 px-8 py-7">
               <div>
-                <h2 className="font-serif text-2xl font-semibold">12-month trend</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Utility consumption with CO₂e overlay.
-                </p>
+                <div className="text-xs uppercase tracking-[0.18em] text-primary-foreground/70">
+                  Sustainability score
+                </div>
+                <div className="mt-2 flex items-baseline gap-3">
+                  <span className="font-serif num text-6xl md:text-7xl font-semibold leading-none">
+                    {sustainabilityScore}
+                  </span>
+                  <span className="text-primary-foreground/70">/100</span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 cursor-help text-primary-foreground/60" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      Weighted average of your performance versus similar
+                      Mediterranean hotels (electricity, gas, water, waste).
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <div className="mt-2 text-sm text-primary-foreground/70">
+                  Updated {latest ? `${MONTH_NAMES[latest.month - 1]} ${latest.year}` : "—"}
+                </div>
               </div>
-              <div className="hidden items-center gap-3 text-xs text-muted-foreground md:flex">
-                <LegendDot color="var(--chart-3)" label="Elec" />
-                <LegendDot color="var(--chart-1)" label="Gas" />
-                <LegendDot color="var(--chart-2)" label="Water" />
-                <LegendDot color="var(--chart-5)" label="Waste" />
-                <LegendDot color="var(--champagne)" label="CO₂e" line />
-              </div>
-            </div>
-          </div>
-          <div className="h-72 px-2 pb-4 md:px-4">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={trendData} margin={{ top: 16, right: 16, left: 0, bottom: 8 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                <XAxis dataKey="label" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
-                <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
-                <ReTooltip
-                  contentStyle={{
-                    backgroundColor: "var(--card)",
-                    border: "1px solid var(--border)",
-                    borderRadius: 12,
-                    fontSize: 12,
-                  }}
-                />
-                <Area dataKey="electricity" stackId="1" stroke="var(--chart-3)" fill="var(--chart-3)" fillOpacity={0.65} />
-                <Area dataKey="gas" stackId="1" stroke="var(--chart-1)" fill="var(--chart-1)" fillOpacity={0.65} />
-                <Area dataKey="water" stackId="1" stroke="var(--chart-2)" fill="var(--chart-2)" fillOpacity={0.45} />
-                <Area dataKey="waste" stackId="1" stroke="var(--chart-5)" fill="var(--chart-5)" fillOpacity={0.45} />
-                <Line dataKey="co2e" stroke="var(--champagne)" strokeWidth={2.5} dot={false} />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
-        </Card>
-
-        {/* Quick log card */}
-        <QuickLogCard
-          entries={entries}
-          isCurrentLogged={!!isCurrentLogged}
-          onSaved={() => void reload()}
-        />
-      </div>
-
-      {/* Insights + Assistant + Benchmarks */}
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Insights */}
-        <Card className="rounded-3xl border-border/70 p-6 lg:col-span-2">
-          <div className="mb-4 flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/30 text-accent-foreground">
-              <Sparkles className="h-4 w-4" />
-            </div>
-            <h2 className="font-serif text-xl font-semibold">This month's insights</h2>
-          </div>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-            {insightsLoading && insights.length === 0
-              ? [0, 1, 2].map((i) => (
-                  <div key={i} className="h-32 animate-pulse rounded-2xl bg-muted" />
-                ))
-              : insights.length === 0
-                ? (
-                  <div className="col-span-full rounded-2xl border border-dashed border-border bg-card/50 p-6 text-sm text-muted-foreground">
-                    Insights will appear here once enough data is logged.
+              {peerPosition !== null && (
+                <div className="rounded-2xl bg-primary-foreground/10 px-5 py-4 text-left backdrop-blur-sm">
+                  <div className="text-xs uppercase tracking-[0.14em] text-primary-foreground/70">
+                    Peer position
                   </div>
-                )
-                : insights.map((ins, i) => <InsightCard key={i} insight={ins} />)}
+                  <div className="mt-1 font-serif text-2xl">
+                    Top {peerPosition}%
+                  </div>
+                  <div className="mt-0.5 text-xs text-primary-foreground/70">
+                    vs {cohortSize} similar hotels
+                  </div>
+                </div>
+              )}
+            </div>
+          </Card>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {KPIS.map((kpi) => (
+              <KpiCard
+                key={kpi.key}
+                kpi={kpi}
+                latest={latest}
+                prev={prev}
+                lastYearSame={lastYearSame}
+                sorted={sorted}
+                perRoom={perRoom}
+                filters={filters}
+              />
+            ))}
           </div>
-        </Card>
 
-        {/* Mini-assistant */}
-        <MiniAssistantCard />
-      </div>
+          <Card className="rounded-3xl border-border/70 p-6">
+            <div className="mb-4 flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/30 text-accent-foreground">
+                <Sparkles className="h-4 w-4" />
+              </div>
+              <h2 className="font-serif text-xl font-semibold">This month's insights</h2>
+            </div>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+              {insightsLoading && insights.length === 0
+                ? [0, 1, 2].map((i) => (
+                    <div key={i} className="h-32 animate-pulse rounded-2xl bg-muted" />
+                  ))
+                : insights.length === 0
+                  ? (
+                    <div className="col-span-full rounded-2xl border border-dashed border-border bg-card/50 p-6 text-sm text-muted-foreground">
+                      Insights will appear here once enough data is logged.
+                    </div>
+                  )
+                  : insights.map((ins, i) => <InsightCard key={i} insight={ins} />)}
+            </div>
+          </Card>
+        </TabsContent>
 
-      {/* Peer benchmarks compact */}
-      <Card className="mt-6 rounded-3xl border-border/70 p-6">
-        <div className="mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Trophy className="h-5 w-5" style={{ color: "var(--champagne)" }} />
-            <h2 className="font-serif text-xl font-semibold">Peer comparison</h2>
+        {/* LOG DATA — quick log + recent history */}
+        <TabsContent value="log" className="mt-0 focus-visible:outline-none">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+            <div className="lg:col-span-2">
+              <QuickLogCard
+                entries={entries}
+                isCurrentLogged={!!isCurrentLogged}
+                onSaved={() => void reload()}
+              />
+            </div>
+            <Card className="overflow-hidden rounded-3xl border-border/70 lg:col-span-3">
+              <div className="flex items-center justify-between px-6 pt-6 pb-3">
+                <div>
+                  <h2 className="font-serif text-xl font-semibold">Recent history</h2>
+                  <p className="mt-1 text-xs text-muted-foreground">Last 12 months of logged data</p>
+                </div>
+                <span className="text-xs text-muted-foreground">{sorted.length} entries</span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/40 text-left text-xs uppercase tracking-wider text-muted-foreground">
+                    <tr>
+                      <th className="px-6 py-3 font-medium">Period</th>
+                      <th className="px-4 py-3 font-medium text-right">Elec</th>
+                      <th className="px-4 py-3 font-medium text-right">Gas</th>
+                      <th className="px-4 py-3 font-medium text-right">Water</th>
+                      <th className="px-4 py-3 font-medium text-right">Waste</th>
+                      <th className="px-4 py-3 font-medium text-right">Occ.</th>
+                      <th className="px-6 py-3 font-medium text-right">CO₂e</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...sorted].reverse().slice(0, 12).map((e) => (
+                      <tr key={`${e.year}-${e.month}`} className="border-t border-border">
+                        <td className="px-6 py-3 font-medium">
+                          {MONTH_SHORT[e.month - 1]} {e.year}
+                        </td>
+                        <td className="num px-4 py-3 text-right">{formatNumber(e.electricity_kwh)}</td>
+                        <td className="num px-4 py-3 text-right">{formatNumber(e.gas_kwh)}</td>
+                        <td className="num px-4 py-3 text-right">{formatNumber(e.water_m3)}</td>
+                        <td className="num px-4 py-3 text-right">{formatNumber(e.waste_kg)}</td>
+                        <td className="num px-4 py-3 text-right text-muted-foreground">
+                          {formatNumber(e.occupied_room_nights)}
+                        </td>
+                        <td className="num px-6 py-3 text-right font-medium">
+                          {formatNumber(calculateCO2e(e))} kg
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
           </div>
-          <span className="text-xs text-muted-foreground">
-            vs {cohortSize} similar Mediterranean hotels
-          </span>
-        </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {KPIS.map((kpi) => (
-            <PeerMiniCard
-              key={kpi.key}
-              kpi={kpi}
-              latest={latest}
-              filters={filters}
-              cohortSize={cohortSize}
-            />
-          ))}
-        </div>
-      </Card>
+        </TabsContent>
 
-      {/* Recent history */}
-      <Card className="mt-6 overflow-hidden rounded-3xl border-border/70">
-        <div className="flex items-center justify-between px-6 pt-6 pb-3">
-          <h2 className="font-serif text-xl font-semibold">Recent history</h2>
-          <span className="text-xs text-muted-foreground">Last 6 months</span>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/40 text-left text-xs uppercase tracking-wider text-muted-foreground">
-              <tr>
-                <th className="px-6 py-3 font-medium">Period</th>
-                <th className="px-4 py-3 font-medium text-right">Electricity</th>
-                <th className="px-4 py-3 font-medium text-right">Gas</th>
-                <th className="px-4 py-3 font-medium text-right">Water</th>
-                <th className="px-4 py-3 font-medium text-right">Waste</th>
-                <th className="px-4 py-3 font-medium text-right">Occupancy</th>
-                <th className="px-6 py-3 font-medium text-right">CO₂e</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[...sorted].reverse().slice(0, 6).map((e) => (
-                <tr key={`${e.year}-${e.month}`} className="border-t border-border">
-                  <td className="px-6 py-3 font-medium">
-                    {MONTH_SHORT[e.month - 1]} {e.year}
-                  </td>
-                  <td className="num px-4 py-3 text-right">{formatNumber(e.electricity_kwh)}</td>
-                  <td className="num px-4 py-3 text-right">{formatNumber(e.gas_kwh)}</td>
-                  <td className="num px-4 py-3 text-right">{formatNumber(e.water_m3)}</td>
-                  <td className="num px-4 py-3 text-right">{formatNumber(e.waste_kg)}</td>
-                  <td className="num px-4 py-3 text-right text-muted-foreground">
-                    {formatNumber(e.occupied_room_nights)}
-                  </td>
-                  <td className="num px-6 py-3 text-right font-medium">
-                    {formatNumber(calculateCO2e(e))} kg
-                  </td>
-                </tr>
+        {/* ANALYZE — trend chart + peer benchmarks */}
+        <TabsContent value="analyze" className="mt-0 space-y-6 focus-visible:outline-none">
+          <Card className="rounded-3xl border-border/70">
+            <div className="px-6 pt-6 pb-2 md:px-8 md:pt-8">
+              <div className="flex items-baseline justify-between">
+                <div>
+                  <h2 className="font-serif text-2xl font-semibold">12-month trend</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Utility consumption with CO₂e overlay.
+                  </p>
+                </div>
+                <div className="hidden items-center gap-3 text-xs text-muted-foreground md:flex">
+                  <LegendDot color="var(--chart-3)" label="Elec" />
+                  <LegendDot color="var(--chart-1)" label="Gas" />
+                  <LegendDot color="var(--chart-2)" label="Water" />
+                  <LegendDot color="var(--chart-5)" label="Waste" />
+                  <LegendDot color="var(--champagne)" label="CO₂e" line />
+                </div>
+              </div>
+            </div>
+            <div className="h-80 px-2 pb-4 md:px-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={trendData} margin={{ top: 16, right: 16, left: 0, bottom: 8 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                  <XAxis dataKey="label" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
+                  <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
+                  <ReTooltip
+                    contentStyle={{
+                      backgroundColor: "var(--card)",
+                      border: "1px solid var(--border)",
+                      borderRadius: 12,
+                      fontSize: 12,
+                    }}
+                  />
+                  <Area dataKey="electricity" stackId="1" stroke="var(--chart-3)" fill="var(--chart-3)" fillOpacity={0.65} />
+                  <Area dataKey="gas" stackId="1" stroke="var(--chart-1)" fill="var(--chart-1)" fillOpacity={0.65} />
+                  <Area dataKey="water" stackId="1" stroke="var(--chart-2)" fill="var(--chart-2)" fillOpacity={0.45} />
+                  <Area dataKey="waste" stackId="1" stroke="var(--chart-5)" fill="var(--chart-5)" fillOpacity={0.45} />
+                  <Line dataKey="co2e" stroke="var(--champagne)" strokeWidth={2.5} dot={false} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+
+          <Card className="rounded-3xl border-border/70 p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Trophy className="h-5 w-5" style={{ color: "var(--champagne)" }} />
+                <h2 className="font-serif text-xl font-semibold">Peer comparison</h2>
+              </div>
+              <span className="text-xs text-muted-foreground">
+                vs {cohortSize} similar Mediterranean hotels
+              </span>
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {KPIS.map((kpi) => (
+                <PeerMiniCard
+                  key={kpi.key}
+                  kpi={kpi}
+                  latest={latest}
+                  filters={filters}
+                  cohortSize={cohortSize}
+                />
               ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+            </div>
+          </Card>
+        </TabsContent>
+
+        {/* ASK VERDANCE — full assistant */}
+        <TabsContent value="assistant" className="mt-0 focus-visible:outline-none">
+          <div className="mx-auto max-w-3xl">
+            <MiniAssistantCard />
+          </div>
+        </TabsContent>
+      </Tabs>
     </PageContainer>
   );
 }
