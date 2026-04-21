@@ -116,6 +116,7 @@ function HomePage() {
   const [perRoom, setPerRoom] = React.useState(false);
   const [insights, setInsights] = React.useState<Insight[]>([]);
   const [insightsLoading, setInsightsLoading] = React.useState(false);
+  const [activeChart, setActiveChart] = React.useState<ChartId>("consumption");
 
   const reload = React.useCallback(async () => {
     const [{ data: h }, { data: e }] = await Promise.all([
