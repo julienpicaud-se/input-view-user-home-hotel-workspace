@@ -31,6 +31,9 @@ import {
   Target,
   FilePlus,
   Wand2,
+  Settings2,
+  GripVertical,
+  RotateCcw,
 } from "lucide-react";
 import {
   ResponsiveContainer,
