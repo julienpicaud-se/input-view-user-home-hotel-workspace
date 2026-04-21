@@ -1,5 +1,30 @@
-// Single-tenant demo hotel constants
+// Multi-hotel demo: a stable "default" hotel id, plus a runtime-active hotel id
+// stored in localStorage so the dropdown switcher can change scope app-wide.
 export const DEMO_HOTEL_ID = "00000000-0000-0000-0000-000000000001";
+
+const ACTIVE_HOTEL_KEY = "ra-plus-active-hotel-id";
+
+/**
+ * Returns the currently selected hotel id (localStorage-backed on the client).
+ * Falls back to DEMO_HOTEL_ID on the server or when nothing is set.
+ */
+export function getActiveHotelId(): string {
+  if (typeof window === "undefined") return DEMO_HOTEL_ID;
+  try {
+    return window.localStorage.getItem(ACTIVE_HOTEL_KEY) || DEMO_HOTEL_ID;
+  } catch {
+    return DEMO_HOTEL_ID;
+  }
+}
+
+export function setActiveHotelId(id: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(ACTIVE_HOTEL_KEY, id);
+  } catch {
+    // ignore
+  }
+}
 
 export interface Hotel {
   id: string;
