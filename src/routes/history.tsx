@@ -1,0 +1,321 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import * as React from "react";
+import { Download, Plus } from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { DEMO_HOTEL_ID, type MonthlyEntry } from "@/lib/hotel";
+import {
+  MONTH_SHORT,
+  calculateCO2e,
+  formatNumber,
+} from "@/lib/format";
+import { PageContainer, PageHeader } from "@/components/page-shell";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+export const Route = createFileRoute("/history")({
+  head: () => ({
+    meta: [
+      { title: "History — Verdance" },
+      {
+        name: "description",
+        content: "All your monthly utility entries in one editable table.",
+      },
+    ],
+  }),
+  component: HistoryPage,
+});
+
+interface Row {
+  year: number;
+  month: number;
+  entry?: MonthlyEntry;
+}
+
+function HistoryPage() {
+  const [entries, setEntries] = React.useState<MonthlyEntry[]>([]);
+  const [filterYear, setFilterYear] = React.useState<string>("all");
+  const [edited, setEdited] = React.useState<Record<string, Partial<MonthlyEntry>>>({});
+  const [saving, setSaving] = React.useState(false);
+
+  const load = React.useCallback(() => {
+    void supabase
+      .from("monthly_entries")
+      .select("*")
+      .eq("hotel_id", DEMO_HOTEL_ID)
+      .order("year", { ascending: false })
+      .order("month", { ascending: false })
+      .then(({ data }) => setEntries((data as MonthlyEntry[]) ?? []));
+  }, []);
+
+  React.useEffect(() => {
+    load();
+  }, [load]);
+
+  const rows: Row[] = React.useMemo(() => {
+    const now = new Date();
+    const out: Row[] = [];
+    for (let i = 0; i < 24; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const y = d.getFullYear();
+      const m = d.getMonth() + 1;
+      const entry = entries.find((e) => e.year === y && e.month === m);
+      out.push({ year: y, month: m, entry });
+    }
+    return out;
+  }, [entries]);
+
+  const filtered = filterYear === "all" ? rows : rows.filter((r) => r.year === Number(filterYear));
+
+  const years = Array.from(new Set(rows.map((r) => r.year)));
+
+  const cellKey = (y: number, m: number) => `${y}-${m}`;
+
+  function getValue(r: Row, key: keyof MonthlyEntry): number | null {
+    const k = cellKey(r.year, r.month);
+    if (k in edited && key in edited[k]!) {
+      const v = edited[k]![key];
+      return typeof v === "number" ? v : v === null ? null : null;
+    }
+    return (r.entry?.[key] as number | null) ?? null;
+  }
+
+  function setValue(r: Row, key: keyof MonthlyEntry, value: string) {
+    const k = cellKey(r.year, r.month);
+    const num = value.trim() === "" ? null : Number(value);
+    setEdited((prev) => ({
+      ...prev,
+      [k]: { ...prev[k], [key]: num },
+    }));
+  }
+
+  async function saveChanges() {
+    setSaving(true);
+    try {
+      const records = Object.entries(edited).map(([k, vals]) => {
+        const [y, m] = k.split("-").map(Number);
+        const existing = entries.find((e) => e.year === y && e.month === m);
+        return {
+          hotel_id: DEMO_HOTEL_ID,
+          year: y,
+          month: m,
+          electricity_kwh: existing?.electricity_kwh ?? null,
+          gas_kwh: existing?.gas_kwh ?? null,
+          water_m3: existing?.water_m3 ?? null,
+          waste_kg: existing?.waste_kg ?? null,
+          occupied_room_nights: existing?.occupied_room_nights ?? null,
+          renewable_pct: existing?.renewable_pct ?? null,
+          recycled_pct: existing?.recycled_pct ?? null,
+          ...vals,
+        };
+      });
+      const { error } = await supabase
+        .from("monthly_entries")
+        .upsert(records, { onConflict: "hotel_id,year,month" });
+      if (error) throw error;
+      toast.success(`Saved ${records.length} change${records.length === 1 ? "" : "s"}`);
+      setEdited({});
+      load();
+    } catch {
+      toast.error("Could not save changes");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function exportCSV() {
+    const headers = [
+      "Year",
+      "Month",
+      "Electricity (kWh)",
+      "Gas (kWh)",
+      "Water (m³)",
+      "Waste (kg)",
+      "Occupied room-nights",
+      "Renewable %",
+      "Recycled %",
+      "CO2e (kg)",
+    ];
+    const lines = [headers.join(",")];
+    filtered.forEach((r) => {
+      if (!r.entry) return;
+      lines.push(
+        [
+          r.year,
+          r.month,
+          r.entry.electricity_kwh ?? "",
+          r.entry.gas_kwh ?? "",
+          r.entry.water_m3 ?? "",
+          r.entry.waste_kg ?? "",
+          r.entry.occupied_room_nights ?? "",
+          r.entry.renewable_pct ?? "",
+          r.entry.recycled_pct ?? "",
+          calculateCO2e(r.entry).toFixed(0),
+        ].join(",")
+      );
+    });
+    const blob = new Blob([lines.join("\n")], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `verdance-history-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  const editedCount = Object.keys(edited).length;
+
+  return (
+    <PageContainer>
+      <PageHeader
+        eyebrow="History"
+        title="All entries"
+        subtitle="The last 24 months of utility data. Click any cell to edit; not-logged months show a quick-add link."
+        actions={
+          <>
+            <Select value={filterYear} onValueChange={setFilterYear}>
+              <SelectTrigger className="w-32 rounded-xl">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All years</SelectItem>
+                {years.map((y) => (
+                  <SelectItem key={y} value={String(y)}>
+                    {y}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button variant="outline" onClick={exportCSV} className="rounded-xl">
+              <Download className="mr-2 h-4 w-4" />
+              Export CSV
+            </Button>
+          </>
+        }
+      />
+
+      {editedCount > 0 && (
+        <div className="mb-4 flex items-center justify-between rounded-xl border border-accent bg-accent/15 px-4 py-3">
+          <span className="text-sm">
+            {editedCount} unsaved change{editedCount === 1 ? "" : "s"}
+          </span>
+          <div className="flex gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setEdited({})}>
+              Discard
+            </Button>
+            <Button size="sm" onClick={saveChanges} disabled={saving} className="rounded-lg">
+              {saving ? "Saving…" : "Save changes"}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <Card className="overflow-hidden rounded-2xl border-border/70 p-0">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50 text-left text-xs uppercase tracking-wider text-muted-foreground">
+              <tr>
+                <th className="px-4 py-3 font-medium">Period</th>
+                <th className="px-4 py-3 font-medium">Electricity</th>
+                <th className="px-4 py-3 font-medium">Gas</th>
+                <th className="px-4 py-3 font-medium">Water</th>
+                <th className="px-4 py-3 font-medium">Waste</th>
+                <th className="px-4 py-3 font-medium">Occupancy</th>
+                <th className="px-4 py-3 font-medium">CO₂e</th>
+                <th className="px-4 py-3 font-medium">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((r) => {
+                const k = cellKey(r.year, r.month);
+                const isLogged = !!r.entry || k in edited;
+                const co2 = r.entry ? calculateCO2e(r.entry) : null;
+                return (
+                  <tr key={k} className="border-t border-border hover:bg-muted/20">
+                    <td className="whitespace-nowrap px-4 py-2.5 font-medium">
+                      {MONTH_SHORT[r.month - 1]} {r.year}
+                    </td>
+                    <CellInput
+                      value={getValue(r, "electricity_kwh")}
+                      unit="kWh"
+                      onChange={(v) => setValue(r, "electricity_kwh", v)}
+                    />
+                    <CellInput
+                      value={getValue(r, "gas_kwh")}
+                      unit="kWh"
+                      onChange={(v) => setValue(r, "gas_kwh", v)}
+                    />
+                    <CellInput
+                      value={getValue(r, "water_m3")}
+                      unit="m³"
+                      onChange={(v) => setValue(r, "water_m3", v)}
+                    />
+                    <CellInput
+                      value={getValue(r, "waste_kg")}
+                      unit="kg"
+                      onChange={(v) => setValue(r, "waste_kg", v)}
+                    />
+                    <CellInput
+                      value={getValue(r, "occupied_room_nights")}
+                      unit="rn"
+                      onChange={(v) => setValue(r, "occupied_room_nights", v)}
+                    />
+                    <td className="num whitespace-nowrap px-4 py-2.5 text-muted-foreground">
+                      {co2 ? `${formatNumber(co2)} kg` : "—"}
+                    </td>
+                    <td className="px-4 py-2.5">
+                      {isLogged ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-xs font-medium text-success">
+                          Logged
+                        </span>
+                      ) : (
+                        <Link
+                          to="/log"
+                          className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                        >
+                          <Plus className="h-3 w-3" /> Add
+                        </Link>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </PageContainer>
+  );
+}
+
+function CellInput({
+  value,
+  unit,
+  onChange,
+}: {
+  value: number | null;
+  unit: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <td className="px-2 py-1">
+      <div className="group relative flex items-baseline gap-1 rounded-lg px-2 py-1.5 hover:bg-card focus-within:bg-card focus-within:ring-1 focus-within:ring-ring">
+        <input
+          type="number"
+          value={value === null ? "" : value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="—"
+          className="num w-20 bg-transparent text-right text-sm tabular-nums focus:outline-none"
+        />
+        <span className="text-[10px] text-muted-foreground">{unit}</span>
+      </div>
+    </td>
+  );
+}
