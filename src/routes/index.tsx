@@ -432,6 +432,8 @@ function HomePage() {
             onSaved={() => void reload()}
             sorted={sorted}
             rooms={hotel.rooms}
+            highlightFields={highlightFields}
+            onHighlightConsumed={() => setHighlightFields([])}
           />
         </TabsContent>
 
