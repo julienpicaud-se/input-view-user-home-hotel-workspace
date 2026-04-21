@@ -376,46 +376,167 @@ function HomePage() {
 
         {/* OVERVIEW — score, KPIs, insights + Sera chat */}
         <TabsContent value="overview" className="mt-0 space-y-6 focus-visible:outline-none">
-          <Card className="overflow-hidden rounded-3xl border-border/70 bg-gradient-to-br from-secondary to-primary text-primary-foreground">
-            <div className="flex flex-wrap items-center justify-between gap-6 px-8 py-7">
-              <div>
-                <div className="text-xs uppercase tracking-[0.18em] text-primary-foreground/70">
-                  Sustainability score
-                </div>
-                <div className="mt-2 flex items-baseline gap-3">
-                  <span className="font-serif num text-6xl md:text-7xl font-semibold leading-none">
-                    {sustainabilityScore}
-                  </span>
-                  <span className="text-primary-foreground/70">/100</span>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="h-4 w-4 cursor-help text-primary-foreground/60" />
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
-                      Weighted average of your performance versus similar
-                      Mediterranean hotels (electricity, gas, water, waste).
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-                <div className="mt-2 text-sm text-primary-foreground/70">
-                  Updated {latest ? `${MONTH_NAMES[latest.month - 1]} ${latest.year}` : "—"}
-                </div>
-              </div>
-              {peerPosition !== null && (
-                <div className="rounded-2xl bg-primary-foreground/10 px-5 py-4 text-left backdrop-blur-sm">
-                  <div className="text-xs uppercase tracking-[0.14em] text-primary-foreground/70">
-                    Peer position
+          {(() => {
+            const prevScore = computeScore(prev);
+            const scoreDelta =
+              prevScore !== null && sustainabilityScore !== null
+                ? sustainabilityScore - prevScore
+                : null;
+            const tier =
+              sustainabilityScore >= 80
+                ? { label: "Leader", tone: "text-emerald-200" }
+                : sustainabilityScore >= 60
+                  ? { label: "On track", tone: "text-emerald-100" }
+                  : sustainabilityScore >= 40
+                    ? { label: "Improving", tone: "text-amber-100" }
+                    : { label: "Needs focus", tone: "text-rose-100" };
+            const ringSize = 132;
+            const stroke = 10;
+            const r = (ringSize - stroke) / 2;
+            const circ = 2 * Math.PI * r;
+            const dash = (Math.max(0, Math.min(100, sustainabilityScore)) / 100) * circ;
+            return (
+              <Card className="relative overflow-hidden rounded-3xl border-border/70 bg-gradient-to-br from-secondary via-secondary/95 to-primary text-primary-foreground shadow-[0_30px_80px_-40px_color-mix(in_oklab,var(--primary)_70%,transparent)]">
+                {/* Ambient glow */}
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-primary-foreground/10 blur-3xl"
+                />
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute -left-16 bottom-[-30%] h-64 w-64 rounded-full bg-accent/20 blur-3xl"
+                />
+                {/* Subtle grid texture */}
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 opacity-[0.07] [background-image:linear-gradient(to_right,white_1px,transparent_1px),linear-gradient(to_bottom,white_1px,transparent_1px)] [background-size:32px_32px]"
+                />
+
+                <div className="relative flex flex-wrap items-center justify-between gap-8 px-8 py-8">
+                  {/* Left: ring + score */}
+                  <div className="flex items-center gap-6">
+                    <div
+                      className="relative shrink-0"
+                      style={{ width: ringSize, height: ringSize }}
+                    >
+                      <svg
+                        width={ringSize}
+                        height={ringSize}
+                        viewBox={`0 0 ${ringSize} ${ringSize}`}
+                        className="-rotate-90"
+                      >
+                        <circle
+                          cx={ringSize / 2}
+                          cy={ringSize / 2}
+                          r={r}
+                          fill="none"
+                          stroke="currentColor"
+                          strokeOpacity={0.15}
+                          strokeWidth={stroke}
+                        />
+                        <motion.circle
+                          cx={ringSize / 2}
+                          cy={ringSize / 2}
+                          r={r}
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth={stroke}
+                          strokeLinecap="round"
+                          strokeDasharray={circ}
+                          initial={{ strokeDashoffset: circ }}
+                          animate={{ strokeDashoffset: circ - dash }}
+                          transition={{ duration: 1.1, ease: "easeOut" }}
+                          className="text-primary-foreground"
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <span className="font-serif num text-4xl font-semibold leading-none">
+                          {sustainabilityScore}
+                        </span>
+                        <span className="mt-1 text-[10px] uppercase tracking-[0.18em] text-primary-foreground/60">
+                          / 100
+                        </span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-primary-foreground/70">
+                        <Sparkles className="h-3.5 w-3.5" />
+                        Sustainability score
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-3.5 w-3.5 cursor-help text-primary-foreground/60" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            Weighted average of your performance versus similar
+                            Mediterranean hotels (electricity, gas, water, waste).
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <div className="mt-2 flex items-center gap-2">
+                        <span
+                          className={`inline-flex items-center gap-1.5 rounded-full bg-primary-foreground/10 px-2.5 py-1 text-[11px] font-medium ${tier.tone}`}
+                        >
+                          <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                          {tier.label}
+                        </span>
+                        {scoreDelta !== null && scoreDelta !== 0 && (
+                          <span
+                            className={`inline-flex items-center gap-0.5 rounded-full px-2 py-1 text-[11px] font-medium ${
+                              scoreDelta > 0
+                                ? "bg-emerald-400/15 text-emerald-100"
+                                : "bg-rose-400/15 text-rose-100"
+                            }`}
+                          >
+                            {scoreDelta > 0 ? (
+                              <ArrowUpRight className="h-3 w-3" />
+                            ) : (
+                              <ArrowDownRight className="h-3 w-3" />
+                            )}
+                            {scoreDelta > 0 ? "+" : ""}
+                            {scoreDelta} vs last month
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-2 text-sm text-primary-foreground/70">
+                        Updated{" "}
+                        {latest
+                          ? `${MONTH_NAMES[latest.month - 1]} ${latest.year}`
+                          : "—"}
+                      </div>
+                    </div>
                   </div>
-                  <div className="mt-1 font-serif text-2xl">
-                    Top {peerPosition}%
-                  </div>
-                  <div className="mt-0.5 text-xs text-primary-foreground/70">
-                    vs {cohortSize} similar hotels
-                  </div>
+
+                  {/* Right: peer position */}
+                  {peerPosition !== null && (
+                    <div className="relative overflow-hidden rounded-2xl border border-primary-foreground/15 bg-primary-foreground/5 px-5 py-4 text-left backdrop-blur-sm">
+                      <div className="flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-primary-foreground/70">
+                        <Trophy className="h-3.5 w-3.5" />
+                        Peer position
+                      </div>
+                      <div className="mt-1 flex items-baseline gap-1.5">
+                        <span className="text-xs text-primary-foreground/60">Top</span>
+                        <span className="font-serif num text-3xl font-semibold leading-none">
+                          {peerPosition}
+                        </span>
+                        <span className="text-sm text-primary-foreground/70">%</span>
+                      </div>
+                      <div className="mt-1 text-[11px] text-primary-foreground/60">
+                        vs {cohortSize} similar hotels
+                      </div>
+                      {/* mini cohort bar */}
+                      <div className="mt-3 h-1.5 w-40 overflow-hidden rounded-full bg-primary-foreground/10">
+                        <div
+                          className="h-full rounded-full bg-primary-foreground/70"
+                          style={{ width: `${Math.max(4, 100 - peerPosition)}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </Card>
+              </Card>
+            );
+          })()}
 
           <TodosCard
             latest={latest}
