@@ -1470,7 +1470,14 @@ function QuickLogCard({
   ];
 
   return (
-    <Card className="rounded-3xl border-border/70 bg-gradient-to-br from-card to-accent/5 p-6">
+    <Card
+      ref={cardRef}
+      className={`rounded-3xl border bg-gradient-to-br from-card to-accent/5 p-6 transition-all ${
+        highlightFields.length > 0
+          ? "border-primary/60 ring-2 ring-primary/30 shadow-lg"
+          : "border-border/70"
+      }`}
+    >
       <div className="flex items-start justify-between">
         <div>
           <div className="text-xs uppercase tracking-wider text-muted-foreground">
@@ -1494,15 +1501,41 @@ function QuickLogCard({
         )}
       </div>
 
+      {/* Highlight banner from chart explainer action */}
+      <AnimatePresence>
+        {highlightFields.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            className="mt-4 flex items-start gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 text-xs text-primary"
+          >
+            <Target className="mt-0.5 h-4 w-4 shrink-0" />
+            <span className="leading-relaxed">
+              Sera flagged{" "}
+              <strong>{highlightFields.map((f) => labelOf(f)).join(", ")}</strong>{" "}
+              based on your selected chart. Review the highlighted fields below.
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="mt-5 space-y-3">
         {FIELDS.map((f) => {
           const Icon = f.icon;
           const hasErr = fieldErrors.has(f.key);
+          const isHi = highlightSet.has(f.key);
           return (
-            <div
+            <motion.div
               key={f.key}
-              className={`flex items-center gap-3 rounded-xl border bg-background/60 px-3 py-2 ${
-                hasErr ? "border-destructive/60" : "border-border"
+              animate={isHi ? { scale: [1, 1.015, 1] } : { scale: 1 }}
+              transition={{ duration: 0.6, repeat: isHi ? 2 : 0 }}
+              className={`flex items-center gap-3 rounded-xl border bg-background/60 px-3 py-2 transition-all ${
+                hasErr
+                  ? "border-destructive/60"
+                  : isHi
+                    ? "border-primary/60 ring-2 ring-primary/30 bg-primary/5"
+                    : "border-border"
               }`}
             >
               <div
@@ -1519,34 +1552,48 @@ function QuickLogCard({
                 onChange={(e) => setForm((s) => ({ ...s, [f.key]: e.target.value }))}
                 placeholder="0"
                 aria-invalid={hasErr}
+                autoFocus={isHi && highlightFields[0] === f.key}
                 className={`num h-9 w-24 rounded-lg bg-background text-right text-sm ${
-                  hasErr ? "border-destructive" : "border-border"
+                  hasErr ? "border-destructive" : isHi ? "border-primary" : "border-border"
                 }`}
               />
               <span className="w-10 text-xs text-muted-foreground">{f.unit}</span>
-            </div>
+            </motion.div>
           );
         })}
-        <div
-          className={`flex items-center gap-3 rounded-xl border bg-background/60 px-3 py-2 ${
-            fieldErrors.has("occupied_room_nights") ? "border-destructive/60" : "border-border"
-          }`}
-        >
-          <span className="ml-11 flex-1 text-sm font-medium">Occupied room-nights</span>
-          <Input
-            type="number"
-            value={form.occupied_room_nights}
-            onChange={(e) =>
-              setForm((s) => ({ ...s, occupied_room_nights: e.target.value }))
-            }
-            placeholder="0"
-            aria-invalid={fieldErrors.has("occupied_room_nights")}
-            className={`num h-9 w-24 rounded-lg bg-background text-right text-sm ${
-              fieldErrors.has("occupied_room_nights") ? "border-destructive" : "border-border"
-            }`}
-          />
-          <span className="w-10 text-xs text-muted-foreground">rn</span>
-        </div>
+        {(() => {
+          const isHi = highlightSet.has("occupied_room_nights");
+          const hasErr = fieldErrors.has("occupied_room_nights");
+          return (
+            <motion.div
+              animate={isHi ? { scale: [1, 1.015, 1] } : { scale: 1 }}
+              transition={{ duration: 0.6, repeat: isHi ? 2 : 0 }}
+              className={`flex items-center gap-3 rounded-xl border bg-background/60 px-3 py-2 transition-all ${
+                hasErr
+                  ? "border-destructive/60"
+                  : isHi
+                    ? "border-primary/60 ring-2 ring-primary/30 bg-primary/5"
+                    : "border-border"
+              }`}
+            >
+              <span className="ml-11 flex-1 text-sm font-medium">Occupied room-nights</span>
+              <Input
+                type="number"
+                value={form.occupied_room_nights}
+                onChange={(e) =>
+                  setForm((s) => ({ ...s, occupied_room_nights: e.target.value }))
+                }
+                placeholder="0"
+                aria-invalid={hasErr}
+                autoFocus={isHi && highlightFields[0] === "occupied_room_nights"}
+                className={`num h-9 w-24 rounded-lg bg-background text-right text-sm ${
+                  hasErr ? "border-destructive" : isHi ? "border-primary" : "border-border"
+                }`}
+              />
+              <span className="w-10 text-xs text-muted-foreground">rn</span>
+            </motion.div>
+          );
+        })()}
       </div>
 
       {/* Validation summary */}
