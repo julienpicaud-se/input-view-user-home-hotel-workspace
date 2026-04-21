@@ -548,8 +548,15 @@ function HomePage() {
             currentBreakdown={computeScoreBreakdown(latest)}
             previousBreakdown={computeScoreBreakdown(prev)}
             onDriverClick={(fieldKey) => {
+              const kpi = KPIS.find((k) => k.key === fieldKey);
               setActiveTab("analyze");
               setActiveChart("peer");
+              if (kpi) {
+                setUtilityFilter(kpi.utility);
+                toast.success(`Filtered Analyze to ${kpi.label}`, {
+                  description: "Charts and KPIs now show only this utility.",
+                });
+              }
               // Defer scroll until the analyze tab content is mounted
               window.setTimeout(() => {
                 const el = document.getElementById(`kpi-${fieldKey}`);
