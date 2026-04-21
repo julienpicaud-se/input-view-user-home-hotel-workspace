@@ -2024,11 +2024,15 @@ function MiniAssistantCard({
   subtitle = "Grounded in your data",
   starters,
   height = "default",
+  pendingPrompt = null,
+  onPromptConsumed,
 }: {
   title?: string;
   subtitle?: string;
   starters: string[];
   height?: "default" | "tall";
+  pendingPrompt?: string | null;
+  onPromptConsumed?: () => void;
 }) {
   const send = useServerFn(sendAssistantMessage);
   const [messages, setMessages] = React.useState<ChatMsg[]>([]);
@@ -2043,28 +2047,45 @@ function MiniAssistantCard({
     });
   }, [messages, loading]);
 
-  async function handleSend(text: string) {
-    if (!text.trim() || loading) return;
-    const userMsg: ChatMsg = { role: "user", content: text.trim() };
-    const history = messages.slice(-10);
-    setMessages((m) => [...m, userMsg]);
-    setInput("");
-    setLoading(true);
-    try {
-      const res = await send({ data: { message: userMsg.content, history } });
-      if (res.ok) {
-        setMessages((m) => [...m, { role: "assistant", content: res.content }]);
-      } else {
-        toast.error(res.error);
-        setMessages((m) => m.slice(0, -1));
-      }
-    } catch {
-      toast.error("Something went wrong");
-      setMessages((m) => m.slice(0, -1));
-    } finally {
-      setLoading(false);
+  const handleSend = React.useCallback(
+    async (text: string) => {
+      if (!text.trim() || loading) return;
+      const userMsg: ChatMsg = { role: "user", content: text.trim() };
+      setMessages((m) => {
+        const history = m.slice(-10);
+        // Use functional updater to capture latest history; fire request afterwards.
+        void (async () => {
+          setLoading(true);
+          try {
+            const res = await send({ data: { message: userMsg.content, history } });
+            if (res.ok) {
+              setMessages((cur) => [...cur, { role: "assistant", content: res.content }]);
+            } else {
+              toast.error(res.error);
+              setMessages((cur) => cur.slice(0, -1));
+            }
+          } catch {
+            toast.error("Something went wrong");
+            setMessages((cur) => cur.slice(0, -1));
+          } finally {
+            setLoading(false);
+          }
+        })();
+        return [...m, userMsg];
+      });
+      setInput("");
+    },
+    [loading, send],
+  );
+
+  // Auto-send a prompt that arrives from outside (e.g. chart explainer action)
+  React.useEffect(() => {
+    if (pendingPrompt && !loading) {
+      void handleSend(pendingPrompt);
+      onPromptConsumed?.();
     }
-  }
+  }, [pendingPrompt, loading, handleSend, onPromptConsumed]);
+
 
   const heightClass =
     height === "tall"
