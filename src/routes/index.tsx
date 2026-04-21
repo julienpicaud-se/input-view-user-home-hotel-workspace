@@ -824,6 +824,7 @@ function LogDataTabs({
             entries={entries}
             isCurrentLogged={isCurrentLogged}
             onSaved={onSaved}
+            rooms={rooms}
           />
         )}
         {method === "survey" && (
