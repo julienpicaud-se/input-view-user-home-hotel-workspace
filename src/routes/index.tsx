@@ -545,6 +545,21 @@ function HomePage() {
             previousScore={computeScore(prev)}
             currentBreakdown={computeScoreBreakdown(latest)}
             previousBreakdown={computeScoreBreakdown(prev)}
+            onDriverClick={(fieldKey) => {
+              setActiveTab("analyze");
+              setActiveChart("peer");
+              // Defer scroll until the analyze tab content is mounted
+              window.setTimeout(() => {
+                const el = document.getElementById(`kpi-${fieldKey}`);
+                if (el) {
+                  el.scrollIntoView({ behavior: "smooth", block: "center" });
+                  el.classList.add("ring-2", "ring-primary/60", "ring-offset-2", "ring-offset-background");
+                  window.setTimeout(() => {
+                    el.classList.remove("ring-2", "ring-primary/60", "ring-offset-2", "ring-offset-background");
+                  }, 2200);
+                }
+              }, 80);
+            }}
           />
 
           <TodosCard
@@ -1219,6 +1234,7 @@ function MonthlyChangeSummary({
   previousScore,
   currentBreakdown,
   previousBreakdown,
+  onDriverClick,
 }: {
   latest: MonthlyEntry | undefined;
   prev: MonthlyEntry | undefined;
@@ -1226,14 +1242,22 @@ function MonthlyChangeSummary({
   previousScore: number | null;
   currentBreakdown: ScoreBreakdown;
   previousBreakdown: ScoreBreakdown;
+  onDriverClick?: (fieldKey: HighlightedField) => void;
 }) {
   const summary = React.useMemo(() => {
+    type Driver = {
+      key: HighlightedField;
+      label: string;
+      delta: number;
+      weighted: number;
+      tone: "positive" | "negative";
+    };
     if (!latest) {
       return {
         headline: "Log this month's data to unlock your AI summary.",
         body:
           "Once you've logged electricity, gas, water and waste for the current month, we'll explain what changed since last month and highlight the top drivers.",
-        drivers: [] as { label: string; delta: number; tone: "positive" | "negative" }[],
+        drivers: [] as Driver[],
       };
     }
     if (!prev) {
@@ -1241,20 +1265,26 @@ function MonthlyChangeSummary({
         headline: `${MONTH_NAMES[latest.month - 1]} ${latest.year} is your first logged month.`,
         body:
           "Once you log a second month, this summary will explain what changed and highlight the top two drivers behind your score.",
-        drivers: [],
+        drivers: [] as Driver[],
       };
     }
 
     // Per-utility sub-score deltas
-    const deltas = currentBreakdown.parts
+    const deltas: Driver[] = currentBreakdown.parts
       .map((p, i) => {
         const prevPart = previousBreakdown.parts[i];
         if (p.sub === null || prevPart?.sub === null || prevPart?.sub === undefined) return null;
         const delta = p.sub - prevPart.sub;
         const weighted = delta * p.weight;
-        return { label: p.label, delta: Math.round(delta), weighted, tone: delta >= 0 ? "positive" as const : "negative" as const };
+        return {
+          key: p.key as HighlightedField,
+          label: p.label,
+          delta: Math.round(delta),
+          weighted,
+          tone: delta >= 0 ? ("positive" as const) : ("negative" as const),
+        };
       })
-      .filter((d): d is { label: string; delta: number; weighted: number; tone: "positive" | "negative" } => d !== null);
+      .filter((d): d is Driver => d !== null);
 
     // Top 2 by absolute weighted impact
     const topDrivers = [...deltas]
@@ -1303,7 +1333,7 @@ function MonthlyChangeSummary({
       } else if (positives === topDrivers.length && positives > 0) {
         nuance = " Keep these habits going next month to compound the gain.";
       }
-      body = `The biggest movers were ${joined} (versus peer benchmarks per occupied room-night).${nuance}`;
+      body = `The biggest movers were ${joined} (versus peer benchmarks per occupied room-night). Click a pill below to inspect the chart.${nuance}`;
     }
 
     return { headline, body, drivers: topDrivers };
@@ -1336,24 +1366,53 @@ function MonthlyChangeSummary({
           </p>
           {summary.drivers.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-2">
-              {summary.drivers.map((d) => (
-                <span
-                  key={d.label}
-                  className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium ${
-                    d.tone === "positive"
-                      ? "border-primary/30 bg-primary/10 text-primary"
-                      : "border-destructive/30 bg-destructive/10 text-destructive"
-                  }`}
-                >
-                  {d.tone === "positive" ? (
-                    <ArrowUpRight className="h-3 w-3" />
-                  ) : (
-                    <ArrowDownRight className="h-3 w-3" />
-                  )}
-                  {d.label} {d.delta > 0 ? "+" : ""}
-                  {d.delta} pts
-                </span>
-              ))}
+              {summary.drivers.map((d) => {
+                const isInteractive = !!onDriverClick;
+                const baseClass = `group/pill inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium transition ${
+                  d.tone === "positive"
+                    ? "border-primary/30 bg-primary/10 text-primary"
+                    : "border-destructive/30 bg-destructive/10 text-destructive"
+                } ${
+                  isInteractive
+                    ? d.tone === "positive"
+                      ? "cursor-pointer hover:bg-primary/15 hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                      : "cursor-pointer hover:bg-destructive/15 hover:border-destructive/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/40"
+                    : ""
+                }`;
+                const inner = (
+                  <>
+                    {d.tone === "positive" ? (
+                      <ArrowUpRight className="h-3 w-3" />
+                    ) : (
+                      <ArrowDownRight className="h-3 w-3" />
+                    )}
+                    {d.label} {d.delta > 0 ? "+" : ""}
+                    {d.delta} pts
+                    {isInteractive && (
+                      <ChevronRight className="h-3 w-3 -mr-0.5 opacity-50 transition group-hover/pill:translate-x-0.5 group-hover/pill:opacity-100" />
+                    )}
+                  </>
+                );
+                if (isInteractive) {
+                  return (
+                    <button
+                      key={d.key}
+                      type="button"
+                      onClick={() => onDriverClick!(d.key)}
+                      className={baseClass}
+                      aria-label={`Open ${d.label} chart and field`}
+                      title={`Review ${d.label} in Analyze`}
+                    >
+                      {inner}
+                    </button>
+                  );
+                }
+                return (
+                  <span key={d.key} className={baseClass}>
+                    {inner}
+                  </span>
+                );
+              })}
             </div>
           )}
         </div>
@@ -2334,7 +2393,7 @@ function KpiCard({
       : "text-muted-foreground";
 
   return (
-    <Card className="group relative overflow-hidden rounded-2xl border-border/70 p-5 transition hover:shadow-lg">
+    <Card id={`kpi-${kpi.key}`} className="group relative scroll-mt-24 overflow-hidden rounded-2xl border-border/70 p-5 transition hover:shadow-lg target:ring-2 target:ring-primary/60">
       <div className="flex items-start justify-between">
         <div>
           <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
