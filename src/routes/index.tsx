@@ -386,6 +386,7 @@ function HomePage() {
 
   return (
     <PageContainer>
+      <OnboardingWizard hotel={hotel} onCompleted={() => void reload()} />
       {/* Hero header */}
       <header className="mb-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
