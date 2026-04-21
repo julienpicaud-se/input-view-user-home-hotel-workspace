@@ -180,32 +180,59 @@ function HomePage() {
     starRating: hotel?.star_rating ?? 4,
   };
 
-  const computeScore = React.useCallback(
+  const computeScoreBreakdown = React.useCallback(
     (entry: MonthlyEntry | undefined) => {
-      if (!entry || !entry.occupied_room_nights) return null;
-      const utils: { key: keyof MonthlyEntry; util: Utility; weight: number }[] = [
-        { key: "electricity_kwh", util: "electricity", weight: 0.35 },
-        { key: "gas_kwh", util: "gas", weight: 0.2 },
-        { key: "water_m3", util: "water", weight: 0.25 },
-        { key: "waste_kg", util: "waste", weight: 0.2 },
+      const utils: { key: keyof MonthlyEntry; util: Utility; weight: number; label: string; unit: string }[] = [
+        { key: "electricity_kwh", util: "electricity", weight: 0.35, label: "Electricity", unit: "kWh" },
+        { key: "gas_kwh", util: "gas", weight: 0.2, label: "Gas", unit: "kWh" },
+        { key: "water_m3", util: "water", weight: 0.25, label: "Water", unit: "m³" },
+        { key: "waste_kg", util: "waste", weight: 0.2, label: "Waste", unit: "kg" },
       ];
+      const parts: {
+        key: string;
+        label: string;
+        unit: string;
+        weight: number;
+        sub: number | null;
+        intensity: number | null;
+        contribution: number;
+      }[] = utils.map((u) => ({
+        key: u.key as string,
+        label: u.label,
+        unit: u.unit,
+        weight: u.weight,
+        sub: null,
+        intensity: null,
+        contribution: 0,
+      }));
+      if (!entry || !entry.occupied_room_nights) {
+        return { score: null as number | null, parts };
+      }
       let total = 0;
       let weightUsed = 0;
-      for (const u of utils) {
+      utils.forEach((u, i) => {
         const v = entry[u.key] as number | null;
-        if (v === null || v === undefined) continue;
-        const intensity = v / entry.occupied_room_nights;
+        if (v === null || v === undefined) return;
+        const intensity = v / entry.occupied_room_nights!;
         const stats = getPeerStats(u.util, entry.month, filters);
         const span = stats.p90 - stats.p10 || 1;
         const ratio = (intensity - stats.p10) / span;
         const sub = Math.max(0, Math.min(100, 100 - ratio * 80));
+        parts[i].sub = Math.round(sub);
+        parts[i].intensity = intensity;
+        parts[i].contribution = sub * u.weight;
         total += sub * u.weight;
         weightUsed += u.weight;
-      }
-      if (weightUsed === 0) return null;
-      return Math.round(total / weightUsed);
+      });
+      if (weightUsed === 0) return { score: null, parts };
+      return { score: Math.round(total / weightUsed), parts };
     },
     [filters],
+  );
+
+  const computeScore = React.useCallback(
+    (entry: MonthlyEntry | undefined) => computeScoreBreakdown(entry).score,
+    [computeScoreBreakdown],
   );
 
   const sustainabilityScore = computeScore(latest) ?? 70;
