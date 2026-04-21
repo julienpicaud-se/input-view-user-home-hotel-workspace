@@ -24,6 +24,7 @@ import { PageContainer, PageHeader } from "@/components/page-shell";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PeerMiniCard, PEER_MINI_KPIS } from "@/components/peer-mini-card";
+import { WorkspaceTabsNav } from "@/components/workspace-tabs-nav";
 
 export const Route = createFileRoute("/benchmarks")({
   head: () => ({
@@ -75,6 +76,7 @@ function BenchmarksPage() {
   if (!hotel) {
     return (
       <PageContainer>
+        <WorkspaceTabsNav active="benchmarks" />
         <div className="space-y-4">
           <div className="h-12 w-72 animate-pulse rounded-lg bg-muted" />
         </div>
@@ -91,6 +93,7 @@ function BenchmarksPage() {
 
   return (
     <PageContainer>
+      <WorkspaceTabsNav active="benchmarks" />
       <PageHeader
         eyebrow="Peer comparison"
         title="How do you compare?"

@@ -106,7 +106,16 @@ import {
   type ChartExplanation,
 } from "@/server/assistant.functions";
 
+type IndexSearch = { tab?: "overview" | "log" | "analyze" };
+
 export const Route = createFileRoute("/")({
+  validateSearch: (search: Record<string, unknown>): IndexSearch => {
+    const tab = search.tab;
+    if (tab === "overview" || tab === "log" || tab === "analyze") {
+      return { tab };
+    }
+    return {};
+  },
   head: () => ({
     meta: [
       { title: "Dashboard — RA+" },
@@ -144,7 +153,14 @@ function HomePage() {
   const [insights, setInsights] = React.useState<Insight[]>([]);
   const [insightsLoading, setInsightsLoading] = React.useState(false);
   const [activeChart, setActiveChart] = React.useState<ChartId>("consumption");
-  const [activeTab, setActiveTab] = React.useState<string>("overview");
+  const search = Route.useSearch();
+  const [activeTab, setActiveTab] = React.useState<string>(search.tab ?? "overview");
+  React.useEffect(() => {
+    if (search.tab && search.tab !== activeTab) {
+      setActiveTab(search.tab);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search.tab]);
   const [pendingPrompt, setPendingPrompt] = React.useState<string | null>(null);
   const [highlightFields, setHighlightFields] = React.useState<HighlightedField[]>([]);
   const [utilityFilter, setUtilityFilter] = React.useState<Utility | null>(null);
