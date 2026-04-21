@@ -8,17 +8,17 @@ interface ChatMsg {
   content: string;
 }
 
-async function getHotelContext(): Promise<string> {
+async function getHotelContext(hotelId: string): Promise<string> {
   const { data: hotel } = await supabaseAdmin
     .from("hotels")
     .select("*")
-    .eq("id", DEMO_HOTEL_ID)
+    .eq("id", hotelId)
     .maybeSingle();
 
   const { data: entries } = await supabaseAdmin
     .from("monthly_entries")
     .select("*")
-    .eq("hotel_id", DEMO_HOTEL_ID)
+    .eq("hotel_id", hotelId)
     .order("year", { ascending: false })
     .order("month", { ascending: false })
     .limit(12);
