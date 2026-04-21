@@ -424,7 +424,8 @@ function HomePage() {
 
       {/* Tabbed workspace — Ask Sera is now embedded inside Overview & Analyze */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="mb-6 inline-flex h-auto w-full justify-start gap-1 rounded-2xl border border-border bg-card p-1.5 sm:w-auto">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <TabsList className="inline-flex h-auto w-full justify-start gap-1 rounded-2xl border border-border bg-card p-1.5 sm:w-auto">
           <TabsTrigger value="overview" className="rounded-xl px-4 py-2 text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
             Overview
           </TabsTrigger>
