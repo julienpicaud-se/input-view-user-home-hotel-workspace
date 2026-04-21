@@ -741,7 +741,23 @@ const CHART_TITLES: Record<ChartId, string> = {
   peer: "Peer comparison",
 };
 
-function ChartExplainerCard({ chartId }: { chartId: ChartId }) {
+function ChartExplainerCard({
+  chartId,
+  isLatestLogged,
+  hasMissingFields,
+  worstUtilityLabel,
+  onDraftLog,
+  onAskSera,
+  onHighlightFix,
+}: {
+  chartId: ChartId;
+  isLatestLogged: boolean;
+  hasMissingFields: boolean;
+  worstUtilityLabel: string | null;
+  onDraftLog: () => void;
+  onAskSera: (prompt: string) => void;
+  onHighlightFix: () => void;
+}) {
   const explain = useServerFn(explainChart);
   const [data, setData] = React.useState<ChartExplanation | null>(null);
   const [loading, setLoading] = React.useState(false);
@@ -764,6 +780,35 @@ function ChartExplainerCard({ chartId }: { chartId: ChartId }) {
       cancelled = true;
     };
   }, [chartId, explain]);
+
+  // Per-chart action labels and AI prompts
+  const actionConfig = React.useMemo(() => {
+    const recBase = `Looking at my "${CHART_TITLES[chartId]}" chart`;
+    switch (chartId) {
+      case "consumption":
+        return {
+          ask: `${recBase}, what is the single highest-impact action I should take this month? Be specific with numbers.`,
+          highlightLabel: hasMissingFields ? "Fix missing data" : "Flag worst utility",
+        };
+      case "co2e":
+        return {
+          ask: `${recBase}, give me 2 concrete CO₂e reduction actions ranked by ROI for my hotel.`,
+          highlightLabel: hasMissingFields ? "Fix missing data" : "Flag biggest emitter",
+        };
+      case "intensity":
+        return {
+          ask: `${recBase}, which utility has the worst intensity per room-night and what should I change?`,
+          highlightLabel: hasMissingFields ? "Fix missing data" : "Flag worst intensity",
+        };
+      case "peer":
+        return {
+          ask: `${recBase}, where am I worst vs peers and what do top performers do differently?`,
+          highlightLabel: worstUtilityLabel
+            ? `Flag ${worstUtilityLabel.toLowerCase()}`
+            : "Flag worst utility",
+        };
+    }
+  }, [chartId, hasMissingFields, worstUtilityLabel]);
 
   return (
     <Card className="rounded-3xl border-border/70 bg-gradient-to-br from-card to-accent/5 p-5">
@@ -815,7 +860,59 @@ function ChartExplainerCard({ chartId }: { chartId: ChartId }) {
           </div>
         )}
       </div>
+
+      {/* One-click actions */}
+      <div className="mt-5 border-t border-border/60 pt-4">
+        <div className="mb-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+          Quick actions
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <ActionChip
+            icon={<FilePlus className="h-3.5 w-3.5" />}
+            label={isLatestLogged ? "Update this month" : "Draft a log entry"}
+            onClick={onDraftLog}
+          />
+          <ActionChip
+            icon={<Wand2 className="h-3.5 w-3.5" />}
+            label="Ask Sera for a recommendation"
+            primary
+            onClick={() => onAskSera(actionConfig.ask)}
+          />
+          <ActionChip
+            icon={<Target className="h-3.5 w-3.5" />}
+            label={actionConfig.highlightLabel}
+            onClick={onHighlightFix}
+          />
+        </div>
+      </div>
     </Card>
+  );
+}
+
+function ActionChip({
+  icon,
+  label,
+  onClick,
+  primary,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  primary?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+        primary
+          ? "border-primary/40 bg-primary text-primary-foreground hover:bg-primary/90"
+          : "border-border bg-background hover:border-primary/40 hover:bg-accent/10"
+      }`}
+    >
+      {icon}
+      {label}
+    </button>
   );
 }
 
