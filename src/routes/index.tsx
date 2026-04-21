@@ -374,20 +374,18 @@ function HomePage() {
             </div>
           </Card>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {KPIS.map((kpi) => (
-              <KpiCard
-                key={kpi.key}
-                kpi={kpi}
-                latest={latest}
-                prev={prev}
-                lastYearSame={lastYearSame}
-                sorted={sorted}
-                perRoom={perRoom}
-                filters={filters}
-              />
-            ))}
-          </div>
+          <TodosCard
+            latest={latest}
+            sorted={sorted}
+            isCurrentLogged={!!isCurrentLogged}
+            worstUtility={worstUtility}
+            missingFields={missingFields}
+            onGoToLog={(fields) => {
+              if (fields && fields.length) setHighlightFields(fields);
+              setActiveTab("log");
+            }}
+            onGoToAnalyze={() => setActiveTab("analyze")}
+          />
 
           {/* Insights + Sera chat side-by-side */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
@@ -947,6 +945,221 @@ function ExplainerSection({
         ))}
       </ul>
     </div>
+  );
+}
+
+/* ---------- To-dos of the day ---------- */
+
+interface TodoItem {
+  id: string;
+  title: string;
+  description: string;
+  cta: string;
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  tone: "urgent" | "important" | "routine";
+  onClick: () => void;
+}
+
+function TodosCard({
+  latest,
+  sorted,
+  isCurrentLogged,
+  worstUtility,
+  missingFields,
+  onGoToLog,
+  onGoToAnalyze,
+}: {
+  latest: MonthlyEntry | undefined;
+  sorted: MonthlyEntry[];
+  isCurrentLogged: boolean;
+  worstUtility: { key: HighlightedField; label: string; rank: number } | null;
+  missingFields: HighlightedField[];
+  onGoToLog: (highlight?: HighlightedField[]) => void;
+  onGoToAnalyze: () => void;
+}) {
+  const today = new Date();
+  const monthLabel = MONTH_NAMES[today.getMonth()];
+  const prevMonthIdx = today.getMonth() === 0 ? 11 : today.getMonth() - 1;
+  const prevMonthLabel = MONTH_NAMES[prevMonthIdx];
+
+  const todos = React.useMemo<TodoItem[]>(() => {
+    const items: TodoItem[] = [];
+
+    if (!isCurrentLogged) {
+      items.push({
+        id: "log-month",
+        title: `Log ${monthLabel} consumption`,
+        description: `Add this month's electricity, gas, water and waste readings to keep your score current.`,
+        cta: "Open log form",
+        icon: ClipboardList,
+        tone: "urgent",
+        onClick: () => onGoToLog(),
+      });
+    }
+
+    const fieldMeta: Record<HighlightedField, { label: string; verb: string; icon: React.ComponentType<React.SVGProps<SVGSVGElement>> }> = {
+      electricity_kwh: { label: "electricity invoice", verb: "Add", icon: Bolt },
+      gas_kwh: { label: "gas reading", verb: "Add", icon: Flame },
+      water_m3: { label: "water meter reading", verb: "Add", icon: Droplets },
+      waste_kg: { label: "waste collection data", verb: "Add", icon: Trash2 },
+      occupied_room_nights: { label: "occupied room-nights", verb: "Confirm", icon: FilePlus },
+    };
+    const missingPriority: HighlightedField[] = [
+      "electricity_kwh",
+      "waste_kg",
+      "water_m3",
+      "gas_kwh",
+      "occupied_room_nights",
+    ];
+    const orderedMissing = missingPriority.filter((f) => missingFields.includes(f));
+    for (const f of orderedMissing.slice(0, 2)) {
+      const meta = fieldMeta[f];
+      items.push({
+        id: `missing-${f}`,
+        title: `${meta.verb} ${prevMonthLabel} ${meta.label}`,
+        description: `Last month is incomplete — your benchmarks need this value to stay accurate.`,
+        cta: "Open form",
+        icon: meta.icon,
+        tone: "important",
+        onClick: () => onGoToLog([f]),
+      });
+    }
+
+    if (worstUtility && worstUtility.rank > 50) {
+      items.push({
+        id: "investigate-worst",
+        title: `Investigate ${worstUtility.label.toLowerCase()} spike`,
+        description: `You're in the bottom ${100 - worstUtility.rank}% vs similar hotels. Review the trend and ask Sera for actions.`,
+        cta: "Open analysis",
+        icon: AlertTriangle,
+        tone: "important",
+        onClick: onGoToAnalyze,
+      });
+    }
+
+    if (sorted.length >= 3 && today.getDate() <= 7) {
+      items.push({
+        id: "quarterly",
+        title: "Review last quarter's trends",
+        description: "First week of the month — quickly scan trends and share highlights with your team.",
+        cta: "Open analysis",
+        icon: BarChart3,
+        tone: "routine",
+        onClick: onGoToAnalyze,
+      });
+    }
+
+    if (latest && !latest.attachment_url) {
+      items.push({
+        id: "attach-invoice",
+        title: "Attach supporting invoices",
+        description: `Upload PDFs for ${prevMonthLabel} so auditors can verify your figures in one click.`,
+        cta: "Open log form",
+        icon: Upload,
+        tone: "routine",
+        onClick: () => onGoToLog(),
+      });
+    }
+
+    if (items.length === 0) {
+      items.push({
+        id: "all-good",
+        title: "All caught up — explore your trends",
+        description: "Nothing critical to action today. Take a moment to review your benchmark performance.",
+        cta: "Open analysis",
+        icon: CheckCircle2,
+        tone: "routine",
+        onClick: onGoToAnalyze,
+      });
+    }
+
+    return items.slice(0, 5);
+  }, [
+    isCurrentLogged,
+    monthLabel,
+    prevMonthLabel,
+    missingFields,
+    worstUtility,
+    sorted.length,
+    latest,
+    onGoToLog,
+    onGoToAnalyze,
+    today,
+  ]);
+
+  const completedCount = isCurrentLogged ? 1 : 0;
+  const totalCount = todos.length + completedCount;
+
+  return (
+    <Card className="rounded-3xl border-border/70 p-6">
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/30 text-accent-foreground">
+              <Target className="h-4 w-4" />
+            </div>
+            <h2 className="font-serif text-xl font-semibold">To-dos of the day</h2>
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {todos.length === 1 && todos[0].id === "all-good"
+              ? "You're on top of things."
+              : `${todos.length} action${todos.length > 1 ? "s" : ""} to keep your data and score on track.`}
+          </p>
+        </div>
+        <div className="rounded-full border border-border bg-muted/40 px-3 py-1 text-xs text-muted-foreground">
+          {completedCount}/{totalCount} done today
+        </div>
+      </div>
+
+      <ul className="space-y-3">
+        {todos.map((todo) => {
+          const Icon = todo.icon;
+          const toneStyles =
+            todo.tone === "urgent"
+              ? "border-l-4 border-l-destructive bg-destructive/5"
+              : todo.tone === "important"
+                ? "border-l-4 border-l-primary/70 bg-primary/5"
+                : "border-l-4 border-l-muted bg-card";
+          const iconBg =
+            todo.tone === "urgent"
+              ? "bg-destructive/15 text-destructive"
+              : todo.tone === "important"
+                ? "bg-primary/15 text-primary"
+                : "bg-muted text-muted-foreground";
+
+          return (
+            <li
+              key={todo.id}
+              className={`group flex flex-wrap items-center gap-4 rounded-2xl border border-border/70 p-4 transition hover:bg-card/80 ${toneStyles}`}
+            >
+              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${iconBg}`}>
+                <Icon className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-foreground">{todo.title}</h3>
+                  {todo.tone === "urgent" && (
+                    <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-destructive">
+                      Today
+                    </span>
+                  )}
+                </div>
+                <p className="mt-0.5 text-xs text-muted-foreground">{todo.description}</p>
+              </div>
+              <Button
+                size="sm"
+                variant={todo.tone === "urgent" ? "default" : "outline"}
+                onClick={todo.onClick}
+                className="shrink-0"
+              >
+                {todo.cta}
+                <ChevronRight className="ml-1 h-4 w-4" />
+              </Button>
+            </li>
+          );
+        })}
+      </ul>
+    </Card>
   );
 }
 
