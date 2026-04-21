@@ -1348,12 +1348,29 @@ function QuickLogCard({
   isCurrentLogged,
   onSaved,
   rooms,
+  highlightFields = [],
+  onHighlightConsumed,
 }: {
   entries: MonthlyEntry[];
   isCurrentLogged: boolean;
   onSaved: () => void;
   rooms: number;
+  highlightFields?: HighlightedField[];
+  onHighlightConsumed?: () => void;
 }) {
+  const cardRef = React.useRef<HTMLDivElement | null>(null);
+  const highlightSet = React.useMemo(() => new Set(highlightFields), [highlightFields]);
+
+  // Auto-clear the highlight after 8s and scroll into view when it arrives
+  React.useEffect(() => {
+    if (highlightFields.length === 0) return;
+    cardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    const t = window.setTimeout(() => {
+      onHighlightConsumed?.();
+    }, 8000);
+    return () => window.clearTimeout(t);
+  }, [highlightFields, onHighlightConsumed]);
+
   // Default to most recent unlogged month
   const initial = React.useMemo(() => {
     const now = new Date();
