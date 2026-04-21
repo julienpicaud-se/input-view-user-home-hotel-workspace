@@ -442,6 +442,8 @@ function HomePage() {
             Peers Benchmark
           </Link>
         </TabsList>
+        <HotelSwitcher />
+        </div>
 
         {/* OVERVIEW — score, KPIs, insights + Sera chat */}
         <TabsContent value="overview" className="mt-0 space-y-6 focus-visible:outline-none">
