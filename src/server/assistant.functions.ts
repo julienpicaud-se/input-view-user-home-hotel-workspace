@@ -75,6 +75,7 @@ export const sendAssistantMessage = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
       message: z.string().min(1).max(2000),
+      hotelId: z.string().uuid().optional(),
       history: z
         .array(
           z.object({
@@ -87,7 +88,8 @@ export const sendAssistantMessage = createServerFn({ method: "POST" })
     })
   )
   .handler(async ({ data }) => {
-    const context = await getHotelContext();
+    const hotelId = data.hotelId ?? DEMO_HOTEL_ID;
+    const context = await getHotelContext(hotelId);
 
     const messages: ChatMsg[] = [
       { role: "system", content: `${SYSTEM_PROMPT}\n\nHOTEL CONTEXT:\n${context}` },
@@ -125,16 +127,22 @@ export const sendAssistantMessage = createServerFn({ method: "POST" })
 
     // Persist both messages
     await supabaseAdmin.from("assistant_messages").insert([
-      { hotel_id: DEMO_HOTEL_ID, role: "user", content: data.message },
-      { hotel_id: DEMO_HOTEL_ID, role: "assistant", content },
+      { hotel_id: hotelId, role: "user", content: data.message },
+      { hotel_id: hotelId, role: "assistant", content },
     ]);
 
     return { ok: true as const, content };
   });
 
-export const generateInsights = createServerFn({ method: "POST" }).handler(
-  async () => {
-    const context = await getHotelContext();
+export const generateInsights = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      hotelId: z.string().uuid().optional(),
+    }).default({}),
+  )
+  .handler(async ({ data }) => {
+    const hotelId = data.hotelId ?? DEMO_HOTEL_ID;
+    const context = await getHotelContext(hotelId);
 
     const messages: ChatMsg[] = [
       {
