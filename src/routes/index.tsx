@@ -1692,13 +1692,20 @@ function TodoCompletionInsights({
                       ? "text-destructive"
                       : "text-muted-foreground";
               return (
-                <li key={m.key}>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedKey(m.key)}
-                    className="group flex w-full flex-col items-stretch gap-2 rounded-2xl border border-border/70 bg-card/40 p-3 text-left transition hover:bg-card hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    aria-label={`View ${m.fullLabel} to-do breakdown`}
-                  >
+                <li
+                  key={m.key}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setSelectedKey(m.key)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setSelectedKey(m.key);
+                    }
+                  }}
+                  aria-label={`View ${m.fullLabel} to-do breakdown`}
+                  className="group flex w-full cursor-pointer flex-col items-stretch gap-2 rounded-2xl border border-border/70 bg-card/40 p-3 text-left transition hover:bg-card hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
                   <div className="flex items-baseline justify-between">
                     <span className="text-xs font-medium text-foreground">{m.label}</span>
                     <span className="text-[11px] text-muted-foreground">
@@ -1747,7 +1754,6 @@ function TodoCompletionInsights({
                   <span className="mt-1 text-[10px] uppercase tracking-wider text-muted-foreground/70 opacity-0 transition group-hover:opacity-100">
                     Click for details →
                   </span>
-                  </button>
                 </li>
               );
             })}
