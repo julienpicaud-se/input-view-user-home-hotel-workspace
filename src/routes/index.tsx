@@ -827,7 +827,7 @@ function HomePage() {
                 aside={<Trophy className="h-5 w-5" style={{ color: "var(--champagne)" }} />}
               >
                 <div className="grid grid-cols-1 gap-3 px-6 pb-6 sm:grid-cols-2">
-                  {KPIS.map((kpi) => (
+                  {KPIS.filter((kpi) => !utilityFilter || kpi.utility === utilityFilter).map((kpi) => (
                     <PeerMiniCard
                       key={kpi.key}
                       kpi={kpi}
