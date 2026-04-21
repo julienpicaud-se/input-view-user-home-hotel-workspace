@@ -6,26 +6,18 @@ import {
   Scripts,
   useLocation,
 } from "@tanstack/react-router";
-import {
-  LayoutDashboard,
-  PenSquare,
-  Table2,
-  BarChart3,
-  Sparkles,
-  Hotel,
-} from "lucide-react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 import appCss from "../styles.css?url";
 
 const NAV_ITEMS = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/log", label: "Log data", icon: PenSquare },
-  { to: "/history", label: "History", icon: Table2 },
-  { to: "/benchmarks", label: "Benchmarks", icon: BarChart3 },
-  { to: "/assistant", label: "AI assistant", icon: Sparkles },
-  { to: "/hotel", label: "Hotel profile", icon: Hotel },
+  { to: "/", label: "Dashboard" },
+  { to: "/log", label: "Log data" },
+  { to: "/history", label: "History" },
+  { to: "/benchmarks", label: "Benchmarks" },
+  { to: "/assistant", label: "Assistant" },
+  { to: "/hotel", label: "Hotel" },
 ] as const;
 
 function NotFoundComponent() {
