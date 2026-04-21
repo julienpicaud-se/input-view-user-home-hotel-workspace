@@ -538,6 +538,15 @@ function HomePage() {
             );
           })()}
 
+          <MonthlyChangeSummary
+            latest={latest}
+            prev={prev}
+            currentScore={computeScore(latest)}
+            previousScore={computeScore(prev)}
+            currentBreakdown={computeScoreBreakdown(latest)}
+            previousBreakdown={computeScoreBreakdown(prev)}
+          />
+
           <TodosCard
             latest={latest}
             sorted={sorted}
