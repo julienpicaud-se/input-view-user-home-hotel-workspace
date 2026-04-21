@@ -153,21 +153,6 @@ function HomePage() {
     }
   }, [loading]);
 
-  if (loading || !hotel) {
-    return (
-      <PageContainer>
-        <div className="space-y-4">
-          <div className="h-12 w-72 animate-pulse rounded-lg bg-muted" />
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {[0, 1, 2, 3].map((i) => (
-              <div key={i} className="h-40 animate-pulse rounded-2xl bg-muted" />
-            ))}
-          </div>
-        </div>
-      </PageContainer>
-    );
-  }
-
   const sorted = [...entries].sort((a, b) =>
     a.year !== b.year ? a.year - b.year : a.month - b.month
   );
@@ -178,9 +163,9 @@ function HomePage() {
   );
 
   const filters = {
-    sizeBand: hotel.size_band,
-    region: hotel.region,
-    starRating: hotel.star_rating,
+    sizeBand: hotel?.size_band ?? "medium",
+    region: hotel?.region ?? "",
+    starRating: hotel?.star_rating ?? 4,
   };
 
   const sustainabilityScore = (() => {
@@ -259,6 +244,21 @@ function HomePage() {
     if (!latest.occupied_room_nights) out.push("occupied_room_nights");
     return out;
   }, [latest]);
+
+  if (loading || !hotel) {
+    return (
+      <PageContainer>
+        <div className="space-y-4">
+          <div className="h-12 w-72 animate-pulse rounded-lg bg-muted" />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="h-40 animate-pulse rounded-2xl bg-muted" />
+            ))}
+          </div>
+        </div>
+      </PageContainer>
+    );
+  }
 
   const trendData = sorted.slice(-12).map((e) => ({
     label: `${MONTH_SHORT[e.month - 1]} ${String(e.year).slice(2)}`,
