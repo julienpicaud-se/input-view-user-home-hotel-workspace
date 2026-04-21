@@ -173,32 +173,36 @@ function HomePage() {
     starRating: hotel?.star_rating ?? 4,
   };
 
-  const sustainabilityScore = (() => {
-    if (!latest || !latest.occupied_room_nights) return 70;
-    const utils: { key: keyof MonthlyEntry; util: Utility; weight: number }[] = [
-      { key: "electricity_kwh", util: "electricity", weight: 0.35 },
-      { key: "gas_kwh", util: "gas", weight: 0.2 },
-      { key: "water_m3", util: "water", weight: 0.25 },
-      { key: "waste_kg", util: "waste", weight: 0.2 },
-    ];
-    let total = 0;
-    let weightUsed = 0;
-    for (const u of utils) {
-      const v = latest[u.key] as number | null;
-      if (v === null || v === undefined) continue;
-      const intensity = v / latest.occupied_room_nights;
-      const stats = getPeerStats(u.util, latest.month, filters);
-      // Map intensity to a 0..100 sub-score using p10 (best) → 100 and p90 (worst) → 20.
-      // Intensities beyond p90 still earn some points (down to 0); intensities below p10 cap at 100.
-      const span = stats.p90 - stats.p10 || 1;
-      const ratio = (intensity - stats.p10) / span;
-      const sub = Math.max(0, Math.min(100, 100 - ratio * 80));
-      total += sub * u.weight;
-      weightUsed += u.weight;
-    }
-    if (weightUsed === 0) return 70;
-    return Math.round(total / weightUsed);
-  })();
+  const computeScore = React.useCallback(
+    (entry: MonthlyEntry | undefined) => {
+      if (!entry || !entry.occupied_room_nights) return null;
+      const utils: { key: keyof MonthlyEntry; util: Utility; weight: number }[] = [
+        { key: "electricity_kwh", util: "electricity", weight: 0.35 },
+        { key: "gas_kwh", util: "gas", weight: 0.2 },
+        { key: "water_m3", util: "water", weight: 0.25 },
+        { key: "waste_kg", util: "waste", weight: 0.2 },
+      ];
+      let total = 0;
+      let weightUsed = 0;
+      for (const u of utils) {
+        const v = entry[u.key] as number | null;
+        if (v === null || v === undefined) continue;
+        const intensity = v / entry.occupied_room_nights;
+        const stats = getPeerStats(u.util, entry.month, filters);
+        const span = stats.p90 - stats.p10 || 1;
+        const ratio = (intensity - stats.p10) / span;
+        const sub = Math.max(0, Math.min(100, 100 - ratio * 80));
+        total += sub * u.weight;
+        weightUsed += u.weight;
+      }
+      if (weightUsed === 0) return null;
+      return Math.round(total / weightUsed);
+    },
+    [filters],
+  );
+
+  const sustainabilityScore = computeScore(latest) ?? 70;
+
 
   const peerPosition = (() => {
     if (!latest || !latest.electricity_kwh || !latest.occupied_room_nights)
@@ -391,6 +395,8 @@ function HomePage() {
             }}
             onGoToAnalyze={() => setActiveTab("analyze")}
           />
+
+          <TodoCompletionInsights sorted={sorted} computeScore={computeScore} />
 
           {/* Insights + Sera chat side-by-side */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
@@ -1436,6 +1442,259 @@ function TodosCard({
           })}
         </AnimatePresence>
       </ul>
+    </Card>
+  );
+}
+
+/* ---------- To-do completion insights ---------- */
+
+function TodoCompletionInsights({
+  sorted,
+  computeScore,
+}: {
+  sorted: MonthlyEntry[];
+  computeScore: (entry: MonthlyEntry | undefined) => number | null;
+}) {
+  const [completionMap, setCompletionMap] = React.useState<Record<string, string[]>>({});
+
+  React.useEffect(() => {
+    setCompletionMap(loadCompletionMap());
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === COMPLETION_STORAGE_KEY) setCompletionMap(loadCompletionMap());
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
+  // Infer category from todo id (mirrors logic in TodosCard).
+  const categorize = React.useCallback((id: string): TodoCategory => {
+    if (id === "log-month") return "data";
+    if (id === "missing-electricity_kwh" || id === "missing-gas_kwh") return "cost";
+    if (id === "missing-water_m3" || id === "missing-occupied_room_nights") return "data";
+    if (id === "missing-waste_kg") return "waste";
+    if (id === "investigate-worst") return "cost";
+    if (id === "quarterly" || id === "attach-invoice") return "compliance";
+    return "data";
+  }, []);
+
+  const monthlyData = React.useMemo(() => {
+    // Build last 6 months that have a logged entry, with score and completed-by-category.
+    const recent = sorted.slice(-6);
+    return recent.map((entry, idx, arr) => {
+      const key = `${entry.year}-${String(entry.month).padStart(2, "0")}`;
+      const ids = completionMap[key] ?? [];
+      const counts: Record<TodoCategory, number> = { cost: 0, compliance: 0, waste: 0, data: 0 };
+      for (const id of ids) counts[categorize(id)]++;
+      const total = ids.length;
+      const score = computeScore(entry);
+      const prevEntry = idx > 0 ? arr[idx - 1] : undefined;
+      const prevScore = computeScore(prevEntry);
+      const delta =
+        score !== null && prevScore !== null ? score - prevScore : null;
+      return {
+        key,
+        label: `${MONTH_SHORT[entry.month - 1]} ${String(entry.year).slice(2)}`,
+        score,
+        delta,
+        total,
+        counts,
+      };
+    });
+  }, [sorted, completionMap, categorize, computeScore]);
+
+  // Correlation: Pearson between completions count and score delta across months where both exist.
+  const correlation = React.useMemo(() => {
+    const pairs = monthlyData
+      .map((m) => (m.delta !== null ? { x: m.total, y: m.delta } : null))
+      .filter((p): p is { x: number; y: number } => p !== null);
+    if (pairs.length < 3) return null;
+    const n = pairs.length;
+    const mx = pairs.reduce((s, p) => s + p.x, 0) / n;
+    const my = pairs.reduce((s, p) => s + p.y, 0) / n;
+    let num = 0;
+    let dx2 = 0;
+    let dy2 = 0;
+    for (const p of pairs) {
+      const dx = p.x - mx;
+      const dy = p.y - my;
+      num += dx * dy;
+      dx2 += dx * dx;
+      dy2 += dy * dy;
+    }
+    const denom = Math.sqrt(dx2 * dy2);
+    if (denom === 0) return null;
+    return num / denom;
+  }, [monthlyData]);
+
+  const totalCompleted = monthlyData.reduce((s, m) => s + m.total, 0);
+  const totalsByCategory = React.useMemo(() => {
+    const acc: Record<TodoCategory, number> = { cost: 0, compliance: 0, waste: 0, data: 0 };
+    for (const m of monthlyData) {
+      (Object.keys(acc) as TodoCategory[]).forEach((k) => (acc[k] += m.counts[k]));
+    }
+    return acc;
+  }, [monthlyData]);
+
+  const topCategory = (Object.entries(totalsByCategory) as [TodoCategory, number][])
+    .sort((a, b) => b[1] - a[1])[0];
+
+  const correlationLabel = (() => {
+    if (correlation === null) return null;
+    const abs = Math.abs(correlation);
+    const strength = abs >= 0.6 ? "strong" : abs >= 0.3 ? "moderate" : "weak";
+    const direction = correlation > 0 ? "positive" : correlation < 0 ? "negative" : "no";
+    return { strength, direction, value: correlation };
+  })();
+
+  const maxTotal = Math.max(1, ...monthlyData.map((m) => m.total));
+
+  // Color tokens per category — reuse chart palette
+  const catColor: Record<TodoCategory, string> = {
+    cost: "var(--chart-3)",
+    compliance: "var(--chart-1)",
+    waste: "var(--chart-5)",
+    data: "var(--chart-2)",
+  };
+
+  if (monthlyData.length === 0) return null;
+
+  return (
+    <Card className="rounded-3xl border-border/70 p-6">
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/30 text-accent-foreground">
+              <BarChart3 className="h-4 w-4" />
+            </div>
+            <h2 className="font-serif text-xl font-semibold">To-do impact</h2>
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">
+            How completed actions correlate with your sustainability score.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="rounded-full border border-border bg-muted/40 px-3 py-1 text-xs text-muted-foreground">
+            {totalCompleted} completed · last {monthlyData.length} months
+          </div>
+          {topCategory && topCategory[1] > 0 && (
+            <div className="rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground">
+              Most focus: <span className="font-medium text-foreground">{CATEGORY_META[topCategory[0]].label}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {totalCompleted === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border bg-card/50 p-6 text-sm text-muted-foreground">
+          Tick off to-dos as you complete them — this panel will show how your actions move your score.
+        </div>
+      ) : (
+        <>
+          {/* Per-month stacked bars + score delta */}
+          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
+            {monthlyData.map((m) => {
+              const heightPct = (m.total / maxTotal) * 100;
+              const deltaTone =
+                m.delta === null
+                  ? "text-muted-foreground"
+                  : m.delta > 0
+                    ? "text-primary"
+                    : m.delta < 0
+                      ? "text-destructive"
+                      : "text-muted-foreground";
+              return (
+                <li
+                  key={m.key}
+                  className="flex flex-col items-stretch gap-2 rounded-2xl border border-border/70 bg-card/40 p-3"
+                >
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-xs font-medium text-foreground">{m.label}</span>
+                    <span className="text-[11px] text-muted-foreground">
+                      {m.total} done
+                    </span>
+                  </div>
+
+                  <div className="relative h-20 w-full overflow-hidden rounded-lg bg-muted/40">
+                    {m.total > 0 && (
+                      <div
+                        className="absolute inset-x-0 bottom-0 flex flex-col"
+                        style={{ height: `${Math.max(8, heightPct)}%` }}
+                      >
+                        {(["cost", "compliance", "waste", "data"] as TodoCategory[]).map((c) => {
+                          const share = m.counts[c] / m.total;
+                          if (share === 0) return null;
+                          return (
+                            <div
+                              key={c}
+                              style={{
+                                height: `${share * 100}%`,
+                                backgroundColor: catColor[c],
+                              }}
+                              title={`${CATEGORY_META[c].label}: ${m.counts[c]}`}
+                            />
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-muted-foreground">
+                      Score {m.score ?? "—"}
+                    </span>
+                    <span className={`font-medium ${deltaTone}`}>
+                      {m.delta === null
+                        ? "—"
+                        : m.delta > 0
+                          ? `+${m.delta}`
+                          : m.delta === 0
+                            ? "±0"
+                            : m.delta}
+                    </span>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+
+          {/* Legend */}
+          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-muted-foreground">
+            {(["cost", "compliance", "waste", "data"] as TodoCategory[]).map((c) => (
+              <div key={c} className="flex items-center gap-1.5">
+                <span
+                  className="inline-block h-2.5 w-2.5 rounded-sm"
+                  style={{ backgroundColor: catColor[c] }}
+                />
+                <span>{CATEGORY_META[c].label}</span>
+                <span className="text-muted-foreground/70">({totalsByCategory[c]})</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Correlation summary */}
+          {correlationLabel && (
+            <div className="mt-4 flex items-start gap-3 rounded-2xl border border-border/70 bg-accent/10 p-4">
+              <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-accent-foreground" />
+              <div className="text-sm">
+                <p className="text-foreground">
+                  <span className="font-medium">{correlationLabel.strength} {correlationLabel.direction} correlation</span>
+                  {" "}between to-dos completed and score change
+                  <span className="ml-1 text-muted-foreground">
+                    (r = {correlationLabel.value.toFixed(2)})
+                  </span>
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {correlationLabel.direction === "positive"
+                    ? "Months with more completed actions tend to see your score rise — keep checking them off."
+                    : correlationLabel.direction === "negative"
+                      ? "Score moved opposite to completion — external factors (occupancy, season) may be dominating. Ask Sera for a deeper look."
+                      : "No clear link yet — log a few more months to see the pattern emerge."}
+                </p>
+              </div>
+            </div>
+          )}
+        </>
+      )}
     </Card>
   );
 }
