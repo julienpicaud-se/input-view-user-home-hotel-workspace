@@ -1792,6 +1792,192 @@ function TodoCompletionInsights({
         </>
       )}
     </Card>
+
+    <Dialog open={!!selectedKey} onOpenChange={(o) => !o && setSelectedKey(null)}>
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        {selectedMonth && (() => {
+          const breakdown = computeScoreBreakdown(selectedMonth.entry);
+          const prevBreakdown = computeScoreBreakdown(selectedMonth.prevEntry);
+          const subDeltas = breakdown.parts.map((p, i) => {
+            const prev = prevBreakdown.parts[i];
+            const subDelta =
+              p.sub !== null && prev?.sub !== null && prev?.sub !== undefined
+                ? p.sub - prev.sub
+                : null;
+            const contribDelta =
+              prev !== undefined ? (p.contribution - prev.contribution) * (1 / 1) : 0;
+            return { ...p, prevSub: prev?.sub ?? null, subDelta, contribDelta };
+          });
+          const orderedCats: TodoCategory[] = ["cost", "compliance", "waste", "data"];
+          return (
+            <>
+              <DialogHeader>
+                <DialogTitle className="font-serif text-2xl">
+                  {selectedMonth.fullLabel}
+                </DialogTitle>
+                <DialogDescription>
+                  {selectedMonth.total} to-do{selectedMonth.total !== 1 ? "s" : ""} completed
+                  {selectedMonth.score !== null ? ` · score ${selectedMonth.score}` : ""}
+                  {selectedMonth.delta !== null
+                    ? ` (${selectedMonth.delta > 0 ? "+" : ""}${selectedMonth.delta} vs previous)`
+                    : ""}
+                </DialogDescription>
+              </DialogHeader>
+
+              {/* Completed to-dos by category */}
+              <section className="mt-2 space-y-3">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Completed actions by category
+                </h3>
+                {selectedMonth.total === 0 ? (
+                  <div className="rounded-xl border border-dashed border-border bg-card/40 p-4 text-sm text-muted-foreground">
+                    No to-dos completed for this month.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {orderedCats
+                      .filter((c) => selectedMonth.idsByCategory[c].length > 0)
+                      .map((c) => {
+                        const ids = selectedMonth.idsByCategory[c];
+                        const meta = CATEGORY_META[c];
+                        const Icon = meta.icon;
+                        return (
+                          <div
+                            key={c}
+                            className="rounded-xl border border-border bg-card p-3"
+                          >
+                            <div className="mb-2 flex items-center gap-2">
+                              <span
+                                className="inline-block h-2.5 w-2.5 rounded-sm"
+                                style={{ backgroundColor: catColor[c] }}
+                              />
+                              <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span className="text-sm font-medium">{meta.label}</span>
+                              <span className="ml-auto text-xs text-muted-foreground">
+                                {ids.length} done
+                              </span>
+                            </div>
+                            <ul className="space-y-1.5 pl-1">
+                              {ids.map((id) => (
+                                <li
+                                  key={id}
+                                  className="flex items-start gap-2 text-sm text-foreground"
+                                >
+                                  <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                                  <span>{humanizeTodoId(id)}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
+              </section>
+
+              {/* Score delta breakdown */}
+              <section className="mt-5 space-y-3">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Score breakdown
+                </h3>
+                {selectedMonth.score === null ? (
+                  <div className="rounded-xl border border-dashed border-border bg-card/40 p-4 text-sm text-muted-foreground">
+                    Not enough data this month to compute a score.
+                  </div>
+                ) : (
+                  <div className="overflow-hidden rounded-xl border border-border">
+                    <table className="w-full text-sm">
+                      <thead className="bg-muted/40 text-xs text-muted-foreground">
+                        <tr>
+                          <th className="px-3 py-2 text-left font-medium">Utility</th>
+                          <th className="px-3 py-2 text-right font-medium">Weight</th>
+                          <th className="px-3 py-2 text-right font-medium">Sub-score</th>
+                          <th className="px-3 py-2 text-right font-medium">vs prev</th>
+                          <th className="px-3 py-2 text-right font-medium">Weighted Δ</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {subDeltas.map((p) => {
+                          const tone =
+                            p.subDelta === null
+                              ? "text-muted-foreground"
+                              : p.subDelta > 0
+                                ? "text-primary"
+                                : p.subDelta < 0
+                                  ? "text-destructive"
+                                  : "text-muted-foreground";
+                          const wDelta = (p.subDelta ?? 0) * p.weight;
+                          return (
+                            <tr key={p.key} className="border-t border-border">
+                              <td className="px-3 py-2 font-medium text-foreground">
+                                {p.label}
+                              </td>
+                              <td className="px-3 py-2 text-right text-muted-foreground">
+                                {Math.round(p.weight * 100)}%
+                              </td>
+                              <td className="px-3 py-2 text-right">
+                                {p.sub ?? "—"}
+                              </td>
+                              <td className={`px-3 py-2 text-right font-medium ${tone}`}>
+                                {p.subDelta === null
+                                  ? "—"
+                                  : p.subDelta > 0
+                                    ? `+${p.subDelta}`
+                                    : p.subDelta === 0
+                                      ? "±0"
+                                      : p.subDelta}
+                              </td>
+                              <td className={`px-3 py-2 text-right ${tone}`}>
+                                {p.subDelta === null
+                                  ? "—"
+                                  : `${wDelta > 0 ? "+" : ""}${wDelta.toFixed(1)}`}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                      <tfoot className="bg-muted/40">
+                        <tr>
+                          <td className="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground" colSpan={3}>
+                            Total score change
+                          </td>
+                          <td
+                            colSpan={2}
+                            className={`px-3 py-2 text-right font-semibold ${
+                              selectedMonth.delta === null
+                                ? "text-muted-foreground"
+                                : selectedMonth.delta > 0
+                                  ? "text-primary"
+                                  : selectedMonth.delta < 0
+                                    ? "text-destructive"
+                                    : "text-muted-foreground"
+                            }`}
+                          >
+                            {selectedMonth.delta === null
+                              ? "—"
+                              : selectedMonth.delta > 0
+                                ? `+${selectedMonth.delta}`
+                                : selectedMonth.delta === 0
+                                  ? "±0"
+                                  : selectedMonth.delta}
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Each utility's sub-score (0–100) reflects your intensity per occupied
+                  room-night vs similar hotels. Weighted Δ shows how much each utility moved
+                  the overall score this month.
+                </p>
+              </section>
+            </>
+          );
+        })()}
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
 
