@@ -1486,14 +1486,50 @@ function TodosCard({
 
 /* ---------- To-do completion insights ---------- */
 
+// Friendly labels for known to-do IDs (matches TodosCard generators).
+const TODO_LABELS: Record<string, string> = {
+  "log-month": "Log this month's consumption",
+  "missing-electricity_kwh": "Add electricity invoice",
+  "missing-gas_kwh": "Add gas reading",
+  "missing-water_m3": "Add water meter reading",
+  "missing-waste_kg": "Add waste collection data",
+  "missing-occupied_room_nights": "Confirm occupied room-nights",
+  "investigate-worst": "Investigate worst-performing utility",
+  "quarterly": "Review last quarter's trends",
+  "attach-invoice": "Attach supporting invoices",
+  "all-good": "Caught up — explored trends",
+};
+
+function humanizeTodoId(id: string): string {
+  if (TODO_LABELS[id]) return TODO_LABELS[id];
+  return id
+    .replace(/^missing-/, "Add ")
+    .replace(/[-_]/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 function TodoCompletionInsights({
   sorted,
   computeScore,
+  computeScoreBreakdown,
 }: {
   sorted: MonthlyEntry[];
   computeScore: (entry: MonthlyEntry | undefined) => number | null;
+  computeScoreBreakdown: (entry: MonthlyEntry | undefined) => {
+    score: number | null;
+    parts: {
+      key: string;
+      label: string;
+      unit: string;
+      weight: number;
+      sub: number | null;
+      intensity: number | null;
+      contribution: number;
+    }[];
+  };
 }) {
   const [completionMap, setCompletionMap] = React.useState<Record<string, string[]>>({});
+  const [selectedKey, setSelectedKey] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     setCompletionMap(loadCompletionMap());
@@ -1522,7 +1558,12 @@ function TodoCompletionInsights({
       const key = `${entry.year}-${String(entry.month).padStart(2, "0")}`;
       const ids = completionMap[key] ?? [];
       const counts: Record<TodoCategory, number> = { cost: 0, compliance: 0, waste: 0, data: 0 };
-      for (const id of ids) counts[categorize(id)]++;
+      const idsByCategory: Record<TodoCategory, string[]> = { cost: [], compliance: [], waste: [], data: [] };
+      for (const id of ids) {
+        const c = categorize(id);
+        counts[c]++;
+        idsByCategory[c].push(id);
+      }
       const total = ids.length;
       const score = computeScore(entry);
       const prevEntry = idx > 0 ? arr[idx - 1] : undefined;
@@ -1532,13 +1573,22 @@ function TodoCompletionInsights({
       return {
         key,
         label: `${MONTH_SHORT[entry.month - 1]} ${String(entry.year).slice(2)}`,
+        fullLabel: `${MONTH_NAMES[entry.month - 1]} ${entry.year}`,
         score,
         delta,
         total,
         counts,
+        idsByCategory,
+        entry,
+        prevEntry,
       };
     });
   }, [sorted, completionMap, categorize, computeScore]);
+
+  const selectedMonth = React.useMemo(
+    () => monthlyData.find((m) => m.key === selectedKey) ?? null,
+    [monthlyData, selectedKey],
+  );
 
   // Correlation: Pearson between completions count and score delta across months where both exist.
   const correlation = React.useMemo(() => {
