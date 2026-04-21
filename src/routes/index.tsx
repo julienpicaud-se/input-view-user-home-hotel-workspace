@@ -53,7 +53,7 @@ import {
   Legend,
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
-import { DEMO_HOTEL_ID, type Hotel, type MonthlyEntry } from "@/lib/hotel";
+import { getActiveHotelId, type Hotel, type MonthlyEntry } from "@/lib/hotel";
 import {
   MONTH_NAMES,
   MONTH_SHORT,
@@ -172,12 +172,13 @@ function HomePage() {
   const [savingProfile, setSavingProfile] = React.useState(false);
 
   const reload = React.useCallback(async () => {
+    const hotelId = getActiveHotelId();
     const [{ data: h }, { data: e }] = await Promise.all([
-      supabase.from("hotels").select("*").eq("id", DEMO_HOTEL_ID).maybeSingle(),
+      supabase.from("hotels").select("*").eq("id", hotelId).maybeSingle(),
       supabase
         .from("monthly_entries")
         .select("*")
-        .eq("hotel_id", DEMO_HOTEL_ID)
+        .eq("hotel_id", hotelId)
         .order("year", { ascending: true })
         .order("month", { ascending: true }),
     ]);
@@ -193,7 +194,7 @@ function HomePage() {
   React.useEffect(() => {
     if (!loading) {
       setInsightsLoading(true);
-      generateInsights()
+      generateInsights({ data: { hotelId: getActiveHotelId() } })
         .then((r) => setInsights(r.insights))
         .catch(() => setInsights([]))
         .finally(() => setInsightsLoading(false));
@@ -3016,16 +3017,7 @@ function QuickLogCard({
       const parsed = quickEntrySchema.parse(draft);
       const { error } = await supabase.from("monthly_entries").upsert(
         {
-          hotel_id: DEMO_HOTEL_ID,
-          year: initial.y,
-          month: initial.m,
-          ...parsed,
-        },
-        { onConflict: "hotel_id,year,month" },
-      );
-      if (error) throw error;
-      toast.success(`${MONTH_NAMES[initial.m - 1]} ${initial.y} saved`);
-      setSaved(true);
+          hotel_id: getActiveHotelId(),
       setForm({
         electricity_kwh: "",
         gas_kwh: "",
@@ -3332,16 +3324,7 @@ function SurveyLogCard({
       }
       const { error } = await supabase.from("monthly_entries").upsert(
         {
-          hotel_id: DEMO_HOTEL_ID,
-          year: initial.y,
-          month: initial.m,
-          ...parsed,
-        },
-        { onConflict: "hotel_id,year,month" },
-      );
-      if (error) throw error;
-      toast.success(`${MONTH_NAMES[initial.m - 1]} ${initial.y} saved`);
-      setForm({ ...BLANK_FORM });
+          hotel_id: getActiveHotelId(),
       setStep(0);
       onSaved();
     } catch (e) {
@@ -3530,7 +3513,7 @@ function ImportLogCard({ onSaved }: { onSaved: () => void }) {
     setSubmitting(true);
     try {
       const payload = rows.map((r) => ({
-        hotel_id: DEMO_HOTEL_ID,
+        hotel_id: getActiveHotelId(),
         year: r.year,
         month: r.month,
         electricity_kwh: r.electricity_kwh,
