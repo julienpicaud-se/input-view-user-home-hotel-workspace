@@ -186,15 +186,22 @@ function HomePage() {
       { key: "waste_kg", util: "waste", weight: 0.2 },
     ];
     let total = 0;
+    let weightUsed = 0;
     for (const u of utils) {
-      const v = (latest[u.key] as number | null) ?? 0;
+      const v = latest[u.key] as number | null;
+      if (v === null || v === undefined) continue;
       const intensity = v / latest.occupied_room_nights;
       const stats = getPeerStats(u.util, latest.month, filters);
-      const ratio = (intensity - stats.p10) / (stats.p90 - stats.p10);
-      const sub = Math.max(0, Math.min(100, 100 - ratio * 100));
+      // Map intensity to a 0..100 sub-score using p10 (best) → 100 and p90 (worst) → 20.
+      // Intensities beyond p90 still earn some points (down to 0); intensities below p10 cap at 100.
+      const span = stats.p90 - stats.p10 || 1;
+      const ratio = (intensity - stats.p10) / span;
+      const sub = Math.max(0, Math.min(100, 100 - ratio * 80));
       total += sub * u.weight;
+      weightUsed += u.weight;
     }
-    return Math.round(total);
+    if (weightUsed === 0) return 70;
+    return Math.round(total / weightUsed);
   })();
 
   const peerPosition = (() => {
