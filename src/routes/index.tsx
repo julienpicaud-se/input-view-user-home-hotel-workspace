@@ -1199,6 +1199,169 @@ function loadCompletionMap(): Record<string, string[]> {
   }
 }
 
+type ScoreBreakdown = {
+  score: number | null;
+  parts: {
+    key: string;
+    label: string;
+    unit: string;
+    weight: number;
+    sub: number | null;
+    intensity: number | null;
+    contribution: number;
+  }[];
+};
+
+function MonthlyChangeSummary({
+  latest,
+  prev,
+  currentScore,
+  previousScore,
+  currentBreakdown,
+  previousBreakdown,
+}: {
+  latest: MonthlyEntry | undefined;
+  prev: MonthlyEntry | undefined;
+  currentScore: number | null;
+  previousScore: number | null;
+  currentBreakdown: ScoreBreakdown;
+  previousBreakdown: ScoreBreakdown;
+}) {
+  const summary = React.useMemo(() => {
+    if (!latest) {
+      return {
+        headline: "Log this month's data to unlock your AI summary.",
+        body:
+          "Once you've logged electricity, gas, water and waste for the current month, we'll explain what changed since last month and highlight the top drivers.",
+        drivers: [] as { label: string; delta: number; tone: "positive" | "negative" }[],
+      };
+    }
+    if (!prev) {
+      return {
+        headline: `${MONTH_NAMES[latest.month - 1]} ${latest.year} is your first logged month.`,
+        body:
+          "Once you log a second month, this summary will explain what changed and highlight the top two drivers behind your score.",
+        drivers: [],
+      };
+    }
+
+    // Per-utility sub-score deltas
+    const deltas = currentBreakdown.parts
+      .map((p, i) => {
+        const prevPart = previousBreakdown.parts[i];
+        if (p.sub === null || prevPart?.sub === null || prevPart?.sub === undefined) return null;
+        const delta = p.sub - prevPart.sub;
+        const weighted = delta * p.weight;
+        return { label: p.label, delta: Math.round(delta), weighted, tone: delta >= 0 ? "positive" as const : "negative" as const };
+      })
+      .filter((d): d is { label: string; delta: number; weighted: number; tone: "positive" | "negative" } => d !== null);
+
+    // Top 2 by absolute weighted impact
+    const topDrivers = [...deltas]
+      .sort((a, b) => Math.abs(b.weighted) - Math.abs(a.weighted))
+      .slice(0, 2);
+
+    const scoreDelta =
+      currentScore !== null && previousScore !== null ? currentScore - previousScore : null;
+
+    const monthLabel = `${MONTH_NAMES[latest.month - 1]} ${latest.year}`;
+    const prevLabel = `${MONTH_NAMES[prev.month - 1]}`;
+
+    let headline: string;
+    if (scoreDelta === null) {
+      headline = `${monthLabel} performance is in — here's how it compares to ${prevLabel}.`;
+    } else if (scoreDelta > 2) {
+      headline = `Your score climbed ${scoreDelta} points since ${prevLabel} — solid progress.`;
+    } else if (scoreDelta < -2) {
+      headline = `Your score slipped ${Math.abs(scoreDelta)} points since ${prevLabel} — worth a closer look.`;
+    } else if (scoreDelta === 0) {
+      headline = `Your score held steady versus ${prevLabel}, but the underlying mix shifted.`;
+    } else {
+      headline = `Small move (${scoreDelta > 0 ? "+" : ""}${scoreDelta}) versus ${prevLabel} — directionally ${scoreDelta > 0 ? "improving" : "softer"}.`;
+    }
+
+    let body: string;
+    if (topDrivers.length === 0) {
+      body = `Not enough overlapping utility data with ${prevLabel} to identify drivers yet — log the same fields both months for a full breakdown.`;
+    } else {
+      const driverPhrases = topDrivers.map((d) => {
+        if (d.delta === 0) return `${d.label} held flat`;
+        const dir = d.tone === "positive" ? "improved" : "weakened";
+        return `${d.label} ${dir} by ${Math.abs(d.delta)} pts`;
+      });
+      const joined =
+        driverPhrases.length === 2
+          ? `${driverPhrases[0]} and ${driverPhrases[1]}`
+          : driverPhrases[0];
+      const positives = topDrivers.filter((d) => d.tone === "positive").length;
+      const negatives = topDrivers.filter((d) => d.tone === "negative" && d.delta !== 0).length;
+      let nuance = "";
+      if (positives > 0 && negatives > 0) {
+        nuance = " Mixed signals — the gains partly offset the slips.";
+      } else if (negatives === topDrivers.length && negatives > 0) {
+        nuance = " Both moved the wrong way — prioritise these in your to-dos this month.";
+      } else if (positives === topDrivers.length && positives > 0) {
+        nuance = " Keep these habits going next month to compound the gain.";
+      }
+      body = `The biggest movers were ${joined} (versus peer benchmarks per occupied room-night).${nuance}`;
+    }
+
+    return { headline, body, drivers: topDrivers };
+  }, [latest, prev, currentScore, previousScore, currentBreakdown, previousBreakdown]);
+
+  return (
+    <Card className="relative overflow-hidden rounded-3xl border-border/70 bg-card/60 p-6 backdrop-blur-sm">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-accent/15 blur-3xl"
+      />
+      <div className="relative flex flex-col gap-4 md:flex-row md:items-start">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-secondary text-primary-foreground shadow-md">
+          <Sparkles className="h-5 w-5" />
+        </div>
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              AI summary
+            </span>
+            <span className="rounded-full bg-accent/20 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-accent-foreground">
+              Auto
+            </span>
+          </div>
+          <p className="mt-2 font-serif text-lg leading-snug text-foreground">
+            {summary.headline}
+          </p>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            {summary.body}
+          </p>
+          {summary.drivers.length > 0 && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {summary.drivers.map((d) => (
+                <span
+                  key={d.label}
+                  className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium ${
+                    d.tone === "positive"
+                      ? "border-primary/30 bg-primary/10 text-primary"
+                      : "border-destructive/30 bg-destructive/10 text-destructive"
+                  }`}
+                >
+                  {d.tone === "positive" ? (
+                    <ArrowUpRight className="h-3 w-3" />
+                  ) : (
+                    <ArrowDownRight className="h-3 w-3" />
+                  )}
+                  {d.label} {d.delta > 0 ? "+" : ""}
+                  {d.delta} pts
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 function TodosCard({
   latest,
   sorted,
