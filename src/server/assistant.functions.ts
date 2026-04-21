@@ -139,7 +139,7 @@ export const generateInsights = createServerFn({ method: "POST" }).handler(
     const messages: ChatMsg[] = [
       {
         role: "system",
-        content: `You are Verdance, a sustainability consultant. Based on the hotel data below, produce EXACTLY 3 short insight cards. Return ONLY valid JSON of shape: {"insights":[{"title":"...","body":"...","tone":"positive"|"warning"|"neutral"}]}. Each title <= 8 words, body <= 22 words, mention real numbers from the data.\n\n${context}`,
+        content: `You are Sera, a sustainability consultant. Based on the hotel data below, produce EXACTLY 3 short insight cards. Return ONLY valid JSON of shape: {"insights":[{"title":"...","body":"...","tone":"positive"|"warning"|"neutral"}]}. Each title <= 8 words, body <= 22 words, mention real numbers from the data.\n\n${context}`,
       },
       { role: "user", content: "Generate this month's insights." },
     ];
