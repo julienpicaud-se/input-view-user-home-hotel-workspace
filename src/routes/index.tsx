@@ -1204,6 +1204,8 @@ function LogDataTabs({
             isCurrentLogged={isCurrentLogged}
             onSaved={onSaved}
             rooms={rooms}
+            highlightFields={highlightFields}
+            onHighlightConsumed={onHighlightConsumed}
           />
         )}
         {method === "survey" && (
