@@ -54,6 +54,7 @@ import {
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveHotelId, type Hotel, type MonthlyEntry } from "@/lib/hotel";
+import { HotelSwitcher } from "@/components/hotel-switcher";
 import {
   MONTH_NAMES,
   MONTH_SHORT,
