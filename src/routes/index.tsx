@@ -2925,8 +2925,8 @@ function HotelSettingsPanel({
 
       <Card className="rounded-2xl border-dashed bg-card/50 p-5 text-sm text-muted-foreground">
         <strong className="text-foreground">Heads up.</strong> Changing rooms,
-        region, star rating, climate or size band will recompute your peer
-        benchmarks and per-room-night intensity figures across the workspace.
+        surface, property type or size band will recompute your peer benchmarks
+        and per-room-night intensity figures across the workspace.
       </Card>
 
       {/* Change log */}
