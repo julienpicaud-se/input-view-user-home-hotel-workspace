@@ -2531,6 +2531,244 @@ function TodoCompletionInsights({
   );
 }
 
+const REGION_OPTIONS = [
+  "Mediterranean",
+  "Northern Europe",
+  "Central Europe",
+  "Southern Europe",
+  "Middle East",
+  "Asia Pacific",
+  "North America",
+  "Latin America",
+  "Africa",
+];
+const CLIMATE_OPTIONS = ["Mediterranean", "Tropical", "Continental", "Arid", "Temperate", "Alpine"];
+const SIZE_BANDS = ["<50", "50-100", "100-150", "150-250", "250+"];
+const STAR_OPTIONS = [3, 4, 5];
+
+function HotelSettingsPanel({
+  hotel,
+  onSaved,
+}: {
+  hotel: Hotel | null;
+  onSaved: () => Promise<void>;
+}) {
+  const [name, setName] = React.useState("");
+  const [rooms, setRooms] = React.useState<string>("");
+  const [region, setRegion] = React.useState("");
+  const [starRating, setStarRating] = React.useState<number>(4);
+  const [climateZone, setClimateZone] = React.useState("");
+  const [sizeBand, setSizeBand] = React.useState("");
+  const [saving, setSaving] = React.useState(false);
+
+  React.useEffect(() => {
+    if (hotel) {
+      setName(hotel.name ?? "");
+      setRooms(String(hotel.rooms ?? ""));
+      setRegion(hotel.region ?? "");
+      setStarRating(hotel.star_rating ?? 4);
+      setClimateZone(hotel.climate_zone ?? "");
+      setSizeBand(hotel.size_band ?? "");
+    }
+  }, [hotel]);
+
+  if (!hotel) {
+    return (
+      <Card className="rounded-3xl border-border/70 p-8">
+        <div className="h-6 w-48 animate-pulse rounded-md bg-muted" />
+        <div className="mt-4 h-4 w-72 animate-pulse rounded-md bg-muted" />
+      </Card>
+    );
+  }
+
+  const roomsNum = Number(rooms);
+  const isValid =
+    name.trim().length > 0 &&
+    Number.isFinite(roomsNum) &&
+    roomsNum > 0 &&
+    region.trim().length > 0 &&
+    climateZone.trim().length > 0 &&
+    sizeBand.trim().length > 0;
+
+  async function onSave() {
+    if (!isValid || !hotel) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from("hotels")
+      .update({
+        name: name.trim(),
+        rooms: roomsNum,
+        region,
+        star_rating: starRating,
+        climate_zone: climateZone,
+        size_band: sizeBand,
+      })
+      .eq("id", hotel.id);
+    setSaving(false);
+    if (error) {
+      toast.error("Could not save hotel settings");
+      return;
+    }
+    toast.success("Hotel settings updated");
+    await onSaved();
+  }
+
+  function onReset() {
+    if (!hotel) return;
+    setName(hotel.name);
+    setRooms(String(hotel.rooms));
+    setRegion(hotel.region);
+    setStarRating(hotel.star_rating);
+    setClimateZone(hotel.climate_zone);
+    setSizeBand(hotel.size_band);
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card className="rounded-3xl border-border/70 p-8">
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <div>
+            <h2 className="font-serif text-2xl font-semibold text-foreground">
+              Hotel settings
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Update your property profile. These values shape your benchmarks
+              and per-room intensity calculations.
+            </p>
+          </div>
+          <Settings2 className="h-5 w-5 text-muted-foreground" />
+        </div>
+
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <Label htmlFor="hotel-name" className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">
+              Hotel name
+            </Label>
+            <Input
+              id="hotel-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Hotel Aurora"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="hotel-rooms" className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">
+              Number of rooms
+            </Label>
+            <Input
+              id="hotel-rooms"
+              type="number"
+              min={1}
+              value={rooms}
+              onChange={(e) => setRooms(e.target.value)}
+              placeholder="120"
+            />
+          </div>
+
+          <div>
+            <Label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">
+              Star rating
+            </Label>
+            <Select
+              value={String(starRating)}
+              onValueChange={(v) => setStarRating(Number(v))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select rating" />
+              </SelectTrigger>
+              <SelectContent>
+                {STAR_OPTIONS.map((s) => (
+                  <SelectItem key={s} value={String(s)}>
+                    {s} stars
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">
+              Region
+            </Label>
+            <Select value={region} onValueChange={setRegion}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select region" />
+              </SelectTrigger>
+              <SelectContent>
+                {REGION_OPTIONS.map((r) => (
+                  <SelectItem key={r} value={r}>
+                    {r}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">
+              Climate zone
+            </Label>
+            <Select value={climateZone} onValueChange={setClimateZone}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select climate" />
+              </SelectTrigger>
+              <SelectContent>
+                {CLIMATE_OPTIONS.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {c}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">
+              Size band (rooms)
+            </Label>
+            <Select value={sizeBand} onValueChange={setSizeBand}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select size band" />
+              </SelectTrigger>
+              <SelectContent>
+                {SIZE_BANDS.map((b) => (
+                  <SelectItem key={b} value={b}>
+                    {b}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="mt-8 flex flex-wrap items-center justify-end gap-2 border-t border-border pt-5">
+          <Button variant="ghost" onClick={onReset} disabled={saving}>
+            <RotateCcw className="mr-2 h-4 w-4" />
+            Reset
+          </Button>
+          <Button onClick={onSave} disabled={!isValid || saving}>
+            {saving ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving…
+              </>
+            ) : (
+              "Save changes"
+            )}
+          </Button>
+        </div>
+      </Card>
+
+      <Card className="rounded-2xl border-dashed bg-card/50 p-5 text-sm text-muted-foreground">
+        <strong className="text-foreground">Heads up.</strong> Changing rooms,
+        region, star rating, climate or size band will recompute your peer
+        benchmarks and per-room-night intensity figures across the workspace.
+      </Card>
+    </div>
+  );
+}
+
 
 function KpiCard({
   kpi,
