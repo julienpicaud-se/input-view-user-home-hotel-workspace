@@ -34,6 +34,10 @@ export interface Hotel {
   star_rating: number;
   climate_zone: string;
   size_band: string;
+  total_surface_m2: number | null;
+  year_built: number | null;
+  floors: number | null;
+  property_type: string | null;
 }
 
 export interface MonthlyEntry {
