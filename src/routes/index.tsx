@@ -36,6 +36,7 @@ import {
   RotateCcw,
   Download,
   Users,
+  History,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -2546,6 +2547,44 @@ const CLIMATE_OPTIONS = ["Mediterranean", "Tropical", "Continental", "Arid", "Te
 const SIZE_BANDS = ["<50", "50-100", "100-150", "150-250", "250+"];
 const STAR_OPTIONS = [3, 4, 5];
 
+interface SettingsChange {
+  id: string;
+  hotel_id: string;
+  changed_by: string | null;
+  field: string;
+  old_value: string | null;
+  new_value: string | null;
+  created_at: string;
+}
+
+const FIELD_LABELS: Record<string, string> = {
+  name: "Hotel name",
+  rooms: "Number of rooms",
+  region: "Region",
+  star_rating: "Star rating",
+  climate_zone: "Climate zone",
+  size_band: "Size band",
+};
+
+const CHANGED_BY_KEY = "ra-plus-changed-by";
+
+function formatChangeValue(field: string, value: string | null): string {
+  if (value === null || value === "") return "—";
+  if (field === "star_rating") return `${value} stars`;
+  return value;
+}
+
+function formatChangedAt(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function HotelSettingsPanel({
   hotel,
   onSaved,
@@ -2559,7 +2598,10 @@ function HotelSettingsPanel({
   const [starRating, setStarRating] = React.useState<number>(4);
   const [climateZone, setClimateZone] = React.useState("");
   const [sizeBand, setSizeBand] = React.useState("");
+  const [changedBy, setChangedBy] = React.useState("");
   const [saving, setSaving] = React.useState(false);
+  const [changes, setChanges] = React.useState<SettingsChange[]>([]);
+  const [logLoading, setLogLoading] = React.useState(false);
 
   React.useEffect(() => {
     if (hotel) {
@@ -2571,6 +2613,33 @@ function HotelSettingsPanel({
       setSizeBand(hotel.size_band ?? "");
     }
   }, [hotel]);
+
+  // Restore "changed by" name from localStorage
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const stored = window.localStorage.getItem(CHANGED_BY_KEY);
+      if (stored) setChangedBy(stored);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const loadChanges = React.useCallback(async (hotelId: string) => {
+    setLogLoading(true);
+    const { data } = await supabase
+      .from("hotel_settings_changes")
+      .select("*")
+      .eq("hotel_id", hotelId)
+      .order("created_at", { ascending: false })
+      .limit(100);
+    setChanges((data as SettingsChange[]) ?? []);
+    setLogLoading(false);
+  }, []);
+
+  React.useEffect(() => {
+    if (hotel?.id) void loadChanges(hotel.id);
+  }, [hotel?.id, loadChanges]);
 
   if (!hotel) {
     return (
@@ -2593,23 +2662,80 @@ function HotelSettingsPanel({
   async function onSave() {
     if (!isValid || !hotel) return;
     setSaving(true);
+
+    // Build a diff between current hotel values and the form
+    const next = {
+      name: name.trim(),
+      rooms: roomsNum,
+      region,
+      star_rating: starRating,
+      climate_zone: climateZone,
+      size_band: sizeBand,
+    };
+    const current: Record<string, string> = {
+      name: String(hotel.name ?? ""),
+      rooms: String(hotel.rooms ?? ""),
+      region: String(hotel.region ?? ""),
+      star_rating: String(hotel.star_rating ?? ""),
+      climate_zone: String(hotel.climate_zone ?? ""),
+      size_band: String(hotel.size_band ?? ""),
+    };
+    const nextStr: Record<string, string> = {
+      name: next.name,
+      rooms: String(next.rooms),
+      region: next.region,
+      star_rating: String(next.star_rating),
+      climate_zone: next.climate_zone,
+      size_band: next.size_band,
+    };
+    const diffs = Object.keys(nextStr).filter(
+      (k) => current[k] !== nextStr[k],
+    );
+
     const { error } = await supabase
       .from("hotels")
-      .update({
-        name: name.trim(),
-        rooms: roomsNum,
-        region,
-        star_rating: starRating,
-        climate_zone: climateZone,
-        size_band: sizeBand,
-      })
+      .update(next)
       .eq("id", hotel.id);
-    setSaving(false);
+
     if (error) {
+      setSaving(false);
       toast.error("Could not save hotel settings");
       return;
     }
-    toast.success("Hotel settings updated");
+
+    // Persist "changed by" for next time and write change-log rows
+    const author = changedBy.trim() || "Anonymous";
+    if (typeof window !== "undefined") {
+      try {
+        window.localStorage.setItem(CHANGED_BY_KEY, author);
+      } catch {
+        // ignore
+      }
+    }
+
+    if (diffs.length > 0) {
+      const rows = diffs.map((field) => ({
+        hotel_id: hotel.id,
+        changed_by: author,
+        field,
+        old_value: current[field] || null,
+        new_value: nextStr[field] || null,
+      }));
+      const { error: logError } = await supabase
+        .from("hotel_settings_changes")
+        .insert(rows);
+      if (logError) {
+        toast.error("Saved settings, but couldn't record change log entry");
+      }
+      await loadChanges(hotel.id);
+    }
+
+    setSaving(false);
+    toast.success(
+      diffs.length > 0
+        ? `Saved · ${diffs.length} change${diffs.length === 1 ? "" : "s"} recorded`
+        : "No changes to save",
+    );
     await onSaved();
   }
 
@@ -2742,21 +2868,34 @@ function HotelSettingsPanel({
           </div>
         </div>
 
-        <div className="mt-8 flex flex-wrap items-center justify-end gap-2 border-t border-border pt-5">
-          <Button variant="ghost" onClick={onReset} disabled={saving}>
-            <RotateCcw className="mr-2 h-4 w-4" />
-            Reset
-          </Button>
-          <Button onClick={onSave} disabled={!isValid || saving}>
-            {saving ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving…
-              </>
-            ) : (
-              "Save changes"
-            )}
-          </Button>
+        <div className="mt-8 flex flex-col gap-4 border-t border-border pt-5 sm:flex-row sm:items-end sm:justify-between">
+          <div className="sm:max-w-xs sm:flex-1">
+            <Label htmlFor="changed-by" className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">
+              Your name (for the change log)
+            </Label>
+            <Input
+              id="changed-by"
+              value={changedBy}
+              onChange={(e) => setChangedBy(e.target.value)}
+              placeholder="e.g. Maria, GM"
+            />
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Button variant="ghost" onClick={onReset} disabled={saving}>
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Reset
+            </Button>
+            <Button onClick={onSave} disabled={!isValid || saving}>
+              {saving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving…
+                </>
+              ) : (
+                "Save changes"
+              )}
+            </Button>
+          </div>
         </div>
       </Card>
 
@@ -2765,9 +2904,72 @@ function HotelSettingsPanel({
         region, star rating, climate or size band will recompute your peer
         benchmarks and per-room-night intensity figures across the workspace.
       </Card>
+
+      {/* Change log */}
+      <Card className="rounded-3xl border-border/70 p-8">
+        <div className="mb-5 flex items-start justify-between gap-4">
+          <div>
+            <h3 className="font-serif text-xl font-semibold text-foreground">
+              Change log
+            </h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Every edit to your hotel profile, with who made it and when.
+            </p>
+          </div>
+          <History className="h-5 w-5 text-muted-foreground" />
+        </div>
+
+        {logLoading ? (
+          <div className="space-y-2">
+            <div className="h-10 animate-pulse rounded-md bg-muted" />
+            <div className="h-10 animate-pulse rounded-md bg-muted" />
+            <div className="h-10 animate-pulse rounded-md bg-muted" />
+          </div>
+        ) : changes.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border/70 bg-muted/30 px-5 py-8 text-center text-sm text-muted-foreground">
+            No changes yet. Edits to this hotel's profile will appear here.
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-xl border border-border">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50 text-xs uppercase tracking-wider text-muted-foreground">
+                <tr>
+                  <th className="px-4 py-2.5 text-left font-medium">When</th>
+                  <th className="px-4 py-2.5 text-left font-medium">Who</th>
+                  <th className="px-4 py-2.5 text-left font-medium">Field</th>
+                  <th className="px-4 py-2.5 text-left font-medium">From</th>
+                  <th className="px-4 py-2.5 text-left font-medium">To</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {changes.map((c) => (
+                  <tr key={c.id} className="hover:bg-muted/30">
+                    <td className="px-4 py-2.5 whitespace-nowrap text-muted-foreground">
+                      {formatChangedAt(c.created_at)}
+                    </td>
+                    <td className="px-4 py-2.5 text-foreground">
+                      {c.changed_by || "Anonymous"}
+                    </td>
+                    <td className="px-4 py-2.5 text-foreground">
+                      {FIELD_LABELS[c.field] ?? c.field}
+                    </td>
+                    <td className="px-4 py-2.5 text-muted-foreground line-through decoration-muted-foreground/40">
+                      {formatChangeValue(c.field, c.old_value)}
+                    </td>
+                    <td className="px-4 py-2.5 font-medium text-foreground">
+                      {formatChangeValue(c.field, c.new_value)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
     </div>
   );
 }
+
 
 
 function KpiCard({
