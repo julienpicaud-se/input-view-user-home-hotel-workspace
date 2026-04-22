@@ -107,12 +107,12 @@ import {
   type ChartExplanation,
 } from "@/server/assistant.functions";
 
-type IndexSearch = { tab?: "overview" | "log" | "analyze" };
+type IndexSearch = { tab?: "overview" | "log" | "analyze" | "settings" };
 
 export const Route = createFileRoute("/")({
   validateSearch: (search: Record<string, unknown>): IndexSearch => {
     const tab = search.tab;
-    if (tab === "overview" || tab === "log" || tab === "analyze") {
+    if (tab === "overview" || tab === "log" || tab === "analyze" || tab === "settings") {
       return { tab };
     }
     return {};
