@@ -36,6 +36,7 @@ import {
   RotateCcw,
   Download,
   Users,
+  History,
 } from "lucide-react";
 import {
   ResponsiveContainer,
