@@ -431,7 +431,7 @@ function HomePage() {
             Overview
           </TabsTrigger>
           <TabsTrigger value="log" className="rounded-xl px-4 py-2 text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
-            Log data
+            Add data
           </TabsTrigger>
           <TabsTrigger value="analyze" className="rounded-xl px-4 py-2 text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
             Hotel Insights

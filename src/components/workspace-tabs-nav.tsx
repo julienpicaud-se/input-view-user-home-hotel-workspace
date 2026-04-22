@@ -5,7 +5,7 @@ type TabKey = "overview" | "log" | "analyze" | "benchmarks";
 
 const TABS: { key: TabKey; label: string; to: string; search?: Record<string, string> }[] = [
   { key: "overview", label: "Overview", to: "/", search: { tab: "overview" } },
-  { key: "log", label: "Log data", to: "/", search: { tab: "log" } },
+  { key: "log", label: "Add data", to: "/", search: { tab: "log" } },
   { key: "analyze", label: "Hotel Insights", to: "/", search: { tab: "analyze" } },
   { key: "benchmarks", label: "Peers Benchmark", to: "/benchmarks" },
 ];
