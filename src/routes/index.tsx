@@ -108,12 +108,12 @@ import {
   type ChartExplanation,
 } from "@/server/assistant.functions";
 
-type IndexSearch = { tab?: "overview" | "log" | "analyze" | "settings" };
+type IndexSearch = { tab?: "overview" | "log" | "analyze" | "settings" | "benchmarks" };
 
 export const Route = createFileRoute("/")({
   validateSearch: (search: Record<string, unknown>): IndexSearch => {
     const tab = search.tab;
-    if (tab === "overview" || tab === "log" || tab === "analyze" || tab === "settings") {
+    if (tab === "overview" || tab === "log" || tab === "analyze" || tab === "settings" || tab === "benchmarks") {
       return { tab };
     }
     return {};
@@ -450,8 +450,14 @@ function HomePage() {
             Hotel settings
           </Link>
           <Link
-            to="/benchmarks"
-            className="inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            to="/"
+            search={{ tab: "benchmarks" } as never}
+            className="inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground transition-colors data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm hover:bg-muted hover:text-foreground"
+            data-state={activeTab === "benchmarks" ? "active" : "inactive"}
+            onClick={(e) => {
+              e.preventDefault();
+              setActiveTab("benchmarks");
+            }}
           >
             Peers Benchmark
           </Link>
