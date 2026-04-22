@@ -2564,7 +2564,20 @@ const FIELD_LABELS: Record<string, string> = {
   star_rating: "Star rating",
   climate_zone: "Climate zone",
   size_band: "Size band",
+  total_surface_m2: "Total surface (m²)",
+  year_built: "Year built",
+  floors: "Floors",
+  property_type: "Property type",
 };
+
+const PROPERTY_TYPES = [
+  "Resort",
+  "Boutique",
+  "Business",
+  "City hotel",
+  "Bed & breakfast",
+  "Eco-lodge",
+];
 
 const CHANGED_BY_KEY = "ra-plus-changed-by";
 
