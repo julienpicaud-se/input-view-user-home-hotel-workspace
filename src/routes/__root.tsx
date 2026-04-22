@@ -98,7 +98,7 @@ function TopBar() {
           <div className="leading-tight">
             <div className="font-serif text-lg">RA+</div>
             <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-              Hotel manager workspace
+              Hotel workspace
             </div>
           </div>
         </Link>

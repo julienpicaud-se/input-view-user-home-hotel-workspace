@@ -413,7 +413,7 @@ function HomePage() {
               {hotel.name} · {hotel.region}
             </div>
             <h1 className="font-serif text-4xl md:text-5xl font-semibold leading-[1.05]">
-              Hotel manager workspace
+              Hotel workspace
             </h1>
             <p className="mt-3 max-w-xl text-sm md:text-base text-muted-foreground">
               Log data, spot trends, compare to peers and act on insights — all in one focused workspace.
