@@ -88,35 +88,47 @@ export type Database = {
         Row: {
           climate_zone: string
           created_at: string
+          floors: number | null
           id: string
           name: string
+          property_type: string | null
           region: string
           rooms: number
           size_band: string
           star_rating: number
+          total_surface_m2: number | null
           updated_at: string
+          year_built: number | null
         }
         Insert: {
           climate_zone?: string
           created_at?: string
+          floors?: number | null
           id?: string
           name: string
+          property_type?: string | null
           region: string
           rooms: number
           size_band?: string
           star_rating?: number
+          total_surface_m2?: number | null
           updated_at?: string
+          year_built?: number | null
         }
         Update: {
           climate_zone?: string
           created_at?: string
+          floors?: number | null
           id?: string
           name?: string
+          property_type?: string | null
           region?: string
           rooms?: number
           size_band?: string
           star_rating?: number
+          total_surface_m2?: number | null
           updated_at?: string
+          year_built?: number | null
         }
         Relationships: []
       }
