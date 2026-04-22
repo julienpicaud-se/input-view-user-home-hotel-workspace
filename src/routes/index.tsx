@@ -107,6 +107,7 @@ import {
   type Insight,
   type ChartExplanation,
 } from "@/server/assistant.functions";
+import { BenchmarksPanel } from "@/components/benchmarks-panel";
 
 type IndexSearch = { tab?: "overview" | "log" | "analyze" | "settings" | "benchmarks" };
 
@@ -940,9 +941,14 @@ function HomePage() {
           </div>
         </TabsContent>
 
-        {/* SETTINGS — edit hotel profile (rooms, region, star rating, climate, size band) */}
+        {/* SETTINGS — edit hotel profile */}
         <TabsContent value="settings" className="mt-0 focus-visible:outline-none">
           <HotelSettingsPanel hotel={hotel} onSaved={reload} />
+        </TabsContent>
+
+        {/* BENCHMARKS — peer comparison, in-page (no header change) */}
+        <TabsContent value="benchmarks" className="mt-0 focus-visible:outline-none">
+          <BenchmarksPanel showHeader={false} />
         </TabsContent>
       </Tabs>
     </PageContainer>
