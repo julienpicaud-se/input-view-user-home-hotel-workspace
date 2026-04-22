@@ -2676,15 +2676,13 @@ function LogDataTabs({
   const [method, setMethod] = React.useState<"manual" | "survey" | "import">(
     "manual",
   );
-  const [section, setSection] = React.useState<"add" | "past">("add");
 
-  // When highlighted fields arrive, force-switch to manual entry + Add section.
+  // When highlighted fields arrive, force-switch to manual entry so user sees them.
   React.useEffect(() => {
-    if (highlightFields.length > 0) {
-      if (method !== "manual") setMethod("manual");
-      if (section !== "add") setSection("add");
+    if (highlightFields.length > 0 && method !== "manual") {
+      setMethod("manual");
     }
-  }, [highlightFields, method, section]);
+  }, [highlightFields, method]);
 
   const METHODS: {
     key: "manual" | "survey" | "import";
@@ -2698,94 +2696,70 @@ function LogDataTabs({
   ];
 
   return (
-    <div className="space-y-6">
-      {/* Section switcher: Add new data vs Past data */}
-      <div className="inline-flex rounded-2xl border border-border bg-card p-1.5">
-        {([
-          { key: "add", label: "Add new data" },
-          { key: "past", label: "Past data" },
-        ] as const).map((s) => {
-          const isActive = section === s.key;
-          return (
-            <button
-              key={s.key}
-              type="button"
-              onClick={() => setSection(s.key)}
-              className={`inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
-                isActive
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              }`}
-            >
-              {s.label}
-              {s.key === "past" && (
-                <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                  {sorted.length}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {section === "add" && (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-          <div className="space-y-3 lg:col-span-2">
-            <div className="text-xs uppercase tracking-wider text-muted-foreground">
-              Choose a method
-            </div>
-            {METHODS.map((m) => {
-              const Icon = m.icon;
-              const active = method === m.key;
-              return (
-                <button
-                  key={m.key}
-                  onClick={() => setMethod(m.key)}
-                  className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition ${
-                    active
-                      ? "border-primary bg-primary/5 shadow-sm"
-                      : "border-border bg-card hover:border-accent hover:bg-accent/10"
+    <div className="space-y-8">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+        <div className="space-y-3 lg:col-span-2">
+          <div className="text-xs uppercase tracking-wider text-muted-foreground">
+            Choose a method
+          </div>
+          {METHODS.map((m) => {
+            const Icon = m.icon;
+            const active = method === m.key;
+            return (
+              <button
+                key={m.key}
+                onClick={() => setMethod(m.key)}
+                className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition ${
+                  active
+                    ? "border-primary bg-primary/5 shadow-sm"
+                    : "border-border bg-card hover:border-accent hover:bg-accent/10"
+                }`}
+              >
+                <div
+                  className={`flex h-10 w-10 items-center justify-center rounded-xl ${
+                    active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
                   }`}
                 >
-                  <div
-                    className={`flex h-10 w-10 items-center justify-center rounded-xl ${
-                      active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-sm font-semibold">{m.label}</div>
-                    <div className="text-xs text-muted-foreground">{m.desc}</div>
-                  </div>
-                  <ChevronRight
-                    className={`h-4 w-4 ${active ? "text-primary" : "text-muted-foreground"}`}
-                  />
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="lg:col-span-3">
-            {method === "manual" && (
-              <QuickLogCard
-                entries={entries}
-                isCurrentLogged={isCurrentLogged}
-                onSaved={onSaved}
-                rooms={rooms}
-                highlightFields={highlightFields}
-                onHighlightConsumed={onHighlightConsumed}
-              />
-            )}
-            {method === "survey" && (
-              <SurveyLogCard entries={entries} onSaved={onSaved} />
-            )}
-            {method === "import" && <ImportLogCard onSaved={onSaved} />}
-          </div>
+                  <Icon className="h-5 w-5" />
+                </div>
+                <div className="flex-1">
+                  <div className="text-sm font-semibold">{m.label}</div>
+                  <div className="text-xs text-muted-foreground">{m.desc}</div>
+                </div>
+                <ChevronRight
+                  className={`h-4 w-4 ${active ? "text-primary" : "text-muted-foreground"}`}
+                />
+              </button>
+            );
+          })}
         </div>
-      )}
 
-      {section === "past" && <PastDataSection sorted={sorted} rooms={rooms} />}
+        <div className="lg:col-span-3">
+          {method === "manual" && (
+            <QuickLogCard
+              entries={entries}
+              isCurrentLogged={isCurrentLogged}
+              onSaved={onSaved}
+              rooms={rooms}
+              highlightFields={highlightFields}
+              onHighlightConsumed={onHighlightConsumed}
+            />
+          )}
+          {method === "survey" && (
+            <SurveyLogCard entries={entries} onSaved={onSaved} />
+          )}
+          {method === "import" && <ImportLogCard onSaved={onSaved} />}
+        </div>
+      </div>
+
+      {/* Past data — accessible via scroll */}
+      <div>
+        <div className="mb-3 flex items-baseline justify-between">
+          <h2 className="text-lg font-semibold">Past data</h2>
+          <span className="text-xs text-muted-foreground">{sorted.length} entries</span>
+        </div>
+        <PastDataSection sorted={sorted} rooms={rooms} />
+      </div>
     </div>
   );
 }
