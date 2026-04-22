@@ -932,6 +932,11 @@ function HomePage() {
             </div>
           </div>
         </TabsContent>
+
+        {/* SETTINGS — edit hotel profile (rooms, region, star rating, climate, size band) */}
+        <TabsContent value="settings" className="mt-0 focus-visible:outline-none">
+          <HotelSettingsPanel hotel={hotel} onSaved={reload} />
+        </TabsContent>
       </Tabs>
     </PageContainer>
   );
