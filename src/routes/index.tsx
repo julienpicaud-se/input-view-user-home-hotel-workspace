@@ -2779,41 +2779,6 @@ function HotelSettingsPanel({
           </div>
 
           <div>
-            <Label htmlFor="hotel-rooms" className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">
-              Number of rooms
-            </Label>
-            <Input
-              id="hotel-rooms"
-              type="number"
-              min={1}
-              value={rooms}
-              onChange={(e) => setRooms(e.target.value)}
-              placeholder="120"
-            />
-          </div>
-
-          <div>
-            <Label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">
-              Star rating
-            </Label>
-            <Select
-              value={String(starRating)}
-              onValueChange={(v) => setStarRating(Number(v))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select rating" />
-              </SelectTrigger>
-              <SelectContent>
-                {STAR_OPTIONS.map((s) => (
-                  <SelectItem key={s} value={String(s)}>
-                    {s} stars
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
             <Label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">
               Region
             </Label>
