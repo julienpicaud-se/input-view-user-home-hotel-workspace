@@ -7,7 +7,7 @@ const TABS: { key: TabKey; label: string; to: string; search?: Record<string, st
   { key: "overview", label: "Overview", to: "/", search: { tab: "overview" } },
   { key: "log", label: "Add data", to: "/", search: { tab: "log" } },
   { key: "analyze", label: "Hotel Insights", to: "/", search: { tab: "analyze" } },
-  { key: "benchmarks", label: "Peers Benchmark", to: "/benchmarks" },
+  { key: "benchmarks", label: "Peers Benchmark", to: "/", search: { tab: "benchmarks" } },
   { key: "settings", label: "Hotel settings", to: "/", search: { tab: "settings" } },
 ];
 
