@@ -2611,6 +2611,10 @@ function HotelSettingsPanel({
   const [starRating, setStarRating] = React.useState<number>(4);
   const [climateZone, setClimateZone] = React.useState("");
   const [sizeBand, setSizeBand] = React.useState("");
+  const [totalSurface, setTotalSurface] = React.useState<string>("");
+  const [yearBuilt, setYearBuilt] = React.useState<string>("");
+  const [floors, setFloors] = React.useState<string>("");
+  const [propertyType, setPropertyType] = React.useState("");
   const [changedBy, setChangedBy] = React.useState("");
   const [saving, setSaving] = React.useState(false);
   const [changes, setChanges] = React.useState<SettingsChange[]>([]);
@@ -2624,6 +2628,10 @@ function HotelSettingsPanel({
       setStarRating(hotel.star_rating ?? 4);
       setClimateZone(hotel.climate_zone ?? "");
       setSizeBand(hotel.size_band ?? "");
+      setTotalSurface(hotel.total_surface_m2 != null ? String(hotel.total_surface_m2) : "");
+      setYearBuilt(hotel.year_built != null ? String(hotel.year_built) : "");
+      setFloors(hotel.floors != null ? String(hotel.floors) : "");
+      setPropertyType(hotel.property_type ?? "");
     }
   }, [hotel]);
 
@@ -2664,13 +2672,18 @@ function HotelSettingsPanel({
   }
 
   const roomsNum = Number(rooms);
+  const surfaceNum = totalSurface === "" ? null : Number(totalSurface);
+  const yearNum = yearBuilt === "" ? null : Number(yearBuilt);
+  const floorsNum = floors === "" ? null : Number(floors);
   const isValid =
     name.trim().length > 0 &&
     Number.isFinite(roomsNum) &&
     roomsNum > 0 &&
-    region.trim().length > 0 &&
-    climateZone.trim().length > 0 &&
-    sizeBand.trim().length > 0;
+    sizeBand.trim().length > 0 &&
+    propertyType.trim().length > 0 &&
+    (surfaceNum === null || (Number.isFinite(surfaceNum) && surfaceNum > 0)) &&
+    (yearNum === null || (Number.isFinite(yearNum) && yearNum >= 1800 && yearNum <= new Date().getFullYear())) &&
+    (floorsNum === null || (Number.isFinite(floorsNum) && floorsNum > 0));
 
   async function onSave() {
     if (!isValid || !hotel) return;
@@ -2680,26 +2693,29 @@ function HotelSettingsPanel({
     const next = {
       name: name.trim(),
       rooms: roomsNum,
-      region,
-      star_rating: starRating,
-      climate_zone: climateZone,
       size_band: sizeBand,
+      total_surface_m2: surfaceNum,
+      year_built: yearNum,
+      floors: floorsNum,
+      property_type: propertyType,
     };
     const current: Record<string, string> = {
       name: String(hotel.name ?? ""),
       rooms: String(hotel.rooms ?? ""),
-      region: String(hotel.region ?? ""),
-      star_rating: String(hotel.star_rating ?? ""),
-      climate_zone: String(hotel.climate_zone ?? ""),
       size_band: String(hotel.size_band ?? ""),
+      total_surface_m2: hotel.total_surface_m2 != null ? String(hotel.total_surface_m2) : "",
+      year_built: hotel.year_built != null ? String(hotel.year_built) : "",
+      floors: hotel.floors != null ? String(hotel.floors) : "",
+      property_type: String(hotel.property_type ?? ""),
     };
     const nextStr: Record<string, string> = {
       name: next.name,
       rooms: String(next.rooms),
-      region: next.region,
-      star_rating: String(next.star_rating),
-      climate_zone: next.climate_zone,
       size_band: next.size_band,
+      total_surface_m2: surfaceNum != null ? String(surfaceNum) : "",
+      year_built: yearNum != null ? String(yearNum) : "",
+      floors: floorsNum != null ? String(floorsNum) : "",
+      property_type: next.property_type,
     };
     const diffs = Object.keys(nextStr).filter(
       (k) => current[k] !== nextStr[k],
@@ -2760,6 +2776,10 @@ function HotelSettingsPanel({
     setStarRating(hotel.star_rating);
     setClimateZone(hotel.climate_zone);
     setSizeBand(hotel.size_band);
+    setTotalSurface(hotel.total_surface_m2 != null ? String(hotel.total_surface_m2) : "");
+    setYearBuilt(hotel.year_built != null ? String(hotel.year_built) : "");
+    setFloors(hotel.floors != null ? String(hotel.floors) : "");
+    setPropertyType(hotel.property_type ?? "");
   }
 
   return (
@@ -2792,35 +2812,74 @@ function HotelSettingsPanel({
           </div>
 
           <div>
-            <Label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">
-              Region
+            <Label htmlFor="hotel-rooms" className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">
+              Number of rooms
             </Label>
-            <Select value={region} onValueChange={setRegion}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select region" />
-              </SelectTrigger>
-              <SelectContent>
-                {REGION_OPTIONS.map((r) => (
-                  <SelectItem key={r} value={r}>
-                    {r}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Input
+              id="hotel-rooms"
+              type="number"
+              min={1}
+              value={rooms}
+              onChange={(e) => setRooms(e.target.value)}
+              placeholder="120"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="hotel-surface" className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">
+              Total surface (m²)
+            </Label>
+            <Input
+              id="hotel-surface"
+              type="number"
+              min={1}
+              value={totalSurface}
+              onChange={(e) => setTotalSurface(e.target.value)}
+              placeholder="8500"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="hotel-year" className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">
+              Year built
+            </Label>
+            <Input
+              id="hotel-year"
+              type="number"
+              min={1800}
+              max={new Date().getFullYear()}
+              value={yearBuilt}
+              onChange={(e) => setYearBuilt(e.target.value)}
+              placeholder="1998"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="hotel-floors" className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">
+              Floors
+            </Label>
+            <Input
+              id="hotel-floors"
+              type="number"
+              min={1}
+              value={floors}
+              onChange={(e) => setFloors(e.target.value)}
+              placeholder="6"
+            />
           </div>
 
           <div>
             <Label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">
-              Climate zone
+              Property type
             </Label>
-            <Select value={climateZone} onValueChange={setClimateZone}>
+            <Select value={propertyType} onValueChange={setPropertyType}>
               <SelectTrigger>
-                <SelectValue placeholder="Select climate" />
+                <SelectValue placeholder="Select type" />
               </SelectTrigger>
               <SelectContent>
-                {CLIMATE_OPTIONS.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {c}
+                {PROPERTY_TYPES.map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {t}
                   </SelectItem>
                 ))}
               </SelectContent>
