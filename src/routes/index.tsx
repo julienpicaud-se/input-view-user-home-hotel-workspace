@@ -2676,13 +2676,15 @@ function LogDataTabs({
   const [method, setMethod] = React.useState<"manual" | "survey" | "import">(
     "manual",
   );
+  const [section, setSection] = React.useState<"add" | "past">("add");
 
-  // When highlighted fields arrive, force-switch to manual entry so user sees them.
+  // When highlighted fields arrive, force-switch to manual entry + Add section.
   React.useEffect(() => {
-    if (highlightFields.length > 0 && method !== "manual") {
-      setMethod("manual");
+    if (highlightFields.length > 0) {
+      if (method !== "manual") setMethod("manual");
+      if (section !== "add") setSection("add");
     }
-  }, [highlightFields, method]);
+  }, [highlightFields, method, section]);
 
   const METHODS: {
     key: "manual" | "survey" | "import";
@@ -2696,89 +2698,201 @@ function LogDataTabs({
   ];
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-      <div className="space-y-3 lg:col-span-2">
-        <div className="text-xs uppercase tracking-wider text-muted-foreground">
-          Choose a method
-        </div>
-        {METHODS.map((m) => {
-          const Icon = m.icon;
-          const active = method === m.key;
+    <div className="space-y-6">
+      {/* Section switcher: Add new data vs Past data */}
+      <div className="inline-flex rounded-2xl border border-border bg-card p-1.5">
+        {([
+          { key: "add", label: "Add new data" },
+          { key: "past", label: "Past data" },
+        ] as const).map((s) => {
+          const isActive = section === s.key;
           return (
             <button
-              key={m.key}
-              onClick={() => setMethod(m.key)}
-              className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition ${
-                active
-                  ? "border-primary bg-primary/5 shadow-sm"
-                  : "border-border bg-card hover:border-accent hover:bg-accent/10"
+              key={s.key}
+              type="button"
+              onClick={() => setSection(s.key)}
+              className={`inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
+                isActive
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
               }`}
             >
-              <div
-                className={`flex h-10 w-10 items-center justify-center rounded-xl ${
-                  active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-                }`}
-              >
-                <Icon className="h-5 w-5" />
-              </div>
-              <div className="flex-1">
-                <div className="text-sm font-semibold">{m.label}</div>
-                <div className="text-xs text-muted-foreground">{m.desc}</div>
-              </div>
-              <ChevronRight
-                className={`h-4 w-4 ${active ? "text-primary" : "text-muted-foreground"}`}
-              />
+              {s.label}
+              {s.key === "past" && (
+                <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                  {sorted.length}
+                </span>
+              )}
             </button>
           );
         })}
-
-        <Card className="mt-6 rounded-2xl border-border/70 p-4">
-          <div className="mb-2 flex items-center justify-between">
-            <h3 className="text-sm font-semibold">Recent history</h3>
-            <span className="text-xs text-muted-foreground">{sorted.length} entries</span>
-          </div>
-          <div className="max-h-[320px] overflow-y-auto">
-            <table className="w-full text-xs">
-              <thead className="sticky top-0 bg-card text-left text-[10px] uppercase tracking-wider text-muted-foreground">
-                <tr>
-                  <th className="py-2 font-medium">Period</th>
-                  <th className="py-2 text-right font-medium">CO₂e</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[...sorted].reverse().slice(0, 12).map((e) => (
-                  <tr key={`${e.year}-${e.month}`} className="border-t border-border">
-                    <td className="py-2 font-medium">
-                      {MONTH_SHORT[e.month - 1]} {e.year}
-                    </td>
-                    <td className="num py-2 text-right">
-                      {formatNumber(calculateCO2e(e))} kg
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
       </div>
 
-      <div className="lg:col-span-3">
-        {method === "manual" && (
-          <QuickLogCard
-            entries={entries}
-            isCurrentLogged={isCurrentLogged}
-            onSaved={onSaved}
-            rooms={rooms}
-            highlightFields={highlightFields}
-            onHighlightConsumed={onHighlightConsumed}
-          />
-        )}
-        {method === "survey" && (
-          <SurveyLogCard entries={entries} onSaved={onSaved} />
-        )}
-        {method === "import" && <ImportLogCard onSaved={onSaved} />}
-      </div>
+      {section === "add" && (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+          <div className="space-y-3 lg:col-span-2">
+            <div className="text-xs uppercase tracking-wider text-muted-foreground">
+              Choose a method
+            </div>
+            {METHODS.map((m) => {
+              const Icon = m.icon;
+              const active = method === m.key;
+              return (
+                <button
+                  key={m.key}
+                  onClick={() => setMethod(m.key)}
+                  className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition ${
+                    active
+                      ? "border-primary bg-primary/5 shadow-sm"
+                      : "border-border bg-card hover:border-accent hover:bg-accent/10"
+                  }`}
+                >
+                  <div
+                    className={`flex h-10 w-10 items-center justify-center rounded-xl ${
+                      active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-sm font-semibold">{m.label}</div>
+                    <div className="text-xs text-muted-foreground">{m.desc}</div>
+                  </div>
+                  <ChevronRight
+                    className={`h-4 w-4 ${active ? "text-primary" : "text-muted-foreground"}`}
+                  />
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="lg:col-span-3">
+            {method === "manual" && (
+              <QuickLogCard
+                entries={entries}
+                isCurrentLogged={isCurrentLogged}
+                onSaved={onSaved}
+                rooms={rooms}
+                highlightFields={highlightFields}
+                onHighlightConsumed={onHighlightConsumed}
+              />
+            )}
+            {method === "survey" && (
+              <SurveyLogCard entries={entries} onSaved={onSaved} />
+            )}
+            {method === "import" && <ImportLogCard onSaved={onSaved} />}
+          </div>
+        </div>
+      )}
+
+      {section === "past" && <PastDataSection sorted={sorted} rooms={rooms} />}
     </div>
+  );
+}
+
+/* ---------- Past data section ---------- */
+
+function PastDataSection({ sorted, rooms }: { sorted: MonthlyEntry[]; rooms: number }) {
+  const reversed = React.useMemo(() => [...sorted].reverse(), [sorted]);
+  const [yearFilter, setYearFilter] = React.useState<"all" | number>("all");
+
+  const years = React.useMemo(() => {
+    const set = new Set<number>();
+    sorted.forEach((e) => set.add(e.year));
+    return Array.from(set).sort((a, b) => b - a);
+  }, [sorted]);
+
+  const filtered = React.useMemo(
+    () => (yearFilter === "all" ? reversed : reversed.filter((e) => e.year === yearFilter)),
+    [reversed, yearFilter],
+  );
+
+  if (sorted.length === 0) {
+    return (
+      <Card className="rounded-2xl border-border/70 p-10 text-center">
+        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+          <ClipboardList className="h-6 w-6" />
+        </div>
+        <h3 className="text-base font-semibold">No data yet</h3>
+        <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
+          Once you log your first month, your full history will appear here for review and export.
+        </p>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="rounded-2xl border-border/70 p-5">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-semibold">All logged months</h3>
+          <p className="text-xs text-muted-foreground">
+            {filtered.length} of {sorted.length} entries
+            {rooms ? ` • ${rooms} rooms` : ""}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">Year</span>
+          <select
+            value={yearFilter === "all" ? "all" : String(yearFilter)}
+            onChange={(e) =>
+              setYearFilter(e.target.value === "all" ? "all" : Number(e.target.value))
+            }
+            className="rounded-lg border border-border bg-background px-2 py-1 text-xs"
+          >
+            <option value="all">All</option>
+            {years.map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead className="text-left text-[10px] uppercase tracking-wider text-muted-foreground">
+            <tr>
+              <th className="py-2 pr-3 font-medium">Period</th>
+              <th className="py-2 pr-3 text-right font-medium">Electricity (kWh)</th>
+              <th className="py-2 pr-3 text-right font-medium">Gas (kWh)</th>
+              <th className="py-2 pr-3 text-right font-medium">Water (m³)</th>
+              <th className="py-2 pr-3 text-right font-medium">Waste (kg)</th>
+              <th className="py-2 pr-3 text-right font-medium">Room-nights</th>
+              <th className="py-2 text-right font-medium">CO₂e (kg)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((e) => (
+              <tr key={`${e.year}-${e.month}`} className="border-t border-border">
+                <td className="py-2 pr-3 font-medium">
+                  {MONTH_SHORT[e.month - 1]} {e.year}
+                </td>
+                <td className="num py-2 pr-3 text-right">
+                  {e.electricity_kwh != null ? formatNumber(e.electricity_kwh) : "—"}
+                </td>
+                <td className="num py-2 pr-3 text-right">
+                  {e.gas_kwh != null ? formatNumber(e.gas_kwh) : "—"}
+                </td>
+                <td className="num py-2 pr-3 text-right">
+                  {e.water_m3 != null ? formatNumber(e.water_m3) : "—"}
+                </td>
+                <td className="num py-2 pr-3 text-right">
+                  {e.waste_kg != null ? formatNumber(e.waste_kg) : "—"}
+                </td>
+                <td className="num py-2 pr-3 text-right">
+                  {e.occupied_room_nights != null ? formatNumber(e.occupied_room_nights) : "—"}
+                </td>
+                <td className="num py-2 text-right font-semibold">
+                  {formatNumber(calculateCO2e(e))}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Card>
   );
 }
 
