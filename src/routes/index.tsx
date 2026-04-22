@@ -610,37 +610,6 @@ function HomePage() {
             );
           })()}
 
-          <MonthlyChangeSummary
-            latest={latest}
-            prev={prev}
-            currentScore={computeScore(latest)}
-            previousScore={computeScore(prev)}
-            currentBreakdown={computeScoreBreakdown(latest)}
-            previousBreakdown={computeScoreBreakdown(prev)}
-            onDriverClick={(fieldKey) => {
-              const kpi = KPIS.find((k) => k.key === fieldKey);
-              setActiveTab("analyze");
-              setActiveChart("peer");
-              if (kpi) {
-                setUtilityFilter(kpi.utility);
-                toast.success(`Filtered Hotel Insights to ${kpi.label}`, {
-                  description: "Charts and KPIs now show only this utility.",
-                });
-              }
-              // Defer scroll until the analyze tab content is mounted
-              window.setTimeout(() => {
-                const el = document.getElementById(`kpi-${fieldKey}`);
-                if (el) {
-                  el.scrollIntoView({ behavior: "smooth", block: "center" });
-                  el.classList.add("ring-2", "ring-primary/60", "ring-offset-2", "ring-offset-background");
-                  window.setTimeout(() => {
-                    el.classList.remove("ring-2", "ring-primary/60", "ring-offset-2", "ring-offset-background");
-                  }, 2200);
-                }
-              }, 80);
-            }}
-          />
-
           <TodosCard
             latest={latest}
             sorted={sorted}
