@@ -586,6 +586,21 @@ function HomePage() {
         <div className="mt-6 h-px gold-divider" />
       </header>
 
+      {/* AI personalised briefing from Sera */}
+      <section className="mb-12">
+        <SeraBriefingCard
+          firstName={firstName}
+          loading={loading || (briefingLoading && !briefing)}
+          briefing={briefing}
+          error={briefingError}
+          refreshing={briefingLoading && Boolean(briefing)}
+          onRefresh={() => void fetchBriefing(true)}
+          onAsk={() => {
+            void navigate({ to: "/workspace", search: { tab: "analyze" } });
+          }}
+        />
+      </section>
+
       {/* Briefing */}
       <section className="mb-12">
         <div className="mb-4 flex items-end justify-between">
