@@ -39,6 +39,7 @@ import {
   History,
   Lock,
   Unlock,
+  MessageCircle,
 } from "lucide-react";
 import {
   ResponsiveContainer,
