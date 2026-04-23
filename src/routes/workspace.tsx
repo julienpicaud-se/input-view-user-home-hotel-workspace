@@ -973,63 +973,6 @@ function HomePage() {
         </TabsContent>
       </Tabs>
 
-      {/* "How to read this chart" dialog — opens from any chart's button */}
-      <Dialog
-        open={explainerChart !== null}
-        onOpenChange={(open) => {
-          if (!open) setExplainerChart(null);
-        }}
-      >
-        <DialogContent className="max-w-2xl rounded-3xl border-border/70 p-0 sm:max-w-2xl">
-          <DialogHeader className="sr-only">
-            <DialogTitle>
-              How to read {explainerChart ? CHART_TITLES[explainerChart] : "this chart"}
-            </DialogTitle>
-            <DialogDescription>
-              Plain-language explanation of what the chart shows and how Sera reads your data.
-            </DialogDescription>
-          </DialogHeader>
-          {explainerChart && (
-            <div className="max-h-[80vh] overflow-y-auto p-1">
-              <ChartExplainerCard
-                chartId={explainerChart}
-                isLatestLogged={!!isCurrentLogged}
-                hasMissingFields={missingFields.length > 0}
-                worstUtilityLabel={worstUtility?.label ?? null}
-                onDraftLog={() => {
-                  setExplainerChart(null);
-                  setActiveTab("log");
-                }}
-                onAskSera={(prompt) => {
-                  setExplainerChart(null);
-                  setPendingPrompt(prompt);
-                  toast.success("Sera is on it");
-                  window.setTimeout(() => {
-                    const el = document.querySelector("[data-sera-assistant]");
-                    if (el && el instanceof HTMLElement) {
-                      el.scrollIntoView({ behavior: "smooth", block: "center" });
-                    }
-                  }, 80);
-                }}
-                onHighlightFix={() => {
-                  setExplainerChart(null);
-                  const fields =
-                    explainerChart === "peer" && worstUtility
-                      ? [worstUtility.key]
-                      : missingFields.length > 0
-                        ? missingFields
-                        : worstUtility
-                          ? [worstUtility.key]
-                          : [];
-                  if (fields.length > 0) setHighlightFields(fields);
-                  setActiveTab("log");
-                }}
-              />
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-    </PageContainer>
   );
 }
 
