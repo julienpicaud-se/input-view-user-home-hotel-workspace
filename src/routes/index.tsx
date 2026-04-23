@@ -208,16 +208,42 @@ function HomePage() {
       const hotels = (hotelsData as Hotel[] | null) ?? [];
       const entries = (entriesData as MonthlyEntry[] | null) ?? [];
 
-      // Latest entry across portfolio
-      const sortedAll = [...entries].sort((a, b) =>
-        a.year !== b.year ? a.year - b.year : a.month - b.month
+      // Latest reporting period across portfolio.
+      // We pick the most recent year+month where AT LEAST HALF of the hotels
+      // have a logged entry — that way a single in-progress / test entry for
+      // the current month doesn't hijack the portfolio summary.
+      const periodCounts = new Map<string, { year: number; month: number; count: number }>();
+      for (const e of entries) {
+        const key = `${e.year}-${e.month}`;
+        const cur = periodCounts.get(key);
+        if (cur) cur.count += 1;
+        else periodCounts.set(key, { year: e.year, month: e.month, count: 1 });
+      }
+      const minHotels = Math.max(1, Math.ceil(hotels.length / 2));
+      const sortedPeriods = Array.from(periodCounts.values()).sort((a, b) =>
+        a.year !== b.year ? b.year - a.year : b.month - a.month
       );
-      const latest = sortedAll[sortedAll.length - 1] ?? null;
+      const latestPeriod =
+        sortedPeriods.find((p) => p.count >= minHotels) ?? sortedPeriods[0] ?? null;
+
+      // Pick a representative entry for the latest period: the one belonging
+      // to the hotel with the largest electricity reading (acts as the
+      // "headline" hotel for the latest data card).
+      let latest: MonthlyEntry | null = null;
+      if (latestPeriod) {
+        const inPeriod = entries.filter(
+          (e) => e.year === latestPeriod.year && e.month === latestPeriod.month
+        );
+        latest =
+          [...inPeriod].sort(
+            (a, b) => Number(b.electricity_kwh ?? 0) - Number(a.electricity_kwh ?? 0)
+          )[0] ?? null;
+      }
       const latestHotel = latest
         ? hotels.find((h) => h.id === latest.hotel_id)
         : undefined;
 
-      // Previous month for the same latest hotel
+      // Previous month for the same latest hotel (kept for compatibility)
       let prev: MonthlyEntry | null = null;
       if (latest) {
         const sameHotel = entries
