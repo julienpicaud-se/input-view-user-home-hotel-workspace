@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WorkspaceRouteImport } from './routes/workspace'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as LogRouteImport } from './routes/log'
 import { Route as HotelRouteImport } from './routes/hotel'
 import { Route as HistoryRouteImport } from './routes/history'
@@ -20,6 +21,11 @@ import { Route as IndexRouteImport } from './routes/index'
 const WorkspaceRoute = WorkspaceRouteImport.update({
   id: '/workspace',
   path: '/workspace',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LogRoute = LogRouteImport.update({
@@ -60,6 +66,7 @@ export interface FileRoutesByFullPath {
   '/history': typeof HistoryRoute
   '/hotel': typeof HotelRoute
   '/log': typeof LogRoute
+  '/profile': typeof ProfileRoute
   '/workspace': typeof WorkspaceRoute
 }
 export interface FileRoutesByTo {
@@ -69,6 +76,7 @@ export interface FileRoutesByTo {
   '/history': typeof HistoryRoute
   '/hotel': typeof HotelRoute
   '/log': typeof LogRoute
+  '/profile': typeof ProfileRoute
   '/workspace': typeof WorkspaceRoute
 }
 export interface FileRoutesById {
@@ -79,6 +87,7 @@ export interface FileRoutesById {
   '/history': typeof HistoryRoute
   '/hotel': typeof HotelRoute
   '/log': typeof LogRoute
+  '/profile': typeof ProfileRoute
   '/workspace': typeof WorkspaceRoute
 }
 export interface FileRouteTypes {
@@ -90,6 +99,7 @@ export interface FileRouteTypes {
     | '/history'
     | '/hotel'
     | '/log'
+    | '/profile'
     | '/workspace'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -99,6 +109,7 @@ export interface FileRouteTypes {
     | '/history'
     | '/hotel'
     | '/log'
+    | '/profile'
     | '/workspace'
   id:
     | '__root__'
@@ -108,6 +119,7 @@ export interface FileRouteTypes {
     | '/history'
     | '/hotel'
     | '/log'
+    | '/profile'
     | '/workspace'
   fileRoutesById: FileRoutesById
 }
@@ -118,6 +130,7 @@ export interface RootRouteChildren {
   HistoryRoute: typeof HistoryRoute
   HotelRoute: typeof HotelRoute
   LogRoute: typeof LogRoute
+  ProfileRoute: typeof ProfileRoute
   WorkspaceRoute: typeof WorkspaceRoute
 }
 
@@ -128,6 +141,13 @@ declare module '@tanstack/react-router' {
       path: '/workspace'
       fullPath: '/workspace'
       preLoaderRoute: typeof WorkspaceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/log': {
@@ -182,6 +202,7 @@ const rootRouteChildren: RootRouteChildren = {
   HistoryRoute: HistoryRoute,
   HotelRoute: HotelRoute,
   LogRoute: LogRoute,
+  ProfileRoute: ProfileRoute,
   WorkspaceRoute: WorkspaceRoute,
 }
 export const routeTree = rootRouteImport
