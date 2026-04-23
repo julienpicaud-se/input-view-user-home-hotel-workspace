@@ -1478,6 +1478,8 @@ function ActionAskSeraPanel({
     </AnimatePresence>
   );
 }
+
+function ExplainerSection({
   icon,
   label,
   items,
