@@ -317,7 +317,9 @@ function HomePage() {
         co2eLatest,
         co2ePrev,
         totalElectricity,
-        hotelsMissingCurrent,
+        expectedYear: expected.year,
+        expectedMonth: expected.month,
+        hotelProgress,
         anomalies: topAnomalies,
       });
       setLoading(false);
@@ -331,14 +333,26 @@ function HomePage() {
   const allTodos: Todo[] = React.useMemo(() => {
     if (!summary) return [];
     const items: Todo[] = [];
-    const expected = expectedReportingPeriod();
+    const expected = { year: summary.expectedYear, month: summary.expectedMonth };
+    const allComplete = summary.hotelProgress.every((h) => h.complete);
 
-    // Per-hotel "log data" tasks
-    if (summary.hotelsMissingCurrent.length === 0) {
+    // Per-hotel "log data" tasks — auto-mark done when all 5 fields are filled
+    if (summary.hotelProgress.length === 0) {
+      items.push({
+        id: "log-no-hotels",
+        title: "Add your first hotel to start logging",
+        description: "Once you have a hotel, monthly data tasks will appear here.",
+        cta: "Open workspace",
+        done: false,
+        tone: "warning",
+        target: { kind: "workspace", tab: "settings" },
+        dismissible: false,
+      });
+    } else if (allComplete) {
       items.push({
         id: "log-up-to-date",
-        title: "All monthly data is up to date",
-        description: "Every hotel has reported the expected period.",
+        title: `${MONTH_NAMES[expected.month - 1]} ${expected.year} data is complete`,
+        description: "Every hotel has all required fields filled in.",
         cta: "Open log",
         done: true,
         tone: "muted",
@@ -346,18 +360,25 @@ function HomePage() {
         dismissible: false,
       });
     } else {
-      for (const m of summary.hotelsMissingCurrent) {
+      for (const h of summary.hotelProgress) {
+        const remaining = h.totalCount - h.filledCount;
         items.push({
-          id: `log-${m.id}-${expected.year}-${expected.month}`,
-          title: `Log ${MONTH_NAMES[expected.month - 1]} ${expected.year} for ${m.name}`,
-          description: m.lastPeriod
-            ? `Last entry: ${m.lastPeriod}. Add electricity, gas, water and waste in ~2 min.`
-            : "No data yet for this hotel — start with the most recent month.",
-          cta: "Add data",
-          done: false,
-          tone: "warning",
-          target: { kind: "workspace", tab: "log", hotelId: m.id },
-          dismissible: true,
+          id: `log-${h.id}-${expected.year}-${expected.month}`,
+          title: h.complete
+            ? `${h.name}: ${MONTH_NAMES[expected.month - 1]} ${expected.year} fully logged`
+            : `Log ${MONTH_NAMES[expected.month - 1]} ${expected.year} for ${h.name}`,
+          description: h.complete
+            ? "All 5 fields filled — electricity, gas, water, waste, occupancy."
+            : h.filledCount === 0
+              ? h.lastPeriod
+                ? `Last entry: ${h.lastPeriod}. Add electricity, gas, water, waste and occupancy.`
+                : "No data yet — start with the most recent month."
+              : `${h.filledCount}/${h.totalCount} filled — ${remaining} ${remaining === 1 ? "field" : "fields"} to go.`,
+          cta: h.complete ? "View" : "Add data",
+          done: h.complete,
+          tone: h.complete ? "muted" : h.filledCount > 0 ? "primary" : "warning",
+          target: { kind: "workspace", tab: "log", hotelId: h.id },
+          dismissible: !h.complete,
         });
       }
     }
