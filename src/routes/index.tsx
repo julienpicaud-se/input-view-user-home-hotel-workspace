@@ -20,6 +20,10 @@ import {
   X,
   Eye,
   EyeOff,
+  Droplets,
+  Trash2,
+  Check,
+  Minus,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { setActiveHotelId, type Hotel, type MonthlyEntry } from "@/lib/hotel";
