@@ -25,7 +25,7 @@ export function PageHeader({
               {eyebrow}
             </div>
           )}
-          <h1 className="font-serif text-4xl md:text-5xl font-semibold leading-[1.05] text-foreground">
+          <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-semibold leading-[1.05] text-foreground">
             {title}
           </h1>
           {subtitle && (
@@ -51,7 +51,7 @@ export function PageContainer({
   return (
     <div
       className={cn(
-        "mx-auto w-full max-w-7xl px-5 py-8 md:px-10 md:py-12",
+        "mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8 md:px-10 md:py-12",
         className
       )}
     >
