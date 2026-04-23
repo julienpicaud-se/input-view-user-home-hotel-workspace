@@ -716,41 +716,6 @@ function HomePage() {
           </Card>
         </div>
 
-        {/* Headline insight */}
-        {!loading && summary?.latestEntry && (
-          <Card className="mt-4 overflow-hidden rounded-2xl border-border/60 bg-gradient-to-br from-primary/5 via-card to-accent/10 p-5">
-            <div className="flex items-start gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-                <Bolt className="h-4 w-4" />
-              </div>
-              <div className="min-w-0">
-                <div className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-                  Headline
-                </div>
-                <p className="mt-1 text-sm text-foreground md:text-base">
-                  Your portfolio drew{" "}
-                  <span className="font-semibold">
-                    {formatNumber(Math.round(summary.totalElectricity))} kWh
-                  </span>{" "}
-                  of electricity in{" "}
-                  {periodLabel(summary.latestEntry.year, summary.latestEntry.month)}
-                  {co2Change !== null && (
-                    <>
-                      {" "}— overall CO₂e is{" "}
-                      <span
-                        className={`font-semibold ${co2Down ? "text-success" : "text-warning"}`}
-                      >
-                        {co2Down ? "down" : "up"} {Math.abs(co2Change).toFixed(1)}%
-                      </span>{" "}
-                      vs the prior month
-                    </>
-                  )}
-                  .
-                </p>
-              </div>
-            </div>
-          </Card>
-        )}
       </section>
 
       {/* AI personalised briefing from Sera — focused on to-dos & data quality */}
