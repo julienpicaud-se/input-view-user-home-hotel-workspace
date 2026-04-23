@@ -22,6 +22,10 @@ export interface DataQualityIssue {
   // For deep-linking the user to the right place
   year?: number;
   month?: number;
+  // For out-of-range issues: the actual value, the expected window and unit.
+  // Lets the UI render explicit "Expected 5–150 kWh/room-night · got 212.40" chips.
+  observed?: { value: number; unit: string };
+  expected?: { min: number; max: number; unit: string };
 }
 
 interface BuildIssuesArgs {
