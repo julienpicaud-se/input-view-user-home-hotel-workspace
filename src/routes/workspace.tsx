@@ -3658,8 +3658,8 @@ function LogDataTabs({
   highlightFields?: HighlightedField[];
   onHighlightConsumed?: () => void;
 }) {
-  const [method, setMethod] = React.useState<"manual" | "survey" | "import">(
-    "manual",
+  const [method, setMethod] = React.useState<"sera" | "manual" | "survey" | "import">(
+    "sera",
   );
 
   // When highlighted fields arrive, force-switch to manual entry so user sees them.
@@ -3670,11 +3670,13 @@ function LogDataTabs({
   }, [highlightFields, method]);
 
   const METHODS: {
-    key: "manual" | "survey" | "import";
+    key: "sera" | "manual" | "survey" | "import";
     label: string;
     desc: string;
     icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+    badge?: string;
   }[] = [
+    { key: "sera", label: "Sera guided", desc: "AI walks you through, reads your bills", icon: Sparkles, badge: "New" },
     { key: "manual", label: "Manual entry", desc: "Type values from your bills", icon: Pencil },
     { key: "survey", label: "Guided survey", desc: "Step-by-step questions", icon: ClipboardList },
     { key: "import", label: "Import CSV", desc: "Bulk upload past months", icon: Upload },
@@ -3708,7 +3710,14 @@ function LogDataTabs({
                   <Icon className="h-5 w-5" />
                 </div>
                 <div className="flex-1">
-                  <div className="text-sm font-semibold">{m.label}</div>
+                  <div className="flex items-center gap-2">
+                    <div className="text-sm font-semibold">{m.label}</div>
+                    {m.badge && (
+                      <span className="rounded-full bg-gradient-to-r from-primary to-secondary px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-primary-foreground">
+                        {m.badge}
+                      </span>
+                    )}
+                  </div>
                   <div className="text-xs text-muted-foreground">{m.desc}</div>
                 </div>
                 <ChevronRight
@@ -3720,6 +3729,9 @@ function LogDataTabs({
         </div>
 
         <div className="lg:col-span-3">
+          {method === "sera" && (
+            <SeraGuidedLog entries={entries} rooms={rooms} onSaved={onSaved} />
+          )}
           {method === "manual" && (
             <QuickLogCard
               entries={entries}
