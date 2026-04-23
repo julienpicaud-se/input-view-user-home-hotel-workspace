@@ -1278,49 +1278,70 @@ function HotelProgressRow({
 }) {
   const pct = Math.round((progress.filledCount / progress.totalCount) * 100);
   const remaining = progress.totalCount - progress.filledCount;
+  const empty = progress.filledCount === 0;
+
+  // Status tone drives the leading dot, the progress bar and the count chip.
+  const tone = progress.complete
+    ? {
+        dot: "bg-success",
+        bar: "bg-success",
+        chip: "bg-success/10 text-success ring-success/20",
+      }
+    : empty
+      ? {
+          dot: "bg-warning",
+          bar: "bg-warning/70",
+          chip: "bg-warning/10 text-warning-foreground ring-warning/25",
+        }
+      : {
+          dot: "bg-primary",
+          bar: "bg-primary",
+          chip: "bg-primary/10 text-primary ring-primary/20",
+        };
+
   return (
     <button
       type="button"
       onClick={onClick}
-      className="group flex w-full items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-muted/40"
+      className="group relative flex w-full items-center gap-5 px-5 py-4 text-left transition-colors hover:bg-muted/30"
     >
-      <div
-        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
-          progress.complete
-            ? "bg-success/15 text-success"
-            : progress.filledCount > 0
-              ? "bg-primary/10 text-primary"
-              : "bg-warning/15 text-warning"
-        }`}
-      >
-        {progress.complete ? (
-          <CheckCircle2 className="h-4 w-4" />
-        ) : (
-          <ClipboardList className="h-4 w-4" />
-        )}
-      </div>
+      {/* Leading status dot — small, calm, replaces the large amber tile */}
+      <span
+        aria-hidden
+        className={`mt-1 h-2 w-2 shrink-0 self-start rounded-full ${tone.dot} ring-4 ring-background`}
+      />
 
+      {/* Hotel + status copy */}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className="truncate text-sm font-medium text-foreground">{progress.name}</span>
+          <span className="truncate text-sm font-semibold text-foreground">
+            {progress.name}
+          </span>
           {progress.complete && (
             <span className="rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-success">
               Complete
             </span>
           )}
         </div>
-        <div className="mt-0.5 text-xs text-muted-foreground">
-          {progress.complete
-            ? "All 5 fields logged"
-            : progress.filledCount === 0
-              ? progress.lastPeriod
-                ? `Nothing yet — last entry ${progress.lastPeriod}`
-                : "No data yet"
-              : `${remaining} ${remaining === 1 ? "field" : "fields"} to go`}
+        <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+          <span>
+            {progress.complete
+              ? "All 5 fields logged"
+              : empty
+                ? "Nothing yet"
+                : `${remaining} ${remaining === 1 ? "field" : "fields"} to go`}
+          </span>
+          {progress.lastPeriod && !progress.complete && (
+            <>
+              <span aria-hidden className="text-muted-foreground/40">·</span>
+              <span>Last entry {progress.lastPeriod}</span>
+            </>
+          )}
         </div>
       </div>
 
-      <div className="hidden items-center gap-1.5 sm:flex">
+      {/* Field tiles — cleaner, no overlapping mini-badges */}
+      <div className="hidden items-center gap-1 sm:flex">
         {FIELD_ORDER.map((f) => {
           const filled = progress.fields[f];
           const Icon = FIELD_META[f].icon;
@@ -1328,38 +1349,34 @@ function HotelProgressRow({
             <div
               key={f}
               title={`${FIELD_META[f].label}: ${filled ? "logged" : "missing"}`}
-              className={`relative flex h-8 w-8 items-center justify-center rounded-lg border transition-colors ${
+              className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
                 filled
-                  ? "border-success/40 bg-success/10 text-success"
-                  : "border-border/60 bg-muted/40 text-muted-foreground"
+                  ? "bg-success/10 text-success ring-1 ring-inset ring-success/25"
+                  : "bg-muted/50 text-muted-foreground/70 ring-1 ring-inset ring-border/40"
               }`}
             >
-              <Icon className="h-3.5 w-3.5" />
-              <span
-                className={`absolute -bottom-0.5 -right-0.5 flex h-3 w-3 items-center justify-center rounded-full ${
-                  filled ? "bg-success text-success-foreground" : "bg-muted text-muted-foreground"
-                }`}
-              >
-                {filled ? <Check className="h-2 w-2" /> : <Minus className="h-2 w-2" />}
-              </span>
+              <Icon className="h-3.5 w-3.5" strokeWidth={2} />
             </div>
           );
         })}
       </div>
 
-      <div className="flex w-20 shrink-0 flex-col items-end gap-1">
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+      {/* Progress: thin bar + chip */}
+      <div className="flex w-28 shrink-0 items-center gap-2">
+        <div className="h-1 flex-1 overflow-hidden rounded-full bg-muted">
           <div
-            className={`h-full transition-all ${progress.complete ? "bg-success" : "bg-primary"}`}
+            className={`h-full rounded-full transition-all ${tone.bar}`}
             style={{ width: `${pct}%` }}
           />
         </div>
-        <span className="text-[10px] tabular-nums text-muted-foreground">
+        <span
+          className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium tabular-nums ring-1 ring-inset ${tone.chip}`}
+        >
           {progress.filledCount}/{progress.totalCount}
         </span>
       </div>
 
-      <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
+      <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground/60 transition-all group-hover:translate-x-0.5 group-hover:text-foreground" />
     </button>
   );
 }
