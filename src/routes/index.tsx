@@ -43,6 +43,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { generateBriefing, type BriefingPayload } from "@/server/assistant.functions";
 import { SeraBriefingCard } from "@/components/sera-briefing-card";
+import { DataQualityCard } from "@/components/data-quality-card";
+import { buildDataQualityIssues, type DataQualityIssue } from "@/lib/data-quality";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -183,6 +185,8 @@ function HomePage() {
   const [briefing, setBriefing] = React.useState<BriefingPayload | null>(null);
   const [briefingLoading, setBriefingLoading] = React.useState(false);
   const [briefingError, setBriefingError] = React.useState<string | null>(null);
+  const [hotels, setHotels] = React.useState<Hotel[]>([]);
+  const [entries, setEntries] = React.useState<MonthlyEntry[]>([]);
 
   React.useEffect(() => {
     void (async () => {
@@ -315,6 +319,8 @@ function HomePage() {
       const topAnomalies = anomalies.slice(0, 4);
 
       setProfile((profileData as UserProfile) ?? null);
+      setHotels(hotels);
+      setEntries(entries);
       setSummary({
         hotelCount: hotels.length,
         totalRooms: hotels.reduce((acc, h) => acc + (h.rooms ?? 0), 0),
@@ -518,6 +524,22 @@ function HomePage() {
     () => allTodos.filter((t) => dismissed.has(t.id)),
     [allTodos, dismissed]
   );
+
+  const dataQualityIssues: DataQualityIssue[] = React.useMemo(() => {
+    if (!summary || hotels.length === 0) return [];
+    return buildDataQualityIssues({
+      hotels,
+      entries,
+      expectedYear: summary.expectedYear,
+      expectedMonth: summary.expectedMonth,
+    });
+  }, [hotels, entries, summary]);
+
+  function handleDataQualityClick(issue: DataQualityIssue) {
+    setActiveHotelId(issue.hotelId);
+    void navigate({ to: "/workspace", search: { tab: "log" } });
+  }
+
 
   const co2Change = summary
     ? pctChange(summary.co2eLatest || null, summary.co2ePrev || null)
@@ -779,6 +801,15 @@ function HomePage() {
             </div>
           )}
         </Card>
+      </section>
+
+      {/* Data quality */}
+      <section className="mb-12">
+        <DataQualityCard
+          loading={loading}
+          issues={dataQualityIssues}
+          onIssueClick={handleDataQualityClick}
+        />
       </section>
 
       {/* To-dos */}
