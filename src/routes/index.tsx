@@ -237,30 +237,36 @@ function HomePage() {
         }
       }
 
-      // Missing-data list for the expected period
+      // Per-hotel progress for the expected reporting period
       const expected = expectedReportingPeriod();
-      const hotelsMissingCurrent = hotels
-        .filter((h) => {
-          return !entries.some(
-            (e) =>
-              e.hotel_id === h.id &&
-              e.year === expected.year &&
-              e.month === expected.month
-          );
-        })
-        .map((h) => {
-          const hotelEntries = entries
-            .filter((e) => e.hotel_id === h.id)
-            .sort((a, b) =>
-              a.year !== b.year ? b.year - a.year : b.month - a.month
-            );
-          const last = hotelEntries[0];
-          return {
-            id: h.id,
-            name: h.name,
-            lastPeriod: last ? periodLabel(last.year, last.month) : null,
-          };
-        });
+      const hotelProgress: HotelProgress[] = hotels.map((h) => {
+        const expectedEntry = entries.find(
+          (e) => e.hotel_id === h.id && e.year === expected.year && e.month === expected.month
+        );
+        const filled = (v: number | null | undefined) =>
+          v !== null && v !== undefined && Number(v) > 0;
+        const fields: Record<RequiredField, boolean> = {
+          electricity: filled(expectedEntry?.electricity_kwh ?? null),
+          gas: filled(expectedEntry?.gas_kwh ?? null),
+          water: filled(expectedEntry?.water_m3 ?? null),
+          waste: filled(expectedEntry?.waste_kg ?? null),
+          occupancy: filled(expectedEntry?.occupied_room_nights ?? null),
+        };
+        const filledCount = Object.values(fields).filter(Boolean).length;
+        const hotelEntries = entries
+          .filter((e) => e.hotel_id === h.id)
+          .sort((a, b) => (a.year !== b.year ? b.year - a.year : b.month - a.month));
+        const last = hotelEntries[0];
+        return {
+          id: h.id,
+          name: h.name,
+          lastPeriod: last ? periodLabel(last.year, last.month) : null,
+          fields,
+          filledCount,
+          totalCount: 5,
+          complete: filledCount === 5,
+        };
+      });
 
       // Anomaly detection: for each hotel's most recent entry, compare each
       // utility to its prior month. Flag >20% increase as a spike.
