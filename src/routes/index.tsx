@@ -46,6 +46,7 @@ import { generateBriefing, type BriefingPayload } from "@/server/assistant.funct
 import { SeraBriefingCard } from "@/components/sera-briefing-card";
 import { DataQualityCard } from "@/components/data-quality-card";
 import { buildDataQualityIssues, type DataQualityIssue } from "@/lib/data-quality";
+import { TodoCalendar } from "@/components/todo-calendar";
 
 export const Route = createFileRoute("/")({
   head: () => ({
