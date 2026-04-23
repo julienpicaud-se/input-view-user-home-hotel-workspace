@@ -42,6 +42,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { generateBriefing, type BriefingPayload } from "@/server/assistant.functions";
+import { SeraBriefingCard } from "@/components/sera-briefing-card";
 
 export const Route = createFileRoute("/")({
   head: () => ({
