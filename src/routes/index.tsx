@@ -822,62 +822,7 @@ function HomePage() {
         />
       </section>
 
-      {/* Reporting progress */}
-      <section className="mb-12">
-        <div className="mb-4 flex items-end justify-between gap-3">
-          <div>
-            <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-              Reporting progress
-            </div>
-            <h2 className="font-serif text-2xl font-semibold text-foreground">
-              {summary
-                ? `${MONTH_NAMES[summary.expectedMonth - 1]} ${summary.expectedYear}`
-                : "Expected period"}
-            </h2>
-          </div>
-          {summary && summary.hotelProgress.length > 0 && (
-            <PortfolioProgressBadge progress={summary.hotelProgress} />
-          )}
-        </div>
-
-        <Card className="overflow-hidden rounded-2xl border-border/60">
-          {loading ? (
-            <div className="space-y-3 p-5">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
-            </div>
-          ) : !summary || summary.hotelProgress.length === 0 ? (
-            <div className="p-8 text-center text-sm text-muted-foreground">
-              Add a hotel to start tracking monthly reporting progress.
-            </div>
-          ) : (
-            <div className="divide-y divide-border/60">
-              {summary.hotelProgress.map((h) => (
-                <HotelProgressRow
-                  key={h.id}
-                  progress={h}
-                  onClick={() => {
-                    setActiveHotelId(h.id);
-                    void navigate({ to: "/workspace", search: { tab: "log" } });
-                  }}
-                />
-              ))}
-            </div>
-          )}
-        </Card>
-      </section>
-
-      {/* Data quality */}
-      <section className="mb-12">
-        <DataQualityCard
-          loading={loading}
-          issues={dataQualityIssues}
-          onIssueClick={handleDataQualityClick}
-        />
-      </section>
-
-      {/* To-dos */}
+      {/* To-dos — directly under the Sera briefing */}
       <section className="mb-12">
         <div className="mb-4 flex items-end justify-between gap-3">
           <div>
@@ -950,6 +895,61 @@ function HomePage() {
             </div>
           </div>
         )}
+      </section>
+
+      {/* Reporting progress */}
+      <section className="mb-12">
+        <div className="mb-4 flex items-end justify-between gap-3">
+          <div>
+            <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              Reporting progress
+            </div>
+            <h2 className="font-serif text-2xl font-semibold text-foreground">
+              {summary
+                ? `${MONTH_NAMES[summary.expectedMonth - 1]} ${summary.expectedYear}`
+                : "Expected period"}
+            </h2>
+          </div>
+          {summary && summary.hotelProgress.length > 0 && (
+            <PortfolioProgressBadge progress={summary.hotelProgress} />
+          )}
+        </div>
+
+        <Card className="overflow-hidden rounded-2xl border-border/60">
+          {loading ? (
+            <div className="space-y-3 p-5">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </div>
+          ) : !summary || summary.hotelProgress.length === 0 ? (
+            <div className="p-8 text-center text-sm text-muted-foreground">
+              Add a hotel to start tracking monthly reporting progress.
+            </div>
+          ) : (
+            <div className="divide-y divide-border/60">
+              {summary.hotelProgress.map((h) => (
+                <HotelProgressRow
+                  key={h.id}
+                  progress={h}
+                  onClick={() => {
+                    setActiveHotelId(h.id);
+                    void navigate({ to: "/workspace", search: { tab: "log" } });
+                  }}
+                />
+              ))}
+            </div>
+          )}
+        </Card>
+      </section>
+
+      {/* Data quality */}
+      <section className="mb-12">
+        <DataQualityCard
+          loading={loading}
+          issues={dataQualityIssues}
+          onIssueClick={handleDataQualityClick}
+        />
       </section>
 
     </PageContainer>
