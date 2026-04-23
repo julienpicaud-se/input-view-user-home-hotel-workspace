@@ -159,6 +159,7 @@ function HomePage() {
   const [insights, setInsights] = React.useState<Insight[]>([]);
   const [insightsLoading, setInsightsLoading] = React.useState(false);
   const [activeChart, setActiveChart] = React.useState<ChartId>("consumption");
+  const [explainerChart, setExplainerChart] = React.useState<ChartId | null>(null);
   const search = Route.useSearch();
   const [activeTab, setActiveTab] = React.useState<string>(search.tab ?? "overview");
   React.useEffect(() => {
@@ -759,6 +760,7 @@ function HomePage() {
                 id="consumption"
                 active={activeChart}
                 onSelect={setActiveChart}
+                onExplain={setExplainerChart}
                 title="12-month consumption"
                 subtitle="Stacked utilities with CO₂e overlay."
                 aside={
@@ -808,6 +810,7 @@ function HomePage() {
                 id="co2e"
                 active={activeChart}
                 onSelect={setActiveChart}
+                onExplain={setExplainerChart}
                 title="CO₂e emissions"
                 subtitle="Estimated kg CO₂e per month."
                 aside={<BarChart3 className="h-5 w-5 text-muted-foreground" />}
@@ -837,6 +840,7 @@ function HomePage() {
                 id="intensity"
                 active={activeChart}
                 onSelect={setActiveChart}
+                onExplain={setExplainerChart}
                 title="Intensity per room-night"
                 subtitle="Normalised consumption — independent of occupancy."
                 aside={
@@ -881,6 +885,7 @@ function HomePage() {
                 id="peer"
                 active={activeChart}
                 onSelect={setActiveChart}
+                onExplain={setExplainerChart}
                 title="Peer comparison"
                 subtitle={`vs ${cohortSize} similar Mediterranean hotels`}
                 aside={<Trophy className="h-5 w-5" style={{ color: "var(--champagne)" }} />}
@@ -966,6 +971,63 @@ function HomePage() {
           <BenchmarksPanel showHeader={false} />
         </TabsContent>
       </Tabs>
+
+      {/* "How to read this chart" dialog — opens from any chart's button */}
+      <Dialog
+        open={explainerChart !== null}
+        onOpenChange={(open) => {
+          if (!open) setExplainerChart(null);
+        }}
+      >
+        <DialogContent className="max-w-2xl rounded-3xl border-border/70 p-0 sm:max-w-2xl">
+          <DialogHeader className="sr-only">
+            <DialogTitle>
+              How to read {explainerChart ? CHART_TITLES[explainerChart] : "this chart"}
+            </DialogTitle>
+            <DialogDescription>
+              Plain-language explanation of what the chart shows and how Sera reads your data.
+            </DialogDescription>
+          </DialogHeader>
+          {explainerChart && (
+            <div className="max-h-[80vh] overflow-y-auto p-1">
+              <ChartExplainerCard
+                chartId={explainerChart}
+                isLatestLogged={!!isCurrentLogged}
+                hasMissingFields={missingFields.length > 0}
+                worstUtilityLabel={worstUtility?.label ?? null}
+                onDraftLog={() => {
+                  setExplainerChart(null);
+                  setActiveTab("log");
+                }}
+                onAskSera={(prompt) => {
+                  setExplainerChart(null);
+                  setPendingPrompt(prompt);
+                  toast.success("Sera is on it");
+                  window.setTimeout(() => {
+                    const el = document.querySelector("[data-sera-assistant]");
+                    if (el && el instanceof HTMLElement) {
+                      el.scrollIntoView({ behavior: "smooth", block: "center" });
+                    }
+                  }, 80);
+                }}
+                onHighlightFix={() => {
+                  setExplainerChart(null);
+                  const fields =
+                    explainerChart === "peer" && worstUtility
+                      ? [worstUtility.key]
+                      : missingFields.length > 0
+                        ? missingFields
+                        : worstUtility
+                          ? [worstUtility.key]
+                          : [];
+                  if (fields.length > 0) setHighlightFields(fields);
+                  setActiveTab("log");
+                }}
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </PageContainer>
   );
 }
@@ -1001,6 +1063,7 @@ function ChartCard({
   title,
   subtitle,
   aside,
+  onExplain,
   children,
 }: {
   id: ChartId;
@@ -1009,6 +1072,7 @@ function ChartCard({
   title: string;
   subtitle: string;
   aside?: React.ReactNode;
+  onExplain?: (id: ChartId) => void;
   children: React.ReactNode;
 }) {
   const isActive = active === id;
@@ -1043,7 +1107,24 @@ function ChartCard({
             </div>
             <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
           </div>
-          {aside}
+          <div className="flex items-center gap-2">
+            {aside}
+            {onExplain && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onExplain(id);
+                }}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border/70 bg-background/60 px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition hover:border-primary/40 hover:bg-primary/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                aria-label={`How to read ${title}`}
+              >
+                <BookOpen className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">How to read this chart</span>
+                <span className="sm:hidden">How to read</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
       {children}
