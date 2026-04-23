@@ -125,13 +125,6 @@ export function BenchmarksPanel({ showHeader = true }: { showHeader?: boolean })
   );
 }
 
-function FilterChip({ label }: { label: string }) {
-  return (
-    <span className="inline-flex items-center rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground">
-      {label}
-    </span>
-  );
-}
 
 function BenchmarkCard({
   utility,
