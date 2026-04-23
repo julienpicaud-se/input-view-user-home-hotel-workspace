@@ -82,6 +82,19 @@ function AssistantPage() {
     }
   }
 
+  // Auto-send a prompt arriving from another page (e.g. chart explainer "Ask Sera")
+  React.useEffect(() => {
+    const incoming = search.prompt?.trim();
+    if (!incoming) return;
+    if (consumedPromptRef.current === incoming) return;
+    if (loading) return;
+    consumedPromptRef.current = incoming;
+    void handleSend(incoming);
+    // Clear the URL param so reloads don't re-fire the prompt
+    void navigate({ to: "/assistant", search: {}, replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search.prompt, loading]);
+
   return (
     <PageContainer>
       <PageHeader
