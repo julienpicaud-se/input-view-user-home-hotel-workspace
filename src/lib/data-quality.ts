@@ -242,6 +242,8 @@ export function buildDataQualityIssues({
               detail: `${intensity.toFixed(2)} ${c.unit} (typical: ${c.min}–${c.max}). Check meter reading or unit.`,
               year: entry.year,
               month: entry.month,
+              observed: { value: Number(intensity.toFixed(2)), unit: c.unit },
+              expected: { min: c.min, max: c.max, unit: c.unit },
             });
           }
         }
