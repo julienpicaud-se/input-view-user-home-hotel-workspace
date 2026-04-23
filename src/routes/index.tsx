@@ -631,91 +631,77 @@ function HomePage() {
               Your portfolio at a glance
             </h2>
           </div>
+          {!loading && summary?.latestEntry && (
+            <div className="hidden text-right text-xs text-muted-foreground sm:block">
+              As of{" "}
+              <span className="font-medium text-foreground">
+                {periodLabel(summary.latestEntry.year, summary.latestEntry.month)}
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
           {/* Portfolio */}
-          <Card className="rounded-2xl border-border/60 p-5">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Building2 className="h-3.5 w-3.5" />
-              Portfolio
-            </div>
-            {loading ? (
-              <Skeleton className="mt-3 h-9 w-24" />
-            ) : (
-              <div className="mt-2 flex items-baseline gap-2">
-                <span className="font-serif text-4xl font-semibold text-foreground">
-                  {summary?.hotelCount ?? 0}
-                </span>
-                <span className="text-sm text-muted-foreground">
-                  {summary?.hotelCount === 1 ? "hotel" : "hotels"}
-                </span>
-              </div>
-            )}
-            <div className="mt-1 text-xs text-muted-foreground">
-              {loading ? <Skeleton className="h-3 w-32" /> : `${formatNumber(summary?.totalRooms ?? 0)} total rooms`}
-            </div>
-          </Card>
+          <GlanceCard
+            label="Portfolio"
+            icon={Building2}
+            loading={loading}
+            value={summary ? formatNumber(summary.hotelCount) : "—"}
+            unit={summary?.hotelCount === 1 ? "hotel" : "hotels"}
+            footer={
+              summary
+                ? `${formatNumber(summary.totalRooms)} total rooms`
+                : undefined
+            }
+          />
 
           {/* Latest data */}
-          <Card className="rounded-2xl border-border/60 p-5">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <ClipboardList className="h-3.5 w-3.5" />
-              Latest data
-            </div>
-            {loading ? (
-              <Skeleton className="mt-3 h-9 w-40" />
-            ) : summary?.latestEntry ? (
-              <>
-                <div className="mt-2 font-serif text-2xl font-semibold leading-tight text-foreground">
-                  {periodLabel(summary.latestEntry.year, summary.latestEntry.month)}
-                </div>
-                <div className="mt-1 truncate text-xs text-muted-foreground">
-                  {summary.latestEntry.hotel_name}
-                </div>
-              </>
-            ) : (
-              <div className="mt-2 text-sm text-muted-foreground">No entries yet</div>
-            )}
-          </Card>
+          <GlanceCard
+            label="Latest data"
+            icon={ClipboardList}
+            loading={loading}
+            value={
+              summary?.latestEntry
+                ? periodLabel(summary.latestEntry.year, summary.latestEntry.month)
+                : "—"
+            }
+            valueSize="md"
+            footer={summary?.latestEntry?.hotel_name ?? "No entries yet"}
+          />
 
           {/* CO2e trend */}
-          <Card className="rounded-2xl border-border/60 p-5">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Leaf className="h-3.5 w-3.5" />
-              CO₂e — latest month
-            </div>
-            {loading ? (
-              <Skeleton className="mt-3 h-9 w-32" />
-            ) : (
-              <>
-                <div className="mt-2 flex items-baseline gap-2">
-                  <span className="font-serif text-3xl font-semibold text-foreground">
-                    {formatNumber(Math.round(summary?.co2eLatest ?? 0))}
-                  </span>
-                  <span className="text-sm text-muted-foreground">kg</span>
-                </div>
-                {co2Change !== null ? (
-                  <div
-                    className={`mt-1 inline-flex items-center gap-1 text-xs font-medium ${
-                      co2Down ? "text-success" : "text-warning"
-                    }`}
-                  >
-                    {co2Down ? (
-                      <TrendingDown className="h-3.5 w-3.5" />
-                    ) : (
-                      <TrendingUp className="h-3.5 w-3.5" />
-                    )}
-                    {formatPct(co2Change)} vs previous month
-                  </div>
-                ) : (
-                  <div className="mt-1 text-xs text-muted-foreground">No comparison yet</div>
-                )}
-              </>
-            )}
-          </Card>
+          <GlanceCard
+            label="CO₂e — latest month"
+            icon={Leaf}
+            loading={loading}
+            value={
+              summary
+                ? formatNumber(Math.round(summary.co2eLatest))
+                : "—"
+            }
+            unit="kg"
+            tone={co2Change === null ? "neutral" : co2Down ? "positive" : "warning"}
+            footer={
+              co2Change !== null ? (
+                <span
+                  className={`inline-flex items-center gap-1 font-medium ${
+                    co2Down ? "text-success" : "text-warning"
+                  }`}
+                >
+                  {co2Down ? (
+                    <TrendingDown className="h-3.5 w-3.5" />
+                  ) : (
+                    <TrendingUp className="h-3.5 w-3.5" />
+                  )}
+                  {formatPct(co2Change)} vs previous month
+                </span>
+              ) : (
+                "No comparison yet"
+              )
+            }
+          />
         </div>
-
       </section>
 
       {/* AI personalised briefing from Sera — focused on to-dos & data quality */}
@@ -966,6 +952,78 @@ function TodoRow({
             </button>
           )}
         </div>
+      </div>
+    </Card>
+  );
+}
+
+function GlanceCard({
+  label,
+  icon: Icon,
+  loading,
+  value,
+  unit,
+  footer,
+  valueSize = "lg",
+  tone = "neutral",
+}: {
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  loading: boolean;
+  value: string;
+  unit?: string;
+  footer?: React.ReactNode;
+  valueSize?: "md" | "lg";
+  tone?: "neutral" | "positive" | "warning";
+}) {
+  const accentByTone: Record<typeof tone, string> = {
+    neutral: "bg-primary/10 text-primary",
+    positive: "bg-success/10 text-success",
+    warning: "bg-warning/10 text-warning",
+  };
+  return (
+    <Card className="group relative overflow-hidden rounded-2xl border-border/60 p-5 transition-all hover:border-border hover:shadow-sm">
+      {/* subtle accent rail */}
+      <span
+        aria-hidden
+        className={`absolute inset-y-3 left-0 w-[3px] rounded-r-full ${
+          tone === "positive"
+            ? "bg-success/40"
+            : tone === "warning"
+              ? "bg-warning/40"
+              : "bg-primary/30"
+        }`}
+      />
+      <div className="flex items-center justify-between">
+        <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+          {label}
+        </div>
+        <span
+          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${accentByTone[tone]}`}
+        >
+          <Icon className="h-3.5 w-3.5" />
+        </span>
+      </div>
+
+      {loading ? (
+        <Skeleton className="mt-4 h-9 w-32" />
+      ) : (
+        <div className="mt-3 flex items-baseline gap-1.5">
+          <span
+            className={`font-serif font-semibold leading-none text-foreground tabular-nums ${
+              valueSize === "md" ? "text-2xl md:text-[1.75rem]" : "text-[2.25rem] md:text-[2.5rem]"
+            }`}
+          >
+            {value}
+          </span>
+          {unit && (
+            <span className="text-sm text-muted-foreground">{unit}</span>
+          )}
+        </div>
+      )}
+
+      <div className="mt-2 min-h-[1.25rem] text-xs text-muted-foreground">
+        {loading ? <Skeleton className="h-3 w-32" /> : footer}
       </div>
     </Card>
   );
