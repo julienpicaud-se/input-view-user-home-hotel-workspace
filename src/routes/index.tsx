@@ -115,6 +115,8 @@ interface Todo {
     | { kind: "workspace"; tab: WorkspaceTab; hotelId?: string }
     | { kind: "profile" };
   dismissible: boolean;
+  // Optional due date — drives sort order and the in-row pill
+  dueDate?: Date;
 }
 
 const UTILITY_LABEL: Record<Anomaly["utility"], string> = {
