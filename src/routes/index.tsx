@@ -1502,16 +1502,29 @@ function HotelProgressRow({
       {/* Hotel + status copy */}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className="truncate text-sm font-semibold text-foreground">
+          <span
+            className={`truncate text-sm font-semibold ${
+              overdue ? "text-destructive" : "text-foreground"
+            }`}
+          >
             {progress.name}
           </span>
-          {progress.complete && (
+          {progress.complete ? (
             <span className="rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-success">
               Complete
             </span>
-          )}
+          ) : overdue ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-destructive ring-1 ring-inset ring-destructive/25">
+              <AlertTriangle className="h-2.5 w-2.5" />
+              Overdue {overdueDays}d
+            </span>
+          ) : null}
         </div>
-        <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+        <div
+          className={`mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs ${
+            overdue ? "text-destructive/80" : "text-muted-foreground"
+          }`}
+        >
           <span>
             {progress.complete
               ? "All 5 fields logged"
@@ -1521,7 +1534,7 @@ function HotelProgressRow({
           </span>
           {progress.lastPeriod && !progress.complete && (
             <>
-              <span aria-hidden className="text-muted-foreground/40">·</span>
+              <span aria-hidden className={overdue ? "text-destructive/40" : "text-muted-foreground/40"}>·</span>
               <span>Last entry {progress.lastPeriod}</span>
             </>
           )}
@@ -1540,7 +1553,9 @@ function HotelProgressRow({
               className={`flex h-8 w-8 items-center justify-center rounded-lg ring-1 ring-inset transition-colors ${
                 filled
                   ? FIELD_META[f].filled
-                  : "bg-muted/40 text-muted-foreground/50 ring-border/40 [background-image:repeating-linear-gradient(135deg,transparent_0_4px,hsl(var(--muted-foreground)/0.06)_4px_5px)]"
+                  : overdue
+                    ? "bg-destructive/5 text-destructive/60 ring-destructive/20 [background-image:repeating-linear-gradient(135deg,transparent_0_4px,hsl(var(--destructive)/0.08)_4px_5px)]"
+                    : "bg-muted/40 text-muted-foreground/50 ring-border/40 [background-image:repeating-linear-gradient(135deg,transparent_0_4px,hsl(var(--muted-foreground)/0.06)_4px_5px)]"
               }`}
             >
               <Icon className="h-3.5 w-3.5" />
@@ -1552,14 +1567,17 @@ function HotelProgressRow({
       {/* Progress: % label + thicker gradient bar + status-tinted count chip */}
       <div className="flex w-52 shrink-0 items-center gap-2.5">
         <span
-          className={`w-9 shrink-0 text-right font-serif text-sm font-semibold tabular-nums ${
+          className={`flex w-12 shrink-0 items-center justify-end gap-1 font-serif text-sm font-semibold tabular-nums ${
             progress.complete
               ? "text-success"
-              : empty
-                ? "text-warning-foreground"
-                : "text-foreground"
+              : overdue
+                ? "text-destructive"
+                : empty
+                  ? "text-warning-foreground"
+                  : "text-foreground"
           }`}
         >
+          {overdue && <AlertTriangle className="h-3.5 w-3.5" aria-label="Overdue" />}
           {pct}%
         </span>
         <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-muted/70 ring-1 ring-inset ring-border/40">
@@ -1567,9 +1585,11 @@ function HotelProgressRow({
             className={`h-full rounded-full bg-gradient-to-r shadow-[0_0_0_1px_color-mix(in_oklab,currentColor_25%,transparent)] transition-all ${
               progress.complete
                 ? "from-success to-success/70 text-success"
-                : empty
-                  ? "from-warning to-warning/60 text-warning"
-                  : "from-primary to-primary/60 text-primary"
+                : overdue
+                  ? "from-destructive to-destructive/60 text-destructive"
+                  : empty
+                    ? "from-warning to-warning/60 text-warning"
+                    : "from-primary to-primary/60 text-primary"
             }`}
             style={{ width: `${Math.max(pct, empty ? 0 : 6)}%` }}
           />
