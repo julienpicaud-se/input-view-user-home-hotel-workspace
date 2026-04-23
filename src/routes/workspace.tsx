@@ -904,58 +904,58 @@ function HomePage() {
               </ChartCard>
             </div>
 
-            {/* Right rail: chart explainer + Sera chat */}
+            {/* Right rail: chart explainer (opens when "How to read this chart" is clicked) */}
             <div className="space-y-6 lg:col-span-2">
               <div className="lg:sticky lg:top-6 space-y-6">
-                <MiniAssistantCard
-                  title="Ask Sera about your charts"
-                  subtitle="Spot trends, compare months, plan actions"
-                  starters={[
-                    "What does my CO₂e trend tell me?",
-                    "Which utility moved the most this month?",
-                    "Where am I worst vs peers?",
-                    "Explain my intensity per room-night",
-                  ]}
-                  height="default"
-                  pendingPrompt={pendingPrompt}
-                  onPromptConsumed={() => setPendingPrompt(null)}
-                />
-                <ChartExplainerCard
-                  chartId={activeChart}
-                  isLatestLogged={!!isCurrentLogged}
-                  hasMissingFields={missingFields.length > 0}
-                  worstUtilityLabel={worstUtility?.label ?? null}
-                  onDraftLog={() => {
-                    setHighlightFields([]);
-                    setActiveTab("log");
-                    toast.success(`Draft started for ${latest ? `${MONTH_NAMES[latest.month - 1]} ${latest.year}` : "this month"}`);
-                  }}
-                  onAskSera={(prompt) => {
-                    setPendingPrompt(prompt);
-                    toast.success("Sera is on it");
-                  }}
-                  onHighlightFix={() => {
-                    const fields =
-                      activeChart === "peer" && worstUtility
-                        ? [worstUtility.key]
-                        : missingFields.length > 0
-                          ? missingFields
-                          : worstUtility
-                            ? [worstUtility.key]
-                            : [];
-                    if (fields.length === 0) {
-                      toast.info("Nothing to flag — your data looks complete.");
-                      return;
-                    }
-                    setHighlightFields(fields);
-                    setActiveTab("log");
-                    toast.success(
-                      fields.length === 1
-                        ? `Highlighted ${labelOf(fields[0])} in the log form`
-                        : `Highlighted ${fields.length} fields in the log form`,
-                    );
-                  }}
-                />
+                {explainerChart ? (
+                  <ChartExplainerCard
+                    chartId={explainerChart}
+                    isLatestLogged={!!isCurrentLogged}
+                    hasMissingFields={missingFields.length > 0}
+                    worstUtilityLabel={worstUtility?.label ?? null}
+                    onClose={() => setExplainerChart(null)}
+                    onDraftLog={() => {
+                      setHighlightFields([]);
+                      setActiveTab("log");
+                      toast.success(`Draft started for ${latest ? `${MONTH_NAMES[latest.month - 1]} ${latest.year}` : "this month"}`);
+                    }}
+                    onAskSera={(prompt) => {
+                      setPendingPrompt(prompt);
+                      toast.success("Sera is on it");
+                    }}
+                    onHighlightFix={() => {
+                      const fields =
+                        explainerChart === "peer" && worstUtility
+                          ? [worstUtility.key]
+                          : missingFields.length > 0
+                            ? missingFields
+                            : worstUtility
+                              ? [worstUtility.key]
+                              : [];
+                      if (fields.length === 0) {
+                        toast.info("Nothing to flag — your data looks complete.");
+                        return;
+                      }
+                      setHighlightFields(fields);
+                      setActiveTab("log");
+                      toast.success(
+                        fields.length === 1
+                          ? `Highlighted ${labelOf(fields[0])} in the log form`
+                          : `Highlighted ${fields.length} fields in the log form`,
+                      );
+                    }}
+                  />
+                ) : (
+                  <div className="rounded-3xl border border-dashed border-border/70 bg-card/40 p-8 text-center">
+                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted/60">
+                      <BookOpen className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <h3 className="mt-4 font-serif text-base font-semibold">Need help reading a chart?</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Click <span className="font-medium text-foreground">“How to read this chart”</span> on any chart and a plain-language explanation will appear here.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
