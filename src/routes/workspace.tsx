@@ -2858,6 +2858,7 @@ function HotelSettingsPanel({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Hotel Aurora"
+              disabled={locked}
             />
           </div>
 
