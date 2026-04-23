@@ -173,11 +173,15 @@ function expectedReportingPeriod(): { year: number; month: number } {
 
 function HomePage() {
   const navigate = useNavigate();
+  const callBriefing = useServerFn(generateBriefing);
   const [loading, setLoading] = React.useState(true);
   const [profile, setProfile] = React.useState<UserProfile | null>(null);
   const [summary, setSummary] = React.useState<PortfolioSummary | null>(null);
   const [dismissed, setDismissed] = React.useState<Set<string>>(() => loadDismissed());
   const [showDismissed, setShowDismissed] = React.useState(false);
+  const [briefing, setBriefing] = React.useState<BriefingPayload | null>(null);
+  const [briefingLoading, setBriefingLoading] = React.useState(false);
+  const [briefingError, setBriefingError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     void (async () => {
