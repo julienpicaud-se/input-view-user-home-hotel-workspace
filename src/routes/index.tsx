@@ -317,6 +317,8 @@ function HomePage() {
       const topAnomalies = anomalies.slice(0, 4);
 
       setProfile((profileData as UserProfile) ?? null);
+      setHotels(hotels);
+      setEntries(entries);
       setSummary({
         hotelCount: hotels.length,
         totalRooms: hotels.reduce((acc, h) => acc + (h.rooms ?? 0), 0),
