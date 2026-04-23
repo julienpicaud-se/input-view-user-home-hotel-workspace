@@ -162,11 +162,11 @@ export function DataQualityCard({ loading, issues, onIssueClick }: DataQualityCa
             <Skeleton key={i} className="h-12 w-full" />
           ))}
         </div>
-      ) : issues.length === 0 ? (
+      ) : rangeIssues.length === 0 ? (
         <div className="flex items-center gap-3 p-6">
           <CheckCircle2 className="h-5 w-5 shrink-0 text-success" />
           <p className="text-sm text-muted-foreground">
-            All logged data passes the basic quality checks. Nothing to fix.
+            All logged values fall within the expected ranges.
           </p>
         </div>
       ) : (
@@ -188,7 +188,8 @@ export function DataQualityCard({ loading, issues, onIssueClick }: DataQualityCa
                 </>
               ) : (
                 <>
-                  Show all {issues.length} issues <ChevronDown className="h-3.5 w-3.5" />
+                  Show all {rangeIssues.length} out-of-range values{" "}
+                  <ChevronDown className="h-3.5 w-3.5" />
                 </>
               )}
             </button>
