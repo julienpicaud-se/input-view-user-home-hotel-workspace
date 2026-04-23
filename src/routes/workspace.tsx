@@ -693,15 +693,8 @@ function HomePage() {
               }, 80);
             }}
             onAskSera={(prompt) => {
-              setPendingPrompt(prompt);
               toast.success("Sera is on it");
-              // Bring the assistant card into view (right rail)
-              window.setTimeout(() => {
-                const el = document.querySelector('[data-sera-assistant]');
-                if (el && el instanceof HTMLElement) {
-                  el.scrollIntoView({ behavior: "smooth", block: "center" });
-                }
-              }, 80);
+              void navigate({ to: "/assistant", search: { prompt } });
             }}
           />
 
