@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import * as React from "react";
 import {
   ArrowRight,
@@ -16,9 +16,13 @@ import {
   TrendingUp,
   Users,
   Wand2,
+  AlertTriangle,
+  X,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { type Hotel, type MonthlyEntry } from "@/lib/hotel";
+import { setActiveHotelId, type Hotel, type MonthlyEntry } from "@/lib/hotel";
 import { DEMO_PROFILE_ID, type UserProfile } from "@/lib/user-profile";
 import {
   MONTH_NAMES,
@@ -53,18 +57,65 @@ interface PortfolioSummary {
   prevEntry: MonthlyEntry | null;
   co2eLatest: number;
   co2ePrev: number;
-  totalElectricity: number; // most recent month across portfolio
+  totalElectricity: number;
   hotelsMissingCurrent: { id: string; name: string; lastPeriod: string | null }[];
+  anomalies: Anomaly[];
 }
+
+interface Anomaly {
+  hotelId: string;
+  hotelName: string;
+  utility: "electricity" | "gas" | "water" | "waste";
+  pctChange: number; // positive = spike up
+  year: number;
+  month: number;
+}
+
+type WorkspaceTab = "overview" | "log" | "analyze" | "settings" | "benchmarks";
 
 interface Todo {
   id: string;
   title: string;
   description: string;
-  href: { to: string; search?: Record<string, string> };
   cta: string;
   done: boolean;
-  tone: "primary" | "warning" | "muted";
+  tone: "primary" | "warning" | "muted" | "danger";
+  // Action target
+  target:
+    | { kind: "workspace"; tab: WorkspaceTab; hotelId?: string }
+    | { kind: "profile" };
+  dismissible: boolean;
+}
+
+const UTILITY_LABEL: Record<Anomaly["utility"], string> = {
+  electricity: "Electricity",
+  gas: "Gas",
+  water: "Water",
+  waste: "Waste",
+};
+
+const DISMISSED_KEY = "ra-plus-dismissed-todos";
+
+function loadDismissed(): Set<string> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const raw = window.localStorage.getItem(DISMISSED_KEY);
+    if (!raw) return new Set();
+    const arr = JSON.parse(raw) as unknown;
+    if (Array.isArray(arr)) return new Set(arr.filter((x): x is string => typeof x === "string"));
+    return new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+function saveDismissed(set: Set<string>): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(DISMISSED_KEY, JSON.stringify(Array.from(set)));
+  } catch {
+    // ignore
+  }
 }
 
 function greeting(): { label: string; icon: React.ComponentType<{ className?: string }> } {
@@ -87,8 +138,6 @@ function periodLabel(year: number, month: number): string {
   return `${MONTH_NAMES[month - 1]} ${year}`;
 }
 
-// Returns the year/month for "the month we should have data for by now"
-// = previous calendar month (data is reported in arrears).
 function expectedReportingPeriod(): { year: number; month: number } {
   const now = new Date();
   const d = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -96,9 +145,12 @@ function expectedReportingPeriod(): { year: number; month: number } {
 }
 
 function HomePage() {
+  const navigate = useNavigate();
   const [loading, setLoading] = React.useState(true);
   const [profile, setProfile] = React.useState<UserProfile | null>(null);
   const [summary, setSummary] = React.useState<PortfolioSummary | null>(null);
+  const [dismissed, setDismissed] = React.useState<Set<string>>(() => loadDismissed());
+  const [showDismissed, setShowDismissed] = React.useState(false);
 
   React.useEffect(() => {
     void (async () => {
@@ -129,7 +181,7 @@ function HomePage() {
         ? hotels.find((h) => h.id === latest.hotel_id)
         : undefined;
 
-      // For the latest hotel, find the previous month's entry
+      // Previous month for the same latest hotel
       let prev: MonthlyEntry | null = null;
       if (latest) {
         const sameHotel = entries
@@ -141,7 +193,7 @@ function HomePage() {
         prev = idx > 0 ? sameHotel[idx - 1] : null;
       }
 
-      // Portfolio-wide totals for the most recent month present
+      // Portfolio totals for latest month
       let totalElectricity = 0;
       let co2eLatest = 0;
       let co2ePrev = 0;
@@ -161,17 +213,16 @@ function HomePage() {
         }
       }
 
-      // Which hotels are missing the expected reporting period?
+      // Missing-data list for the expected period
       const expected = expectedReportingPeriod();
       const hotelsMissingCurrent = hotels
         .filter((h) => {
-          const has = entries.some(
+          return !entries.some(
             (e) =>
               e.hotel_id === h.id &&
               e.year === expected.year &&
               e.month === expected.month
           );
-          return !has;
         })
         .map((h) => {
           const hotelEntries = entries
@@ -187,6 +238,44 @@ function HomePage() {
           };
         });
 
+      // Anomaly detection: for each hotel's most recent entry, compare each
+      // utility to its prior month. Flag >20% increase as a spike.
+      const anomalies: Anomaly[] = [];
+      for (const h of hotels) {
+        const hEntries = entries
+          .filter((e) => e.hotel_id === h.id)
+          .sort((a, b) => (a.year !== b.year ? a.year - b.year : a.month - b.month));
+        if (hEntries.length < 2) continue;
+        const last = hEntries[hEntries.length - 1];
+        const prior = hEntries[hEntries.length - 2];
+        const utilities: Anomaly["utility"][] = ["electricity", "gas", "water", "waste"];
+        const fieldFor: Record<Anomaly["utility"], keyof MonthlyEntry> = {
+          electricity: "electricity_kwh",
+          gas: "gas_kwh",
+          water: "water_m3",
+          waste: "waste_kg",
+        };
+        for (const u of utilities) {
+          const cur = Number(last[fieldFor[u]] ?? 0);
+          const pr = Number(prior[fieldFor[u]] ?? 0);
+          if (pr <= 0 || cur <= 0) continue;
+          const change = ((cur - pr) / pr) * 100;
+          if (change >= 20) {
+            anomalies.push({
+              hotelId: h.id,
+              hotelName: h.name,
+              utility: u,
+              pctChange: change,
+              year: last.year,
+              month: last.month,
+            });
+          }
+        }
+      }
+      // Keep the most severe first, cap at 4 to avoid noise.
+      anomalies.sort((a, b) => b.pctChange - a.pctChange);
+      const topAnomalies = anomalies.slice(0, 4);
+
       setProfile((profileData as UserProfile) ?? null);
       setSummary({
         hotelCount: hotels.length,
@@ -199,6 +288,7 @@ function HomePage() {
         co2ePrev,
         totalElectricity,
         hotelsMissingCurrent,
+        anomalies: topAnomalies,
       });
       setLoading(false);
     })();
@@ -207,63 +297,79 @@ function HomePage() {
   const g = greeting();
   const firstName = (profile?.display_name?.split(" ")[0] || "Julien").trim();
 
-  // Build to-dos based on real data
-  const todos: Todo[] = React.useMemo(() => {
+  // Build the full task list (deep-linked, per-hotel where useful)
+  const allTodos: Todo[] = React.useMemo(() => {
     if (!summary) return [];
     const items: Todo[] = [];
+    const expected = expectedReportingPeriod();
 
-    // 1. Add data for any hotel missing the expected period
-    if (summary.hotelsMissingCurrent.length > 0) {
-      const missing = summary.hotelsMissingCurrent;
-      const expected = expectedReportingPeriod();
+    // Per-hotel "log data" tasks
+    if (summary.hotelsMissingCurrent.length === 0) {
       items.push({
-        id: "log-current",
-        title: `Log ${MONTH_NAMES[expected.month - 1]} data for ${missing.length} ${missing.length === 1 ? "hotel" : "hotels"}`,
-        description:
-          missing.length <= 2
-            ? missing.map((m) => m.name).join(" · ")
-            : `${missing[0].name}, ${missing[1].name} +${missing.length - 2} more`,
-        href: { to: "/workspace", search: { tab: "log" } },
-        cta: "Add data",
-        done: false,
-        tone: "warning",
-      });
-    } else {
-      items.push({
-        id: "log-current",
+        id: "log-up-to-date",
         title: "All monthly data is up to date",
-        description: "Every hotel has reported the latest expected period.",
-        href: { to: "/workspace", search: { tab: "log" } },
+        description: "Every hotel has reported the expected period.",
         cta: "Open log",
         done: true,
         tone: "muted",
+        target: { kind: "workspace", tab: "log" },
+        dismissible: false,
+      });
+    } else {
+      for (const m of summary.hotelsMissingCurrent) {
+        items.push({
+          id: `log-${m.id}-${expected.year}-${expected.month}`,
+          title: `Log ${MONTH_NAMES[expected.month - 1]} ${expected.year} for ${m.name}`,
+          description: m.lastPeriod
+            ? `Last entry: ${m.lastPeriod}. Add electricity, gas, water and waste in ~2 min.`
+            : "No data yet for this hotel — start with the most recent month.",
+          cta: "Add data",
+          done: false,
+          tone: "warning",
+          target: { kind: "workspace", tab: "log", hotelId: m.id },
+          dismissible: true,
+        });
+      }
+    }
+
+    // Per-anomaly "review spike" tasks
+    for (const a of summary.anomalies) {
+      items.push({
+        id: `anomaly-${a.hotelId}-${a.year}-${a.month}-${a.utility}`,
+        title: `${UTILITY_LABEL[a.utility]} spiked ${a.pctChange.toFixed(0)}% at ${a.hotelName}`,
+        description: `${periodLabel(a.year, a.month)} vs prior month — review the meter reading or check for an event.`,
+        cta: "Review hotel",
+        done: false,
+        tone: "danger",
+        target: { kind: "workspace", tab: "overview", hotelId: a.hotelId },
+        dismissible: true,
       });
     }
 
-    // 2. Review benchmarks if we have at least one entry
+    // Generic engagement tasks
     items.push({
       id: "review-benchmarks",
       title: "Review this month's peer benchmarks",
-      description:
-        "See how your portfolio compares to similar hotels on energy, water and waste.",
-      href: { to: "/workspace", search: { tab: "benchmarks" } },
+      description: "See how your portfolio compares to similar hotels on energy, water and waste.",
       cta: "View benchmarks",
       done: false,
       tone: "primary",
+      target: { kind: "workspace", tab: "benchmarks" },
+      dismissible: true,
     });
 
-    // 3. Ask Sera for an insight
     items.push({
       id: "ask-sera",
       title: "Get AI insights from Sera",
       description: "Ask about trends, anomalies, or where to cut footprint next.",
-      href: { to: "/workspace", search: { tab: "analyze" } },
       cta: "Open Insights",
       done: false,
       tone: "primary",
+      target: { kind: "workspace", tab: "analyze" },
+      dismissible: true,
     });
 
-    // 4. Profile completeness
+    // Profile completeness
     const profileComplete = Boolean(
       profile?.display_name && profile?.email && profile?.company_name
     );
@@ -273,20 +379,63 @@ function HomePage() {
       description: profileComplete
         ? "Name, email and company are filled in."
         : "Add your email and company so reports can be addressed to you.",
-      href: { to: "/profile" },
       cta: profileComplete ? "View profile" : "Complete profile",
       done: profileComplete,
       tone: profileComplete ? "muted" : "warning",
+      target: { kind: "profile" },
+      dismissible: false,
     });
 
     return items;
   }, [summary, profile]);
 
+  const visibleTodos = React.useMemo(
+    () => allTodos.filter((t) => !dismissed.has(t.id)),
+    [allTodos, dismissed]
+  );
+  const dismissedTodos = React.useMemo(
+    () => allTodos.filter((t) => dismissed.has(t.id)),
+    [allTodos, dismissed]
+  );
+
   const co2Change = summary
     ? pctChange(summary.co2eLatest || null, summary.co2ePrev || null)
     : null;
   const co2Down = co2Change !== null && co2Change < 0;
-  const openTodos = todos.filter((t) => !t.done).length;
+  const openTodos = visibleTodos.filter((t) => !t.done).length;
+
+  // Action handlers
+  function handleAction(todo: Todo) {
+    if (todo.target.kind === "profile") {
+      void navigate({ to: "/profile" });
+      return;
+    }
+    if (todo.target.hotelId) {
+      setActiveHotelId(todo.target.hotelId);
+    }
+    void navigate({
+      to: "/workspace",
+      search: { tab: todo.target.tab },
+    });
+  }
+
+  function dismissTodo(id: string) {
+    setDismissed((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      saveDismissed(next);
+      return next;
+    });
+  }
+
+  function restoreTodo(id: string) {
+    setDismissed((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      saveDismissed(next);
+      return next;
+    });
+  }
 
   return (
     <PageContainer>
@@ -452,7 +601,7 @@ function HomePage() {
 
       {/* To-dos */}
       <section className="mb-12">
-        <div className="mb-4 flex items-end justify-between">
+        <div className="mb-4 flex items-end justify-between gap-3">
           <div>
             <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
               For you to do
@@ -461,21 +610,68 @@ function HomePage() {
               Your to-dos
             </h2>
           </div>
-          <div className="text-xs text-muted-foreground">
-            {openTodos} open · {todos.length - openTodos} done
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span>
+              {openTodos} open · {visibleTodos.length - openTodos} done
+            </span>
+            {dismissedTodos.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowDismissed((s) => !s)}
+                className="inline-flex items-center gap-1 rounded-lg border border-border/60 px-2 py-1 transition-colors hover:bg-muted hover:text-foreground"
+              >
+                {showDismissed ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                {showDismissed ? "Hide" : "Show"} dismissed ({dismissedTodos.length})
+              </button>
+            )}
           </div>
         </div>
 
         <div className="space-y-3">
-          {loading
-            ? Array.from({ length: 3 }).map((_, i) => (
-                <Card key={i} className="rounded-2xl border-border/60 p-5">
-                  <Skeleton className="h-5 w-1/2" />
-                  <Skeleton className="mt-2 h-4 w-3/4" />
-                </Card>
-              ))
-            : todos.map((t) => <TodoRow key={t.id} todo={t} />)}
+          {loading ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <Card key={i} className="rounded-2xl border-border/60 p-5">
+                <Skeleton className="h-5 w-1/2" />
+                <Skeleton className="mt-2 h-4 w-3/4" />
+              </Card>
+            ))
+          ) : visibleTodos.length === 0 ? (
+            <Card className="rounded-2xl border-border/60 p-8 text-center">
+              <CheckCircle2 className="mx-auto h-8 w-8 text-success" />
+              <p className="mt-3 text-sm text-muted-foreground">
+                You're all caught up. Enjoy the quiet.
+              </p>
+            </Card>
+          ) : (
+            visibleTodos.map((t) => (
+              <TodoRow
+                key={t.id}
+                todo={t}
+                onAction={() => handleAction(t)}
+                onDismiss={t.dismissible ? () => dismissTodo(t.id) : undefined}
+              />
+            ))
+          )}
         </div>
+
+        {showDismissed && dismissedTodos.length > 0 && (
+          <div className="mt-6">
+            <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              Dismissed
+            </div>
+            <div className="space-y-3">
+              {dismissedTodos.map((t) => (
+                <TodoRow
+                  key={t.id}
+                  todo={t}
+                  onAction={() => handleAction(t)}
+                  onRestore={() => restoreTodo(t.id)}
+                  isDismissed
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </section>
 
       {/* Quick links */}
@@ -519,37 +715,56 @@ function HomePage() {
   );
 }
 
-function TodoRow({ todo }: { todo: Todo }) {
+function TodoRow({
+  todo,
+  onAction,
+  onDismiss,
+  onRestore,
+  isDismissed,
+}: {
+  todo: Todo;
+  onAction: () => void;
+  onDismiss?: () => void;
+  onRestore?: () => void;
+  isDismissed?: boolean;
+}) {
   const dotClass =
-    todo.tone === "warning"
-      ? "bg-warning text-warning-foreground"
-      : todo.tone === "muted"
-        ? "bg-muted text-muted-foreground"
-        : "bg-primary text-primary-foreground";
+    todo.tone === "danger"
+      ? "bg-destructive text-destructive-foreground"
+      : todo.tone === "warning"
+        ? "bg-warning text-warning-foreground"
+        : todo.tone === "muted"
+          ? "bg-muted text-muted-foreground"
+          : "bg-primary text-primary-foreground";
+
+  const Icon =
+    todo.done
+      ? CheckCircle2
+      : todo.tone === "danger"
+        ? AlertTriangle
+        : todo.tone === "warning"
+          ? Wand2
+          : ArrowRight;
 
   return (
     <Card
       className={`group rounded-2xl border-border/60 p-5 transition-colors ${
-        todo.done ? "bg-muted/40" : "hover:border-primary/40"
+        todo.done || isDismissed
+          ? "bg-muted/40"
+          : todo.tone === "danger"
+            ? "hover:border-destructive/40"
+            : "hover:border-primary/40"
       }`}
     >
       <div className="flex items-start gap-4">
-        <div
-          className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${dotClass}`}
-        >
-          {todo.done ? (
-            <CheckCircle2 className="h-4 w-4" />
-          ) : todo.tone === "warning" ? (
-            <Wand2 className="h-4 w-4" />
-          ) : (
-            <ArrowRight className="h-4 w-4" />
-          )}
+        <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${dotClass}`}>
+          <Icon className="h-4 w-4" />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <h3
               className={`text-base font-semibold ${
-                todo.done ? "text-muted-foreground line-through" : "text-foreground"
+                todo.done || isDismissed ? "text-muted-foreground line-through" : "text-foreground"
               }`}
             >
               {todo.title}
@@ -559,20 +774,46 @@ function TodoRow({ todo }: { todo: Todo }) {
                 Done
               </span>
             )}
+            {isDismissed && (
+              <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                Dismissed
+              </span>
+            )}
           </div>
           <p className="mt-1 text-sm text-muted-foreground">{todo.description}</p>
         </div>
-        <Button
-          asChild
-          variant={todo.done ? "ghost" : todo.tone === "warning" ? "default" : "outline"}
-          size="sm"
-          className="shrink-0 rounded-xl"
-        >
-          <Link to={todo.href.to as never} search={todo.href.search as never}>
+        <div className="flex shrink-0 items-center gap-1">
+          {onRestore && (
+            <Button variant="ghost" size="sm" className="rounded-xl" onClick={onRestore}>
+              Restore
+            </Button>
+          )}
+          <Button
+            onClick={onAction}
+            variant={
+              todo.done || isDismissed
+                ? "ghost"
+                : todo.tone === "danger" || todo.tone === "warning"
+                  ? "default"
+                  : "outline"
+            }
+            size="sm"
+            className="rounded-xl"
+          >
             {todo.cta}
             <ArrowRight className="ml-1 h-3.5 w-3.5" />
-          </Link>
-        </Button>
+          </Button>
+          {onDismiss && !isDismissed && (
+            <button
+              type="button"
+              aria-label="Dismiss task"
+              onClick={onDismiss}
+              className="ml-1 flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground opacity-0 transition-opacity hover:bg-muted hover:text-foreground group-hover:opacity-100"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
       </div>
     </Card>
   );
