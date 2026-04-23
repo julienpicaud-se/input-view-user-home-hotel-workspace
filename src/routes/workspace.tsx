@@ -159,6 +159,7 @@ function HomePage() {
   const [insights, setInsights] = React.useState<Insight[]>([]);
   const [insightsLoading, setInsightsLoading] = React.useState(false);
   const [activeChart, setActiveChart] = React.useState<ChartId>("consumption");
+  const [explainerChart, setExplainerChart] = React.useState<ChartId | null>(null);
   const search = Route.useSearch();
   const [activeTab, setActiveTab] = React.useState<string>(search.tab ?? "overview");
   React.useEffect(() => {
