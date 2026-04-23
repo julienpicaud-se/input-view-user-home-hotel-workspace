@@ -200,22 +200,14 @@ export function DataQualityCard({ loading, issues, onIssueClick }: DataQualityCa
   );
 }
 
-/** Pull a numeric snippet out of the detail string for visual emphasis. */
-function extractValueSnippet(issue: DataQualityIssue): string | null {
-  if (issue.kind === "missing-month" || issue.kind === "stale-data") return null;
-  const detail = issue.detail;
-  // Match patterns like "12.34 kWh/room-night", "150%", "-200kWh", "1234 room-nights"
-  const patterns = [
-    /(-?\d+(?:\.\d+)?\s*(?:kWh\/room-night|m³\/room-night|kg\/room-night))/,
-    /(-?\d+(?:\.\d+)?\s*%)/,
-    /(-?\d+(?:\.\d+)?(?:kWh|m³|kg))/,
-    /(\d+\s*room-nights)/,
-  ];
-  for (const re of patterns) {
-    const m = detail.match(re);
-    if (m) return m[1].trim();
-  }
-  return null;
+/** Compact number formatter for chip values. */
+function fmt(n: number): string {
+  if (Number.isInteger(n)) return n.toLocaleString();
+  // Trim to 2 decimals max, drop trailing zeros
+  return n
+    .toFixed(2)
+    .replace(/\.?0+$/, "")
+    .toString();
 }
 
 function IssueRow({
@@ -228,7 +220,6 @@ function IssueRow({
   const sev = severityStyle[issue.severity];
   const kindMeta = KIND_META[issue.kind];
   const KindIcon = kindMeta.icon;
-  const valueSnippet = extractValueSnippet(issue);
 
   return (
     <li>
@@ -247,13 +238,6 @@ function IssueRow({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span className="text-sm font-medium text-foreground">{issue.title}</span>
-            {valueSnippet && (
-              <span
-                className={`inline-flex items-center rounded-md border px-1.5 py-0.5 font-mono text-[11px] tabular-nums ${sev.chip}`}
-              >
-                {valueSnippet}
-              </span>
-            )}
           </div>
           <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1">
@@ -263,7 +247,31 @@ function IssueRow({
             <span aria-hidden>·</span>
             <span className="truncate">{issue.hotelName}</span>
           </div>
-          <p className="mt-1 text-xs text-muted-foreground/90">{issue.detail}</p>
+          {issue.observed && issue.expected && (
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              <span
+                className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 font-mono text-[11px] tabular-nums ${sev.chip}`}
+                title="Observed value"
+              >
+                <span className="font-sans text-[10px] uppercase tracking-wide opacity-70">
+                  Got
+                </span>
+                {fmt(issue.observed.value)}
+                <span className="opacity-70">{issue.observed.unit}</span>
+              </span>
+              <span className="text-[11px] text-muted-foreground/70">vs</span>
+              <span
+                className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-muted/40 px-1.5 py-0.5 font-mono text-[11px] tabular-nums text-muted-foreground"
+                title="Expected range"
+              >
+                <span className="font-sans text-[10px] uppercase tracking-wide opacity-70">
+                  Expected
+                </span>
+                {fmt(issue.expected.min)}–{fmt(issue.expected.max)}
+                <span className="opacity-70">{issue.expected.unit}</span>
+              </span>
+            </div>
+          )}
         </div>
         <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
       </button>
