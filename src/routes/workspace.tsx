@@ -1225,9 +1225,10 @@ function ChartExplainerCard({
                       <button
                         type="button"
                         onClick={() =>
-                          onAskSera(
-                            `Looking at my "${CHART_TITLES[chartId]}" chart, walk me through this action step in detail for my hotel:\n\n"${action}"\n\nExplain the specific driver, expected impact (with units), and how to execute it.`,
-                          )
+                          setActionPanel({
+                            action,
+                            prompt: `Looking at my "${CHART_TITLES[chartId]}" chart, walk me through this action step in detail for my hotel:\n\n"${action}"\n\nExplain the specific driver, expected impact (with units), and how to execute it.`,
+                          })
                         }
                         className="ml-1 inline-flex shrink-0 items-center gap-1 rounded-full border border-primary/30 bg-background px-2 py-0.5 text-[10px] font-medium text-primary transition hover:bg-primary hover:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         title="Ask Sera about this action"
