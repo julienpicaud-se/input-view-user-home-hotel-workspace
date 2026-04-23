@@ -688,6 +688,17 @@ function HomePage() {
                 }
               }, 80);
             }}
+            onAskSera={(prompt) => {
+              setPendingPrompt(prompt);
+              toast.success("Sera is on it");
+              // Bring the assistant card into view (right rail)
+              window.setTimeout(() => {
+                const el = document.querySelector('[data-sera-assistant]');
+                if (el && el instanceof HTMLElement) {
+                  el.scrollIntoView({ behavior: "smooth", block: "center" });
+                }
+              }, 80);
+            }}
           />
 
           {/* Active utility filter chip */}
@@ -1348,6 +1359,7 @@ function MonthlyChangeSummary({
   currentBreakdown,
   previousBreakdown,
   onDriverClick,
+  onAskSera,
 }: {
   latest: MonthlyEntry | undefined;
   prev: MonthlyEntry | undefined;
@@ -1356,6 +1368,7 @@ function MonthlyChangeSummary({
   currentBreakdown: ScoreBreakdown;
   previousBreakdown: ScoreBreakdown;
   onDriverClick?: (fieldKey: HighlightedField) => void;
+  onAskSera?: (prompt: string) => void;
 }) {
   const summary = React.useMemo(() => {
     type Driver = {
@@ -1530,16 +1543,17 @@ function MonthlyChangeSummary({
           )}
 
           {latest && prev && (
-            <Popover>
-              <PopoverTrigger asChild>
-                <button
-                  type="button"
-                  className="mt-3 inline-flex items-center gap-1 rounded-full border border-border/70 bg-background/60 px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <Info className="h-3 w-3" />
-                  How this changed
-                </button>
-              </PopoverTrigger>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-background/60 px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <Info className="h-3 w-3" />
+                    How this changed
+                  </button>
+                </PopoverTrigger>
               <PopoverContent
                 align="start"
                 side="bottom"
@@ -1622,6 +1636,31 @@ function MonthlyChangeSummary({
                 </div>
               </PopoverContent>
             </Popover>
+              {onAskSera && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const driverList =
+                      summary.drivers.length > 0
+                        ? summary.drivers
+                            .map(
+                              (d) =>
+                                `${d.label} ${d.delta > 0 ? "+" : ""}${d.delta} pts`,
+                            )
+                            .join(", ")
+                        : "no clear drivers identified";
+                    const monthLabel = `${MONTH_NAMES[latest.month - 1]} ${latest.year}`;
+                    const prevLabel = `${MONTH_NAMES[prev.month - 1]} ${prev.year}`;
+                    const prompt = `Help me understand my AI summary for ${monthLabel} vs ${prevLabel}. The summary says: "${summary.headline} ${summary.body}" Top movers: ${driverList}. What's actually driving this and what specific actions should I take next month?`;
+                    onAskSera(prompt);
+                  }}
+                  className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary transition hover:bg-primary/15 hover:border-primary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                >
+                  <Sparkles className="h-3 w-3" />
+                  Ask Sera about this
+                </button>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -4361,7 +4400,7 @@ function MiniAssistantCard({
       : "max-h-[360px] min-h-[280px]";
 
   return (
-    <Card className="flex h-full flex-col overflow-hidden rounded-3xl border-border/70 p-0">
+    <Card data-sera-assistant className="flex h-full flex-col overflow-hidden rounded-3xl border-border/70 p-0">
       <div className="flex items-center gap-2 border-b border-border/60 px-5 py-4">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
           <Sparkles className="h-4 w-4" />
