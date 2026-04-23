@@ -535,20 +535,9 @@ function HomePage() {
       }
     }
 
-    // Per-anomaly "review spike" tasks
-    for (const a of summary.anomalies) {
-      items.push({
-        id: `anomaly-${a.hotelId}-${a.year}-${a.month}-${a.utility}`,
-        title: `${UTILITY_LABEL[a.utility]} spiked ${a.pctChange.toFixed(0)}% at ${a.hotelName}`,
-        description: `${periodLabel(a.year, a.month)} vs prior month — review the meter reading or check for an event.`,
-        cta: "Review hotel",
-        done: false,
-        tone: "danger",
-        target: { kind: "workspace", tab: "overview", hotelId: a.hotelId },
-        dismissible: true,
-        dueDate: anomalyDue,
-      });
-    }
+    // Note: spike/anomaly alerts now live in the Data Quality card
+    // (rendered as `huge-jump` issues), so we no longer surface them
+    // as to-dos to avoid duplication.
 
     return items;
   }, [summary]);
