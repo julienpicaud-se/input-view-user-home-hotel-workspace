@@ -527,6 +527,30 @@ function HomePage() {
     void navigate({ to: "/workspace", search: { tab: "log" } });
   }
 
+  // Build the focus payload (todos + issues) for the Sera briefing
+  const briefingFocusPayload = React.useMemo(() => {
+    return {
+      todos: visibleTodos.map((t) => ({
+        title: t.title,
+        description: t.description,
+        done: t.done,
+        tone: t.tone,
+      })),
+      issues: dataQualityIssues.map((i) => ({
+        hotelName: i.hotelName,
+        severity: i.severity,
+        title: i.title,
+        detail: i.detail,
+      })),
+    };
+  }, [visibleTodos, dataQualityIssues]);
+
+  // Trigger the briefing once we have both portfolio summary and the focus payload
+  React.useEffect(() => {
+    if (!briefingSignature) return;
+    void fetchBriefing(false, briefingFocusPayload);
+  }, [briefingSignature, briefingFocusPayload, fetchBriefing]);
+
 
   const co2Change = summary
     ? pctChange(summary.co2eLatest || null, summary.co2ePrev || null)
