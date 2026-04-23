@@ -2927,7 +2927,7 @@ function HotelSettingsPanel({
             <Label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">
               Property type
             </Label>
-            <Select value={propertyType} onValueChange={setPropertyType}>
+            <Select value={propertyType} onValueChange={setPropertyType} disabled={locked}>
               <SelectTrigger>
                 <SelectValue placeholder="Select type" />
               </SelectTrigger>
