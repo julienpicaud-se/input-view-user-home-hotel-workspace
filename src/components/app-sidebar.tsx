@@ -1,11 +1,11 @@
 import * as React from "react";
 import { Link, useLocation } from "@tanstack/react-router";
-import { Home, Building2, ChevronLeft } from "lucide-react";
+import { Home, Building2, ChevronLeft, UserCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
   label: string;
-  to: "/" | "/workspace";
+  to: "/" | "/workspace" | "/profile";
   icon: React.ComponentType<{ className?: string }>;
   matchPrefix?: string;
 }
@@ -13,6 +13,7 @@ interface NavItem {
 const NAV: NavItem[] = [
   { label: "Home", to: "/", icon: Home },
   { label: "Hotel workspace", to: "/workspace", icon: Building2, matchPrefix: "/workspace" },
+  { label: "Profile & settings", to: "/profile", icon: UserCircle2, matchPrefix: "/profile" },
 ];
 
 const STORAGE_KEY = "ra-plus-sidebar-collapsed";
