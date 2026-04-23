@@ -1259,6 +1259,14 @@ function ChartExplainerCard({
         </div>
       </div>
     </Card>
+    <ActionAskSeraPanel
+      open={!!actionPanel}
+      action={actionPanel?.action ?? ""}
+      prompt={actionPanel?.prompt ?? ""}
+      chartTitle={CHART_TITLES[chartId]}
+      onClose={() => setActionPanel(null)}
+    />
+    </>
   );
 }
 
