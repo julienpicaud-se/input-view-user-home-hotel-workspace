@@ -26,6 +26,14 @@ export interface DataQualityIssue {
   // Lets the UI render explicit "Expected 5–150 kWh/room-night · got 212.40" chips.
   observed?: { value: number; unit: string };
   expected?: { min: number; max: number; unit: string };
+  // Which monthly_entries column this issue refers to (used to deep-link the
+  // user to the editable cell in /history).
+  field?:
+    | "electricity_kwh"
+    | "gas_kwh"
+    | "water_m3"
+    | "waste_kg"
+    | "occupied_room_nights";
 }
 
 interface BuildIssuesArgs {
@@ -199,6 +207,7 @@ export function buildDataQualityIssues({
             month: entry.month,
             observed: { value: occ, unit: "room-nights" },
             expected: { min: 0, max: capacity, unit: "room-nights" },
+            field: "occupied_room_nights",
           });
         }
       }
@@ -243,6 +252,7 @@ export function buildDataQualityIssues({
               month: entry.month,
               observed: { value: Number(intensity.toFixed(2)), unit: c.unit },
               expected: { min: c.min, max: c.max, unit: c.unit },
+              field: c.key as DataQualityIssue["field"],
             });
           }
         }
@@ -276,6 +286,7 @@ export function buildDataQualityIssues({
             detail: `From ${Math.round(p)}${u.unit} to ${Math.round(c)}${u.unit} vs prior month — please confirm the meter reading.`,
             year: cur.year,
             month: cur.month,
+            field: u.key as DataQualityIssue["field"],
           });
         }
       }
