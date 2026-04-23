@@ -202,7 +202,7 @@ function LogPage() {
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Button asChild className="rounded-xl">
-              <Link to="/">View on dashboard</Link>
+              <Link to="/workspace">View on dashboard</Link>
             </Button>
             <Button
               variant="outline"

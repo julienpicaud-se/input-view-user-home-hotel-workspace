@@ -14,5 +14,5 @@ export const Route = createFileRoute("/benchmarks")({
 });
 
 function BenchmarksRedirect() {
-  return <Navigate to="/" search={{ tab: "benchmarks" } as never} replace />;
+  return <Navigate to="/workspace" search={{ tab: "benchmarks" } as never} replace />;
 }

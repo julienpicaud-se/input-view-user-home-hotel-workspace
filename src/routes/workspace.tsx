@@ -439,7 +439,7 @@ function HomePage() {
             Hotel Insights
           </TabsTrigger>
           <Link
-            to="/"
+            to="/workspace"
             search={{ tab: "settings" } as never}
             className="inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground transition-colors data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm hover:bg-muted hover:text-foreground"
             data-state={activeTab === "settings" ? "active" : "inactive"}
@@ -451,7 +451,7 @@ function HomePage() {
             Hotel settings
           </Link>
           <Link
-            to="/"
+            to="/workspace"
             search={{ tab: "benchmarks" } as never}
             className="inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground transition-colors data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm hover:bg-muted hover:text-foreground"
             data-state={activeTab === "benchmarks" ? "active" : "inactive"}
