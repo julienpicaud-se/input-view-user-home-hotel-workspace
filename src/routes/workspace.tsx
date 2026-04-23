@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
@@ -162,6 +162,7 @@ function HomePage() {
   const [activeChart, setActiveChart] = React.useState<ChartId>("consumption");
   const [explainerChart, setExplainerChart] = React.useState<ChartId | null>(null);
   const search = Route.useSearch();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = React.useState<string>(search.tab ?? "overview");
   React.useEffect(() => {
     if (search.tab && search.tab !== activeTab) {
@@ -692,15 +693,8 @@ function HomePage() {
               }, 80);
             }}
             onAskSera={(prompt) => {
-              setPendingPrompt(prompt);
               toast.success("Sera is on it");
-              // Bring the assistant card into view (right rail)
-              window.setTimeout(() => {
-                const el = document.querySelector('[data-sera-assistant]');
-                if (el && el instanceof HTMLElement) {
-                  el.scrollIntoView({ behavior: "smooth", block: "center" });
-                }
-              }, 80);
+              void navigate({ to: "/assistant", search: { prompt } });
             }}
           />
 
@@ -921,8 +915,8 @@ function HomePage() {
                       toast.success(`Draft started for ${latest ? `${MONTH_NAMES[latest.month - 1]} ${latest.year}` : "this month"}`);
                     }}
                     onAskSera={(prompt) => {
-                      setPendingPrompt(prompt);
                       toast.success("Sera is on it");
+                      void navigate({ to: "/assistant", search: { prompt } });
                     }}
                     onHighlightFix={() => {
                       const fields =
