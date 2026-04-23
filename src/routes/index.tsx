@@ -784,6 +784,7 @@ function HomePage() {
             }
             unit="kg"
             tone={co2Change === null ? "neutral" : co2Down ? "positive" : "warning"}
+            badges={glanceBadges.co2e}
             footer={
               co2Change !== null ? (
                 <span
