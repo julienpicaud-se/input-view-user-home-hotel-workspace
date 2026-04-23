@@ -22,6 +22,10 @@ export interface DataQualityIssue {
   // For deep-linking the user to the right place
   year?: number;
   month?: number;
+  // For out-of-range issues: the actual value, the expected window and unit.
+  // Lets the UI render explicit "Expected 5–150 kWh/room-night · got 212.40" chips.
+  observed?: { value: number; unit: string };
+  expected?: { min: number; max: number; unit: string };
 }
 
 interface BuildIssuesArgs {
@@ -159,6 +163,8 @@ export function buildDataQualityIssues({
             detail: `Logged value: ${n}%. Should be between 0 and 100.`,
             year: entry.year,
             month: entry.month,
+            observed: { value: n, unit: "%" },
+            expected: { min: 0, max: 100, unit: "%" },
           });
         }
       }
@@ -192,6 +198,8 @@ export function buildDataQualityIssues({
             detail: `${occ} room-nights but capacity is only ${capacity}.`,
             year: entry.year,
             month: entry.month,
+            observed: { value: occ, unit: "room-nights" },
+            expected: { min: 0, max: capacity, unit: "room-nights" },
           });
         }
       }
@@ -234,6 +242,8 @@ export function buildDataQualityIssues({
               detail: `${intensity.toFixed(2)} ${c.unit} (typical: ${c.min}–${c.max}). Check meter reading or unit.`,
               year: entry.year,
               month: entry.month,
+              observed: { value: Number(intensity.toFixed(2)), unit: c.unit },
+              expected: { min: c.min, max: c.max, unit: c.unit },
             });
           }
         }
