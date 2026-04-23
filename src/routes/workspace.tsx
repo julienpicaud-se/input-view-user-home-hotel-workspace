@@ -2815,8 +2815,37 @@ function HotelSettingsPanel({
               Update your property profile. These values shape your benchmarks
               and per-room intensity calculations.
             </p>
+            {locked && (
+              <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Lock className="h-3 w-3" />
+                Read-only — click <span className="font-medium text-foreground">Edit</span> to make changes.
+              </p>
+            )}
           </div>
-          <Settings2 className="h-5 w-5 text-muted-foreground" />
+          {locked ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setLocked(false)}
+              className="shrink-0"
+            >
+              <Unlock className="mr-2 h-4 w-4" />
+              Edit
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                onReset();
+              }}
+              className="shrink-0 text-muted-foreground"
+              disabled={saving}
+            >
+              <Lock className="mr-2 h-4 w-4" />
+              Lock
+            </Button>
+          )}
         </div>
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
