@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import * as React from "react";
 import {
   ArrowRight,
@@ -8,7 +8,7 @@ import {
   ClipboardList,
   Flame,
   Leaf,
-  Sparkles,
+  
   Sun,
   Sunrise,
   Sunset,
@@ -859,43 +859,6 @@ function HomePage() {
         )}
       </section>
 
-      {/* Quick links */}
-      <section>
-        <div className="mb-4">
-          <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-            Shortcuts
-          </div>
-          <h2 className="font-serif text-2xl font-semibold text-foreground">
-            Jump into the workspace
-          </h2>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <ShortcutLink
-            to="/workspace"
-            search={{ tab: "overview" }}
-            icon={Building2}
-            title="Overview"
-          />
-          <ShortcutLink
-            to="/workspace"
-            search={{ tab: "log" }}
-            icon={Flame}
-            title="Add data"
-          />
-          <ShortcutLink
-            to="/workspace"
-            search={{ tab: "benchmarks" }}
-            icon={Users}
-            title="Peer benchmarks"
-          />
-          <ShortcutLink
-            to="/workspace"
-            search={{ tab: "analyze" }}
-            icon={Sparkles}
-            title="Hotel insights"
-          />
-        </div>
-      </section>
     </PageContainer>
   );
 }
@@ -1004,31 +967,6 @@ function TodoRow({
   );
 }
 
-function ShortcutLink({
-  to,
-  search,
-  icon: Icon,
-  title,
-}: {
-  to: string;
-  search?: Record<string, string>;
-  icon: React.ComponentType<{ className?: string }>;
-  title: string;
-}) {
-  return (
-    <Link
-      to={to as never}
-      search={search as never}
-      className="group flex items-center gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3.5 text-sm font-medium text-foreground transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-sm"
-    >
-      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
-        <Icon className="h-4 w-4" />
-      </span>
-      <span className="flex-1">{title}</span>
-      <ArrowRight className="h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
-    </Link>
-  );
-}
 
 const FIELD_META: Record<
   RequiredField,
