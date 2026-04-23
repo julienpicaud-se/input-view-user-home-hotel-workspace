@@ -939,38 +939,6 @@ function HomePage() {
         )}
       </section>
 
-      {/* Reporting progress */}
-      <section className="mb-12">
-        <ReportingProgressHeader summary={summary} />
-
-        <Card className="overflow-hidden rounded-2xl border-border/60">
-          {loading ? (
-            <div className="space-y-3 p-5">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
-            </div>
-          ) : !summary || summary.hotelProgress.length === 0 ? (
-            <div className="p-8 text-center text-sm text-muted-foreground">
-              Add a hotel to start tracking monthly reporting progress.
-            </div>
-          ) : (
-            <div className="divide-y divide-border/60">
-              {summary.hotelProgress.map((h) => (
-                <HotelProgressRow
-                  key={h.id}
-                  progress={h}
-                  dueDate={loggingDueDate(summary.expectedYear, summary.expectedMonth)}
-                  onClick={() => {
-                    setActiveHotelId(h.id);
-                    void navigate({ to: "/workspace", search: { tab: "log" } });
-                  }}
-                />
-              ))}
-            </div>
-          )}
-        </Card>
-      </section>
 
       {/* Data quality */}
       <section className="mb-12">
