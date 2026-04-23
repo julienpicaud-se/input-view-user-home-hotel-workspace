@@ -84,13 +84,6 @@ export function BenchmarksPanel({ showHeader = true }: { showHeader?: boolean })
         />
       )}
 
-      <div className="mb-8 flex flex-wrap gap-2">
-        <FilterChip label={`Size: ${hotel.size_band} rooms`} />
-        <FilterChip label={`Region: ${hotel.region}`} />
-        <FilterChip label={`${hotel.star_rating}-star`} />
-        <FilterChip label="All seasons" />
-      </div>
-
       <Card className="mb-8 rounded-3xl border-border/70 p-6">
         <div className="mb-1 flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -132,13 +125,6 @@ export function BenchmarksPanel({ showHeader = true }: { showHeader?: boolean })
   );
 }
 
-function FilterChip({ label }: { label: string }) {
-  return (
-    <span className="inline-flex items-center rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground">
-      {label}
-    </span>
-  );
-}
 
 function BenchmarkCard({
   utility,
