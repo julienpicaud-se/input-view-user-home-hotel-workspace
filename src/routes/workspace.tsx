@@ -2945,7 +2945,7 @@ function HotelSettingsPanel({
             <Label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">
               Size band (rooms)
             </Label>
-            <Select value={sizeBand} onValueChange={setSizeBand}>
+            <Select value={sizeBand} onValueChange={setSizeBand} disabled={locked}>
               <SelectTrigger>
                 <SelectValue placeholder="Select size band" />
               </SelectTrigger>
