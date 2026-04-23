@@ -163,6 +163,8 @@ export function buildDataQualityIssues({
             detail: `Logged value: ${n}%. Should be between 0 and 100.`,
             year: entry.year,
             month: entry.month,
+            observed: { value: n, unit: "%" },
+            expected: { min: 0, max: 100, unit: "%" },
           });
         }
       }
