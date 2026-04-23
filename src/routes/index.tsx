@@ -25,6 +25,7 @@ import {
   Check,
   Minus,
   RefreshCw,
+  CalendarClock,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -115,6 +116,8 @@ interface Todo {
     | { kind: "workspace"; tab: WorkspaceTab; hotelId?: string }
     | { kind: "profile" };
   dismissible: boolean;
+  // Optional due date — drives sort order and the in-row pill
+  dueDate?: Date;
 }
 
 const UTILITY_LABEL: Record<Anomaly["utility"], string> = {
@@ -172,6 +175,36 @@ function expectedReportingPeriod(): { year: number; month: number } {
   const now = new Date();
   const d = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   return { year: d.getFullYear(), month: d.getMonth() + 1 };
+}
+
+// Logging deadline: monthly entries are expected by the 10th of the following month.
+// e.g. data for September is due October 10.
+function loggingDueDate(year: number, month: number): Date {
+  // month is 1-indexed; due on the 10th of the *next* month.
+  return new Date(year, month, 10);
+}
+
+// Format a due date relative to today: "Overdue 3d", "Due today", "Due in 2d",
+// "Due Apr 30". Returns the label plus a tone for styling.
+function formatDue(due: Date, done: boolean): { label: string; tone: "overdue" | "soon" | "later" | "done" } {
+  if (done) {
+    return { label: `Due ${due.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`, tone: "done" };
+  }
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const d = new Date(due);
+  d.setHours(0, 0, 0, 0);
+  const diffDays = Math.round((d.getTime() - today.getTime()) / 86_400_000);
+  if (diffDays < 0) {
+    const n = Math.abs(diffDays);
+    return { label: `Overdue ${n}d`, tone: "overdue" };
+  }
+  if (diffDays === 0) return { label: "Due today", tone: "soon" };
+  if (diffDays <= 7) return { label: `Due in ${diffDays}d`, tone: "soon" };
+  return {
+    label: `Due ${due.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
+    tone: "later",
+  };
 }
 
 function HomePage() {
@@ -452,6 +485,19 @@ function HomePage() {
     const items: Todo[] = [];
     const expected = { year: summary.expectedYear, month: summary.expectedMonth };
     const allComplete = summary.hotelProgress.every((h) => h.complete);
+    // Logging deadline for the expected reporting period (10th of next month)
+    const logDue = loggingDueDate(expected.year, expected.month);
+    // Anomalies are time-sensitive — give a tighter deadline (3 days from today)
+    const anomalyDue = (() => {
+      const d = new Date();
+      d.setDate(d.getDate() + 3);
+      return d;
+    })();
+    // Generic engagement tasks — end of the current month
+    const engagementDue = (() => {
+      const now = new Date();
+      return new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    })();
 
     // Per-hotel "log data" tasks — auto-mark done when all 5 fields are filled
     if (summary.hotelProgress.length === 0) {
@@ -464,6 +510,7 @@ function HomePage() {
         tone: "warning",
         target: { kind: "workspace", tab: "settings" },
         dismissible: false,
+        dueDate: logDue,
       });
     } else if (allComplete) {
       items.push({
@@ -475,6 +522,7 @@ function HomePage() {
         tone: "muted",
         target: { kind: "workspace", tab: "log" },
         dismissible: false,
+        dueDate: logDue,
       });
     } else {
       for (const h of summary.hotelProgress) {
@@ -496,6 +544,7 @@ function HomePage() {
           tone: h.complete ? "muted" : h.filledCount > 0 ? "primary" : "warning",
           target: { kind: "workspace", tab: "log", hotelId: h.id },
           dismissible: !h.complete,
+          dueDate: logDue,
         });
       }
     }
@@ -511,6 +560,7 @@ function HomePage() {
         tone: "danger",
         target: { kind: "workspace", tab: "overview", hotelId: a.hotelId },
         dismissible: true,
+        dueDate: anomalyDue,
       });
     }
 
@@ -524,18 +574,30 @@ function HomePage() {
       tone: "primary",
       target: { kind: "workspace", tab: "benchmarks" },
       dismissible: true,
+      dueDate: engagementDue,
     });
 
     return items;
   }, [summary]);
 
+  // Sort: open tasks first, then by soonest due date, then done tasks at the end.
+  // Tasks without a due date sink below dated ones within their group.
+  const sortTodos = React.useCallback((list: Todo[]) => {
+    return [...list].sort((a, b) => {
+      if (a.done !== b.done) return a.done ? 1 : -1;
+      const at = a.dueDate ? a.dueDate.getTime() : Number.POSITIVE_INFINITY;
+      const bt = b.dueDate ? b.dueDate.getTime() : Number.POSITIVE_INFINITY;
+      return at - bt;
+    });
+  }, []);
+
   const visibleTodos = React.useMemo(
-    () => allTodos.filter((t) => !dismissed.has(t.id)),
-    [allTodos, dismissed]
+    () => sortTodos(allTodos.filter((t) => !dismissed.has(t.id))),
+    [allTodos, dismissed, sortTodos]
   );
   const dismissedTodos = React.useMemo(
-    () => allTodos.filter((t) => dismissed.has(t.id)),
-    [allTodos, dismissed]
+    () => sortTodos(allTodos.filter((t) => dismissed.has(t.id))),
+    [allTodos, dismissed, sortTodos]
   );
 
   const dataQualityIssues: DataQualityIssue[] = React.useMemo(() => {
@@ -1020,6 +1082,7 @@ function TodoRow({
                 Dismissed
               </span>
             )}
+            {todo.dueDate && !isDismissed && <DueBadge due={todo.dueDate} done={todo.done} />}
           </div>
           <p className="mt-1 text-sm text-muted-foreground">{todo.description}</p>
         </div>
@@ -1057,6 +1120,33 @@ function TodoRow({
         </div>
       </div>
     </Card>
+  );
+}
+
+function DueBadge({ due, done }: { due: Date; done: boolean }) {
+  const { label, tone } = formatDue(due, done);
+  const cls =
+    tone === "overdue"
+      ? "bg-destructive/10 text-destructive ring-1 ring-destructive/20"
+      : tone === "soon"
+        ? "bg-warning/15 text-warning-foreground ring-1 ring-warning/30"
+        : tone === "done"
+          ? "bg-muted text-muted-foreground"
+          : "bg-muted/60 text-muted-foreground";
+  const fullDate = due.toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+  return (
+    <span
+      title={fullDate}
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider ${cls}`}
+    >
+      <CalendarClock className="h-3 w-3" />
+      {label}
+    </span>
   );
 }
 
