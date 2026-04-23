@@ -911,6 +911,28 @@ function HomePage() {
         />
       </section>
 
+      {/* AI insights — explains anomalies & tells the user what to do next */}
+      {(loading || explainableAnomalies.length > 0) && (
+        <section className="mb-12">
+          <div className="mb-4">
+            <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              AI insights
+            </div>
+            <h2 className="font-serif text-2xl font-semibold text-foreground">
+              What's unusual & what to do
+            </h2>
+          </div>
+          <AnomalyInsightsPanel
+            anomalies={explainableAnomalies}
+            loading={loading}
+            onOpenHotel={(hotelId) => {
+              setActiveHotelId(hotelId);
+              void navigate({ to: "/workspace", search: { tab: "overview" } });
+            }}
+          />
+        </section>
+      )}
+
       {/* To-dos — directly under the Sera briefing */}
       <section className="mb-12">
         <div className="mb-4 flex items-end justify-between gap-3">
