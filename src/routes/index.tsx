@@ -957,6 +957,78 @@ function TodoRow({
   );
 }
 
+function GlanceCard({
+  label,
+  icon: Icon,
+  loading,
+  value,
+  unit,
+  footer,
+  valueSize = "lg",
+  tone = "neutral",
+}: {
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  loading: boolean;
+  value: string;
+  unit?: string;
+  footer?: React.ReactNode;
+  valueSize?: "md" | "lg";
+  tone?: "neutral" | "positive" | "warning";
+}) {
+  const accentByTone: Record<typeof tone, string> = {
+    neutral: "bg-primary/10 text-primary",
+    positive: "bg-success/10 text-success",
+    warning: "bg-warning/10 text-warning",
+  };
+  return (
+    <Card className="group relative overflow-hidden rounded-2xl border-border/60 p-5 transition-all hover:border-border hover:shadow-sm">
+      {/* subtle accent rail */}
+      <span
+        aria-hidden
+        className={`absolute inset-y-3 left-0 w-[3px] rounded-r-full ${
+          tone === "positive"
+            ? "bg-success/40"
+            : tone === "warning"
+              ? "bg-warning/40"
+              : "bg-primary/30"
+        }`}
+      />
+      <div className="flex items-center justify-between">
+        <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+          {label}
+        </div>
+        <span
+          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${accentByTone[tone]}`}
+        >
+          <Icon className="h-3.5 w-3.5" />
+        </span>
+      </div>
+
+      {loading ? (
+        <Skeleton className="mt-4 h-9 w-32" />
+      ) : (
+        <div className="mt-3 flex items-baseline gap-1.5">
+          <span
+            className={`font-serif font-semibold leading-none text-foreground tabular-nums ${
+              valueSize === "md" ? "text-2xl md:text-[1.75rem]" : "text-[2.25rem] md:text-[2.5rem]"
+            }`}
+          >
+            {value}
+          </span>
+          {unit && (
+            <span className="text-sm text-muted-foreground">{unit}</span>
+          )}
+        </div>
+      )}
+
+      <div className="mt-2 min-h-[1.25rem] text-xs text-muted-foreground">
+        {loading ? <Skeleton className="h-3 w-32" /> : footer}
+      </div>
+    </Card>
+  );
+}
+
 
 const FIELD_META: Record<
   RequiredField,
