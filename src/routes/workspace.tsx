@@ -2779,6 +2779,7 @@ function HotelSettingsPanel({
     }
 
     setSaving(false);
+    setLocked(true);
     toast.success(
       diffs.length > 0
         ? `Saved · ${diffs.length} change${diffs.length === 1 ? "" : "s"} recorded`
