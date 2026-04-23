@@ -195,6 +195,49 @@ export function buildDataQualityIssues({
           });
         }
       }
+
+      // 5b. Out-of-range intensities per occupied room-night
+      // Typical hotel benchmarks (wide bands to flag only obvious data errors):
+      //   Electricity: 5–150 kWh / room-night
+      //   Gas:         0–120 kWh / room-night
+      //   Water:       0.1–3 m³  / room-night
+      //   Waste:       0.2–10 kg / room-night
+      const occN = Number(entry.occupied_room_nights ?? 0);
+      if (occN > 0) {
+        const intensityChecks: {
+          key: keyof MonthlyEntry;
+          label: string;
+          unit: string;
+          min: number;
+          max: number;
+        }[] = [
+          { key: "electricity_kwh", label: "Electricity", unit: "kWh/room-night", min: 5, max: 150 },
+          { key: "gas_kwh", label: "Gas", unit: "kWh/room-night", min: 0, max: 120 },
+          { key: "water_m3", label: "Water", unit: "m³/room-night", min: 0.1, max: 3 },
+          { key: "waste_kg", label: "Waste", unit: "kg/room-night", min: 0.2, max: 10 },
+        ];
+        for (const c of intensityChecks) {
+          const raw = entry[c.key];
+          if (raw === null || raw === undefined) continue;
+          const n = Number(raw);
+          if (!Number.isFinite(n) || n <= 0) continue;
+          const intensity = n / occN;
+          if (intensity < c.min || intensity > c.max) {
+            const direction = intensity > c.max ? "above" : "below";
+            issues.push({
+              id: `dq-range-${entry.id}-${String(c.key)}`,
+              hotelId: hotel.id,
+              hotelName: hotel.name,
+              kind: "implausible-range",
+              severity: intensity > c.max * 3 || intensity < c.min / 5 ? "critical" : "warning",
+              title: `${c.label} intensity ${direction} expected range in ${period}`,
+              detail: `${intensity.toFixed(2)} ${c.unit} (typical: ${c.min}–${c.max}). Check meter reading or unit.`,
+              year: entry.year,
+              month: entry.month,
+            });
+          }
+        }
+      }
     }
 
     // 6. Huge MoM jump (≥75%) on the latest entry
