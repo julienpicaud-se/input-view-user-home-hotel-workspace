@@ -4,11 +4,11 @@ import { HotelSwitcher } from "@/components/hotel-switcher";
 type TabKey = "overview" | "log" | "analyze" | "benchmarks" | "settings";
 
 const TABS: { key: TabKey; label: string; to: string; search?: Record<string, string> }[] = [
-  { key: "overview", label: "Overview", to: "/", search: { tab: "overview" } },
-  { key: "log", label: "Add data", to: "/", search: { tab: "log" } },
-  { key: "analyze", label: "Hotel Insights", to: "/", search: { tab: "analyze" } },
-  { key: "benchmarks", label: "Peers Benchmark", to: "/", search: { tab: "benchmarks" } },
-  { key: "settings", label: "Hotel settings", to: "/", search: { tab: "settings" } },
+  { key: "overview", label: "Overview", to: "/workspace", search: { tab: "overview" } },
+  { key: "log", label: "Add data", to: "/workspace", search: { tab: "log" } },
+  { key: "analyze", label: "Hotel Insights", to: "/workspace", search: { tab: "analyze" } },
+  { key: "benchmarks", label: "Peers Benchmark", to: "/workspace", search: { tab: "benchmarks" } },
+  { key: "settings", label: "Hotel settings", to: "/workspace", search: { tab: "settings" } },
 ];
 
 export function WorkspaceTabsNav({ active }: { active: TabKey }) {
