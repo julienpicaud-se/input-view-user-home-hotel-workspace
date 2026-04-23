@@ -15,6 +15,7 @@ import { Route as HotelRouteImport } from './routes/hotel'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as BenchmarksRouteImport } from './routes/benchmarks'
 import { Route as AssistantRouteImport } from './routes/assistant'
+import { Route as IndexRouteImport } from './routes/index'
 
 const WorkspaceRoute = WorkspaceRouteImport.update({
   id: '/workspace',
@@ -46,8 +47,14 @@ const AssistantRoute = AssistantRouteImport.update({
   path: '/assistant',
   getParentRoute: () => rootRouteImport,
 } as any)
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
+  '/': typeof IndexRoute
   '/assistant': typeof AssistantRoute
   '/benchmarks': typeof BenchmarksRoute
   '/history': typeof HistoryRoute
@@ -56,6 +63,7 @@ export interface FileRoutesByFullPath {
   '/workspace': typeof WorkspaceRoute
 }
 export interface FileRoutesByTo {
+  '/': typeof IndexRoute
   '/assistant': typeof AssistantRoute
   '/benchmarks': typeof BenchmarksRoute
   '/history': typeof HistoryRoute
@@ -65,6 +73,7 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
   '/assistant': typeof AssistantRoute
   '/benchmarks': typeof BenchmarksRoute
   '/history': typeof HistoryRoute
@@ -75,6 +84,7 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/'
     | '/assistant'
     | '/benchmarks'
     | '/history'
@@ -83,6 +93,7 @@ export interface FileRouteTypes {
     | '/workspace'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/'
     | '/assistant'
     | '/benchmarks'
     | '/history'
@@ -91,6 +102,7 @@ export interface FileRouteTypes {
     | '/workspace'
   id:
     | '__root__'
+    | '/'
     | '/assistant'
     | '/benchmarks'
     | '/history'
@@ -100,6 +112,7 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  IndexRoute: typeof IndexRoute
   AssistantRoute: typeof AssistantRoute
   BenchmarksRoute: typeof BenchmarksRoute
   HistoryRoute: typeof HistoryRoute
@@ -152,10 +165,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AssistantRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
+  IndexRoute: IndexRoute,
   AssistantRoute: AssistantRoute,
   BenchmarksRoute: BenchmarksRoute,
   HistoryRoute: HistoryRoute,
