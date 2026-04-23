@@ -1146,6 +1146,7 @@ function ChartExplainerCard({
   onDraftLog,
   onAskSera,
   onHighlightFix,
+  onClose,
 }: {
   chartId: ChartId;
   isLatestLogged: boolean;
@@ -1154,6 +1155,7 @@ function ChartExplainerCard({
   onDraftLog: () => void;
   onAskSera: (prompt: string) => void;
   onHighlightFix: () => void;
+  onClose?: () => void;
 }) {
   const explain = useServerFn(explainChart);
   const [data, setData] = React.useState<ChartExplanation | null>(null);
