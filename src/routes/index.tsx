@@ -183,6 +183,8 @@ function HomePage() {
   const [briefing, setBriefing] = React.useState<BriefingPayload | null>(null);
   const [briefingLoading, setBriefingLoading] = React.useState(false);
   const [briefingError, setBriefingError] = React.useState<string | null>(null);
+  const [hotels, setHotels] = React.useState<Hotel[]>([]);
+  const [entries, setEntries] = React.useState<MonthlyEntry[]>([]);
 
   React.useEffect(() => {
     void (async () => {
