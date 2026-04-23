@@ -25,6 +25,7 @@ import {
   Check,
   Minus,
 } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { setActiveHotelId, type Hotel, type MonthlyEntry } from "@/lib/hotel";
 import { DEMO_PROFILE_ID, type UserProfile } from "@/lib/user-profile";
@@ -39,6 +40,7 @@ import { PageContainer } from "@/components/page-shell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { generateBriefing, type BriefingPayload } from "@/server/assistant.functions";
 
 export const Route = createFileRoute("/")({
   head: () => ({
