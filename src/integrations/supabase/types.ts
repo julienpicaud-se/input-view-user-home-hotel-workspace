@@ -194,6 +194,45 @@ export type Database = {
           },
         ]
       }
+      user_profiles: {
+        Row: {
+          company_name: string | null
+          company_role: string | null
+          created_at: string
+          display_name: string | null
+          email: string | null
+          email_notifications: boolean
+          id: string
+          preferred_units: string
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          company_name?: string | null
+          company_role?: string | null
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          email_notifications?: boolean
+          id?: string
+          preferred_units?: string
+          timezone?: string
+          updated_at?: string
+        }
+        Update: {
+          company_name?: string | null
+          company_role?: string | null
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          email_notifications?: boolean
+          id?: string
+          preferred_units?: string
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
