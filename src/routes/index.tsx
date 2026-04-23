@@ -25,6 +25,7 @@ import {
   Check,
   Minus,
   RefreshCw,
+  CalendarClock,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -174,6 +175,36 @@ function expectedReportingPeriod(): { year: number; month: number } {
   const now = new Date();
   const d = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   return { year: d.getFullYear(), month: d.getMonth() + 1 };
+}
+
+// Logging deadline: monthly entries are expected by the 10th of the following month.
+// e.g. data for September is due October 10.
+function loggingDueDate(year: number, month: number): Date {
+  // month is 1-indexed; due on the 10th of the *next* month.
+  return new Date(year, month, 10);
+}
+
+// Format a due date relative to today: "Overdue 3d", "Due today", "Due in 2d",
+// "Due Apr 30". Returns the label plus a tone for styling.
+function formatDue(due: Date, done: boolean): { label: string; tone: "overdue" | "soon" | "later" | "done" } {
+  if (done) {
+    return { label: `Due ${due.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`, tone: "done" };
+  }
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const d = new Date(due);
+  d.setHours(0, 0, 0, 0);
+  const diffDays = Math.round((d.getTime() - today.getTime()) / 86_400_000);
+  if (diffDays < 0) {
+    const n = Math.abs(diffDays);
+    return { label: `Overdue ${n}d`, tone: "overdue" };
+  }
+  if (diffDays === 0) return { label: "Due today", tone: "soon" };
+  if (diffDays <= 7) return { label: `Due in ${diffDays}d`, tone: "soon" };
+  return {
+    label: `Due ${due.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
+    tone: "later",
+  };
 }
 
 function HomePage() {
