@@ -242,3 +242,249 @@ export interface ChartExplanation {
   signals: string[];
   actions: string[];
 }
+
+export interface BriefingPayload {
+  headline: string;
+  summary: string;
+  highlights: { label: string; tone: "positive" | "warning" | "neutral" }[];
+  focus: string;
+}
+
+async function getPortfolioContext(): Promise<{
+  context: string;
+  signature: string;
+  hasData: boolean;
+}> {
+  const { data: hotels } = await supabaseAdmin
+    .from("hotels")
+    .select("*")
+    .order("name", { ascending: true });
+
+  const { data: entries } = await supabaseAdmin
+    .from("monthly_entries")
+    .select("*")
+    .order("year", { ascending: false })
+    .order("month", { ascending: false })
+    .limit(60);
+
+  const hotelList = hotels ?? [];
+  const entryList = entries ?? [];
+
+  if (hotelList.length === 0) {
+    return { context: "No hotels yet.", signature: "empty", hasData: false };
+  }
+
+  // Latest period across portfolio
+  const sorted = [...entryList].sort((a, b) =>
+    a.year !== b.year ? b.year - a.year : b.month - a.month
+  );
+  const latest = sorted[0];
+  const latestKey = latest ? `${latest.year}-${latest.month}` : "none";
+  const prevKey = latest
+    ? latest.month === 1
+      ? `${latest.year - 1}-12`
+      : `${latest.year}-${latest.month - 1}`
+    : "none";
+
+  // Aggregate latest month vs prior month
+  const sumFor = (y: number, m: number) => {
+    const rows = entryList.filter((e) => e.year === y && e.month === m);
+    let elec = 0,
+      gas = 0,
+      water = 0,
+      waste = 0,
+      rn = 0;
+    for (const e of rows) {
+      elec += Number(e.electricity_kwh ?? 0);
+      gas += Number(e.gas_kwh ?? 0);
+      water += Number(e.water_m3 ?? 0);
+      waste += Number(e.waste_kg ?? 0);
+      rn += Number(e.occupied_room_nights ?? 0);
+    }
+    return { elec, gas, water, waste, rn, count: rows.length };
+  };
+
+  const latestTotals = latest ? sumFor(latest.year, latest.month) : null;
+  const prevYear = latest && latest.month === 1 ? latest.year - 1 : latest?.year;
+  const prevMonth = latest && latest.month === 1 ? 12 : (latest?.month ?? 0) - 1;
+  const prevTotals = latest && prevYear ? sumFor(prevYear, prevMonth) : null;
+
+  // Per-hotel snapshot (latest month per hotel)
+  const perHotel = hotelList.map((h) => {
+    const hEntries = entryList
+      .filter((e) => e.hotel_id === h.id)
+      .sort((a, b) => (a.year !== b.year ? b.year - a.year : b.month - a.month));
+    const last = hEntries[0];
+    const prior = hEntries[1];
+    const intensity = (val: number | null | undefined, rn: number | null | undefined) =>
+      rn && Number(rn) > 0 ? Number(val ?? 0) / Number(rn) : null;
+    return {
+      name: h.name,
+      rooms: h.rooms,
+      region: h.region,
+      last: last
+        ? {
+            period: `${last.year}-${String(last.month).padStart(2, "0")}`,
+            elec: last.electricity_kwh,
+            gas: last.gas_kwh,
+            water: last.water_m3,
+            waste: last.waste_kg,
+            rn: last.occupied_room_nights,
+            renewable: last.renewable_pct,
+            elecPerRn: intensity(last.electricity_kwh, last.occupied_room_nights),
+          }
+        : null,
+      delta: last && prior && Number(prior.electricity_kwh ?? 0) > 0
+        ? ((Number(last.electricity_kwh ?? 0) - Number(prior.electricity_kwh ?? 0)) /
+            Number(prior.electricity_kwh ?? 0)) *
+          100
+        : null,
+    };
+  });
+
+  const hotelSummary = perHotel
+    .map(
+      (h) =>
+        `- ${h.name} (${h.rooms} rooms, ${h.region}): ${
+          h.last
+            ? `latest ${h.last.period} — elec ${h.last.elec ?? "—"}kWh${
+                h.last.elecPerRn !== null
+                  ? ` (${h.last.elecPerRn.toFixed(2)}kWh/rn)`
+                  : ""
+              }, water ${h.last.water ?? "—"}m³, waste ${h.last.waste ?? "—"}kg, renewable ${h.last.renewable ?? 0}%${
+                h.delta !== null
+                  ? `, electricity ${h.delta >= 0 ? "+" : ""}${h.delta.toFixed(1)}% MoM`
+                  : ""
+              }`
+            : "no data logged yet"
+        }`
+    )
+    .join("\n");
+
+  const portfolioMoM =
+    latestTotals && prevTotals && prevTotals.elec > 0
+      ? ((latestTotals.elec - prevTotals.elec) / prevTotals.elec) * 100
+      : null;
+
+  const ctx = `Portfolio: ${hotelList.length} hotel(s), ${hotelList.reduce(
+    (a, h) => a + (h.rooms ?? 0),
+    0
+  )} rooms total.
+Latest reporting period across portfolio: ${
+    latest ? `${latest.year}-${String(latest.month).padStart(2, "0")}` : "none"
+  }.
+${
+  latestTotals
+    ? `Latest-month totals: electricity ${Math.round(latestTotals.elec)}kWh, gas ${Math.round(
+        latestTotals.gas
+      )}kWh, water ${Math.round(latestTotals.water)}m³, waste ${Math.round(latestTotals.waste)}kg, ${Math.round(latestTotals.rn)} occupied room-nights across ${latestTotals.count} hotel(s).`
+    : ""
+}
+${
+  portfolioMoM !== null
+    ? `Portfolio electricity MoM change: ${portfolioMoM >= 0 ? "+" : ""}${portfolioMoM.toFixed(1)}%.`
+    : ""
+}
+
+Per-hotel snapshot:
+${hotelSummary}`;
+
+  return {
+    context: ctx,
+    signature: `${latestKey}|${prevKey}|${hotelList.length}|${entryList.length}`,
+    hasData: entryList.length > 0,
+  };
+}
+
+export const generateBriefing = createServerFn({ method: "POST" })
+  .inputValidator(
+    z
+      .object({
+        firstName: z.string().min(1).max(80).optional(),
+      })
+      .default({})
+  )
+  .handler(async ({ data }): Promise<{ ok: true; briefing: BriefingPayload; signature: string } | { ok: false; error: string }> => {
+    const { context, signature, hasData } = await getPortfolioContext();
+    const name = data.firstName?.trim() || "there";
+
+    if (!hasData) {
+      return {
+        ok: true as const,
+        signature,
+        briefing: {
+          headline: `Welcome, ${name} — let's get your first numbers in.`,
+          summary:
+            "There's no monthly data logged yet. Add electricity, gas, water and waste for one month and Sera will start spotting trends and savings for you.",
+          highlights: [
+            { label: "0 months logged", tone: "warning" },
+            { label: "Ready when you are", tone: "neutral" },
+          ],
+          focus: "Log your most recent month for one hotel to unlock benchmarks.",
+        },
+      };
+    }
+
+    const messages: ChatMsg[] = [
+      {
+        role: "system",
+        content: `You are Sera, a warm sustainability consultant briefing a hotel manager named ${name} on their portfolio. Speak directly to them by first name. Be specific, cite real numbers and units (kWh, m³, kg, %). No jargon, no fluff. Return ONLY valid JSON of shape:
+{
+  "headline": "one sentence, <= 14 words, addressed to ${name}, captures the single most important thing this morning",
+  "summary": "2 short sentences (<= 45 words total) explaining what changed across the portfolio and why it matters",
+  "highlights": [
+    {"label": "<= 7 words with a real number", "tone": "positive" | "warning" | "neutral"}
+  ],
+  "focus": "one sentence telling ${name} the single best next action today, <= 20 words"
+}
+Return 3 highlights. Use "positive" for wins (drops in CO₂e, intensity improvements), "warning" for spikes or missing data, "neutral" for context.
+
+PORTFOLIO CONTEXT:
+${context}`,
+      },
+      { role: "user", content: `Brief me for today.` },
+    ];
+
+    let res: Response;
+    try {
+      res = await callLovableAI(messages, false);
+    } catch (e) {
+      console.error("Briefing AI call failed:", e);
+      return { ok: false as const, error: "Briefing unavailable right now." };
+    }
+
+    if (res.status === 429) {
+      return { ok: false as const, error: "Rate limit hit — try again in a moment." };
+    }
+    if (res.status === 402) {
+      return { ok: false as const, error: "AI credits exhausted. Add credits in your Lovable workspace." };
+    }
+    if (!res.ok) {
+      console.error("Briefing error:", res.status);
+      return { ok: false as const, error: "Briefing unavailable right now." };
+    }
+
+    const json = (await res.json()) as {
+      choices?: { message?: { content?: string } }[];
+    };
+    const raw = json.choices?.[0]?.message?.content ?? "";
+    const cleaned = raw.replace(/```json\s*|```/g, "").trim();
+    try {
+      const parsed = JSON.parse(cleaned) as BriefingPayload;
+      return {
+        ok: true as const,
+        signature,
+        briefing: {
+          headline: String(parsed.headline ?? "").slice(0, 200),
+          summary: String(parsed.summary ?? "").slice(0, 500),
+          highlights: (parsed.highlights ?? []).slice(0, 3).map((h) => ({
+            label: String(h.label ?? "").slice(0, 80),
+            tone: h.tone === "positive" || h.tone === "warning" ? h.tone : "neutral",
+          })),
+          focus: String(parsed.focus ?? "").slice(0, 240),
+        },
+      };
+    } catch {
+      return { ok: false as const, error: "Could not parse briefing." };
+    }
+  });
