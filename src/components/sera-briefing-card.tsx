@@ -130,7 +130,7 @@ export function SeraBriefingCard({
         data: {
           message: trimmed,
           history,
-          hotelId: getActiveHotelId(),
+          hotelId,
         },
       });
       if (res.ok) {
