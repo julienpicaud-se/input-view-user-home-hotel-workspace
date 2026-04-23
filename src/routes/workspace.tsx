@@ -1218,12 +1218,26 @@ function ChartExplainerCard({
                   {data.actions.map((action, i) => (
                     <li
                       key={i}
-                      className="flex gap-2.5 rounded-lg bg-background/60 px-2.5 py-2 text-xs leading-relaxed text-foreground"
+                      className="flex items-start gap-2.5 rounded-lg bg-background/60 px-2.5 py-2 text-xs leading-relaxed text-foreground"
                     >
                       <span className="mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[10px] font-semibold text-primary">
                         {i + 1}
                       </span>
-                      <span>{action}</span>
+                      <span className="flex-1">{action}</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onAskSera(
+                            `Looking at my "${CHART_TITLES[chartId]}" chart, walk me through this action step in detail for my hotel:\n\n"${action}"\n\nExplain the specific driver, expected impact (with units), and how to execute it.`,
+                          )
+                        }
+                        className="ml-1 inline-flex shrink-0 items-center gap-1 rounded-full border border-primary/30 bg-background px-2 py-0.5 text-[10px] font-medium text-primary transition hover:bg-primary hover:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        title="Ask Sera about this action"
+                        aria-label="Ask Sera about this action"
+                      >
+                        <Sparkles className="h-3 w-3" />
+                        Ask Sera
+                      </button>
                     </li>
                   ))}
                 </ul>
