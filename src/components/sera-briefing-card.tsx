@@ -291,23 +291,78 @@ export function SeraBriefingCard({
                   <MessageCircle className="h-3.5 w-3.5" />
                   Ask Sera about this briefing
                 </div>
-                {turns.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setTurns([])}
-                    className="text-[11px] text-muted-foreground hover:text-foreground"
-                  >
-                    Clear
-                  </button>
-                )}
+                <div className="flex items-center gap-2">
+                  {turns.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchOpen((v) => {
+                          if (v) setSearchQuery("");
+                          return !v;
+                        });
+                      }}
+                      className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+                      aria-label="Search chat"
+                    >
+                      <Search className="h-3 w-3" />
+                      Search
+                    </button>
+                  )}
+                  {turns.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTurns([]);
+                        setSearchQuery("");
+                        setSearchOpen(false);
+                      }}
+                      className="text-[11px] text-muted-foreground hover:text-foreground"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
               </div>
+
+              {searchOpen && turns.length > 0 && (
+                <div className="border-b border-border/50 px-3 py-2">
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search messages…"
+                      autoFocus
+                      className="w-full rounded-lg border border-border/60 bg-background py-1.5 pl-8 pr-8 text-xs focus:border-primary/40 focus:outline-none focus:ring-1 focus:ring-primary/30"
+                    />
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchQuery("")}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        aria-label="Clear search"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                  {searchQuery.trim() && (
+                    <div className="mt-1.5 text-[11px] text-muted-foreground">
+                      {filteredTurns.length === 0
+                        ? "No matches"
+                        : `${filteredTurns.length} match${filteredTurns.length === 1 ? "" : "es"}`}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {showChat && (
                 <div
                   ref={scrollRef}
                   className="max-h-72 space-y-3 overflow-y-auto px-3 py-3"
                 >
-                  {turns.map((t, i) => (
+                  {filteredTurns.map(({ turn: t, index: i }) => (
                     <div
                       key={i}
                       className={`flex ${t.role === "user" ? "justify-end" : "justify-start"}`}
@@ -319,8 +374,8 @@ export function SeraBriefingCard({
                             : "border border-border/60 bg-card text-foreground"
                         }`}
                       >
-                        {t.role === "user" ? (
-                          <div className="whitespace-pre-wrap">{t.content}</div>
+                        {t.role === "user" || searchQuery.trim() ? (
+                          <div className="whitespace-pre-wrap">{highlight(t.content)}</div>
                         ) : (
                           <div className="prose prose-sm max-w-none prose-p:my-1.5 prose-p:text-foreground prose-strong:text-foreground prose-li:my-0.5 prose-ul:my-1.5">
                             <ReactMarkdown>{t.content}</ReactMarkdown>
@@ -329,7 +384,7 @@ export function SeraBriefingCard({
                       </div>
                     </div>
                   ))}
-                  {pending && (
+                  {pending && !searchQuery.trim() && (
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
                       Sera is thinking…
