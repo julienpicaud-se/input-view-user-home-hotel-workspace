@@ -162,6 +162,7 @@ function HomePage() {
   const [activeChart, setActiveChart] = React.useState<ChartId>("consumption");
   const [explainerChart, setExplainerChart] = React.useState<ChartId | null>(null);
   const search = Route.useSearch();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = React.useState<string>(search.tab ?? "overview");
   React.useEffect(() => {
     if (search.tab && search.tab !== activeTab) {
