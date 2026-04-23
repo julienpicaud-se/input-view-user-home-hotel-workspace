@@ -941,21 +941,7 @@ function HomePage() {
 
       {/* Reporting progress */}
       <section className="mb-12">
-        <div className="mb-4 flex items-end justify-between gap-3">
-          <div>
-            <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-              Reporting progress
-            </div>
-            <h2 className="font-serif text-2xl font-semibold text-foreground">
-              {summary
-                ? `${MONTH_NAMES[summary.expectedMonth - 1]} ${summary.expectedYear}`
-                : "Expected period"}
-            </h2>
-          </div>
-          {summary && summary.hotelProgress.length > 0 && (
-            <PortfolioProgressBadge progress={summary.hotelProgress} />
-          )}
-        </div>
+        <ReportingProgressHeader summary={summary} />
 
         <Card className="overflow-hidden rounded-2xl border-border/60">
           {loading ? (
