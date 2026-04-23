@@ -1082,6 +1082,7 @@ function TodoRow({
                 Dismissed
               </span>
             )}
+            {todo.dueDate && !isDismissed && <DueBadge due={todo.dueDate} done={todo.done} />}
           </div>
           <p className="mt-1 text-sm text-muted-foreground">{todo.description}</p>
         </div>
