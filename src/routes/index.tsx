@@ -803,6 +803,15 @@ function HomePage() {
         </Card>
       </section>
 
+      {/* Data quality */}
+      <section className="mb-12">
+        <DataQualityCard
+          loading={loading}
+          issues={dataQualityIssues}
+          onIssueClick={handleDataQualityClick}
+        />
+      </section>
+
       {/* To-dos */}
       <section className="mb-12">
         <div className="mb-4 flex items-end justify-between gap-3">
