@@ -562,3 +562,132 @@ ${context}`,
     }
   });
 
+/* -------------------- Bill extraction (Sera-guided log) -------------------- */
+
+export type BillUtility = "electricity" | "gas" | "water" | "waste";
+
+export interface BillExtraction {
+  utility: BillUtility | null;
+  value: number | null;
+  unit: string | null;
+  period_start: string | null; // YYYY-MM-DD
+  period_end: string | null; // YYYY-MM-DD
+  confidence: "high" | "medium" | "low";
+  notes: string | null;
+}
+
+export const extractBillData = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      // data URL (e.g. "data:image/png;base64,iVBOR...") or a remote https:// URL
+      imageDataUrl: z.string().min(20).max(15_000_000),
+      utilityHint: z.enum(["electricity", "gas", "water", "waste"]).optional(),
+    }),
+  )
+  .handler(async ({ data }): Promise<{ ok: true; extraction: BillExtraction } | { ok: false; error: string }> => {
+    const apiKey = process.env.LOVABLE_API_KEY;
+    if (!apiKey) {
+      return { ok: false as const, error: "AI not configured." };
+    }
+
+    const utilHintText = data.utilityHint
+      ? `The user is logging a ${data.utilityHint} bill — prioritise that utility.`
+      : "Detect which utility this bill is for.";
+
+    const systemPrompt = `You are Sera, parsing a utility bill for a hotel. Extract the TOTAL CONSUMPTION for the billing period (not the cost). ${utilHintText}
+
+Return ONLY valid JSON of shape:
+{
+  "utility": "electricity" | "gas" | "water" | "waste" | null,
+  "value": number | null,
+  "unit": "kWh" | "m3" | "kg" | null,
+  "period_start": "YYYY-MM-DD" | null,
+  "period_end": "YYYY-MM-DD" | null,
+  "confidence": "high" | "medium" | "low",
+  "notes": "1 short sentence on what you saw, e.g. 'Read 2,140 kWh for 1–31 March from Enel bill.'"
+}
+
+Conversion rules:
+- Electricity & gas → kWh. If gas is in m³, convert using 10.55 kWh/m³ (typical natural gas calorific value) and mention the conversion in notes.
+- Water → m³. If in litres, divide by 1000.
+- Waste → kg. If in tonnes, multiply by 1000.
+
+If you cannot read the bill or it's not a utility bill, set every field to null and confidence "low".`;
+
+    let res: Response;
+    try {
+      res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: systemPrompt },
+            {
+              role: "user",
+              content: [
+                { type: "text", text: "Extract the consumption from this bill." },
+                { type: "image_url", image_url: { url: data.imageDataUrl } },
+              ],
+            },
+          ],
+        }),
+      });
+    } catch (e) {
+      console.error("extractBillData fetch failed:", e);
+      return { ok: false as const, error: "Could not reach the AI service." };
+    }
+
+    if (res.status === 429) {
+      return { ok: false as const, error: "Rate limit hit. Try again in a moment." };
+    }
+    if (res.status === 402) {
+      return { ok: false as const, error: "AI credits exhausted." };
+    }
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      console.error("extractBillData error:", res.status, text);
+      return { ok: false as const, error: "The AI couldn't read this bill." };
+    }
+
+    const json = (await res.json()) as {
+      choices?: { message?: { content?: string } }[];
+    };
+    const raw = json.choices?.[0]?.message?.content ?? "";
+    const cleaned = raw.replace(/```json\s*|```/g, "").trim();
+
+    try {
+      const parsed = JSON.parse(cleaned) as Partial<BillExtraction>;
+      const utility =
+        parsed.utility === "electricity" ||
+        parsed.utility === "gas" ||
+        parsed.utility === "water" ||
+        parsed.utility === "waste"
+          ? parsed.utility
+          : null;
+      const value =
+        typeof parsed.value === "number" && Number.isFinite(parsed.value) && parsed.value >= 0
+          ? parsed.value
+          : null;
+      const confidence: "high" | "medium" | "low" =
+        parsed.confidence === "high" || parsed.confidence === "medium" ? parsed.confidence : "low";
+      return {
+        ok: true as const,
+        extraction: {
+          utility,
+          value,
+          unit: parsed.unit ?? null,
+          period_start: parsed.period_start ?? null,
+          period_end: parsed.period_end ?? null,
+          confidence,
+          notes: parsed.notes ? String(parsed.notes).slice(0, 240) : null,
+        },
+      };
+    } catch {
+      return { ok: false as const, error: "Couldn't parse the bill — try a clearer photo." };
+    }
+  });
+
