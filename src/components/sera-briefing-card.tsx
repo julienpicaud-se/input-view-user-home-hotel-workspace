@@ -6,10 +6,12 @@ import {
   MessageCircle,
   Minus,
   RefreshCw,
+  Search,
   Send,
   Sparkles,
   TrendingDown,
   Wand2,
+  X,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useServerFn } from "@tanstack/react-start";
