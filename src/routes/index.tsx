@@ -493,12 +493,6 @@ function HomePage() {
       d.setDate(d.getDate() + 3);
       return d;
     })();
-    // Generic engagement tasks — end of the current month
-    const engagementDue = (() => {
-      const now = new Date();
-      return new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    })();
-
     // Per-hotel "log data" tasks — auto-mark done when all 5 fields are filled
     if (summary.hotelProgress.length === 0) {
       items.push({
@@ -563,19 +557,6 @@ function HomePage() {
         dueDate: anomalyDue,
       });
     }
-
-    // Generic engagement tasks
-    items.push({
-      id: "review-benchmarks",
-      title: "Review this month's peer benchmarks",
-      description: "See how your portfolio compares to similar hotels on energy, water and waste.",
-      cta: "View benchmarks",
-      done: false,
-      tone: "primary",
-      target: { kind: "workspace", tab: "benchmarks" },
-      dismissible: true,
-      dueDate: engagementDue,
-    });
 
     return items;
   }, [summary]);
