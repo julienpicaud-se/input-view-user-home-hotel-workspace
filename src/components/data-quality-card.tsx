@@ -132,14 +132,14 @@ export function DataQualityCard({ loading, issues, onIssueClick }: DataQualityCa
           </div>
           <div>
             <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-              Data quality
+              Data quality · out of range
             </div>
             <h2 className="font-serif text-2xl font-semibold text-foreground">
               {loading
                 ? "Checking your data…"
                 : summary.total === 0
-                  ? "No issues found"
-                  : `${summary.total} ${summary.total === 1 ? "issue" : "issues"} to review`}
+                  ? "No out-of-range values"
+                  : `${summary.total} out-of-range ${summary.total === 1 ? "value" : "values"} to review`}
             </h2>
           </div>
         </div>
