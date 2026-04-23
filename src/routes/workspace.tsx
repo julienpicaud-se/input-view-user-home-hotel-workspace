@@ -2649,8 +2649,10 @@ function HotelSettingsPanel({
       setYearBuilt(hotel.year_built != null ? String(hotel.year_built) : "");
       setFloors(hotel.floors != null ? String(hotel.floors) : "");
       setPropertyType(hotel.property_type ?? "");
+      // Re-lock whenever the active hotel changes
+      setLocked(true);
     }
-  }, [hotel]);
+  }, [hotel?.id]);
 
   // Restore "changed by" name from localStorage
   React.useEffect(() => {
