@@ -960,6 +960,7 @@ function HomePage() {
                 <HotelProgressRow
                   key={h.id}
                   progress={h}
+                  dueDate={loggingDueDate(summary.expectedYear, summary.expectedMonth)}
                   onClick={() => {
                     setActiveHotelId(h.id);
                     void navigate({ to: "/workspace", search: { tab: "log" } });
@@ -1429,33 +1430,62 @@ function StatusCount({
 
 function HotelProgressRow({
   progress,
+  dueDate,
   onClick,
 }: {
   progress: HotelProgress;
+  dueDate?: Date;
   onClick: () => void;
 }) {
   const pct = Math.round((progress.filledCount / progress.totalCount) * 100);
   const remaining = progress.totalCount - progress.filledCount;
   const empty = progress.filledCount === 0;
 
+  // Overdue when the deadline has passed and the hotel hasn't completed
+  // its 5 required fields for the expected reporting period.
+  const overdue = React.useMemo(() => {
+    if (!dueDate || progress.complete) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const d = new Date(dueDate);
+    d.setHours(0, 0, 0, 0);
+    return today.getTime() > d.getTime();
+  }, [dueDate, progress.complete]);
+
+  const overdueDays = React.useMemo(() => {
+    if (!overdue || !dueDate) return 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const d = new Date(dueDate);
+    d.setHours(0, 0, 0, 0);
+    return Math.round((today.getTime() - d.getTime()) / 86_400_000);
+  }, [overdue, dueDate]);
+
   // Status tone drives the leading dot, the progress bar and the count chip.
+  // Overdue takes precedence over "in progress" / "empty" tones.
   const tone = progress.complete
     ? {
         dot: "bg-success",
         bar: "bg-success",
         chip: "bg-success/10 text-success ring-success/20",
       }
-    : empty
+    : overdue
       ? {
-          dot: "bg-warning",
-          bar: "bg-warning/70",
-          chip: "bg-warning/10 text-warning-foreground ring-warning/25",
+          dot: "bg-destructive",
+          bar: "bg-destructive",
+          chip: "bg-destructive/10 text-destructive ring-destructive/25",
         }
-      : {
-          dot: "bg-primary",
-          bar: "bg-primary",
-          chip: "bg-primary/10 text-primary ring-primary/20",
-        };
+      : empty
+        ? {
+            dot: "bg-warning",
+            bar: "bg-warning/70",
+            chip: "bg-warning/10 text-warning-foreground ring-warning/25",
+          }
+        : {
+            dot: "bg-primary",
+            bar: "bg-primary",
+            chip: "bg-primary/10 text-primary ring-primary/20",
+          };
 
   return (
     <button
