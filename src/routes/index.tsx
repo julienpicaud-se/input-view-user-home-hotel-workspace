@@ -1164,17 +1164,3 @@ function HotelProgressRow({
   );
 }
 
-  const dataQualityIssues: DataQualityIssue[] = React.useMemo(() => {
-    if (!summary || hotels.length === 0) return [];
-    return buildDataQualityIssues({
-      hotels,
-      entries,
-      expectedYear: summary.expectedYear,
-      expectedMonth: summary.expectedMonth,
-    });
-  }, [hotels, entries, summary]);
-
-  function handleDataQualityClick(issue: DataQualityIssue) {
-    setActiveHotelId(issue.hotelId);
-    void navigate({ to: "/workspace", search: { tab: "log" } });
-  }
