@@ -413,7 +413,7 @@ function HomePage() {
             <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
               {hotel.name} · {hotel.region}
             </div>
-            <h1 className="font-serif text-4xl md:text-5xl font-semibold leading-[1.05]">
+            <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-semibold leading-[1.05]">
               Hotel workspace
             </h1>
             <p className="mt-3 max-w-xl text-sm md:text-base text-muted-foreground">
@@ -426,21 +426,22 @@ function HomePage() {
 
       {/* Tabbed workspace — Ask Sera is now embedded inside Overview & Analyze */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <TabsList className="inline-flex h-auto w-full justify-start gap-1 rounded-2xl border border-border bg-card p-1.5 sm:w-auto">
-          <TabsTrigger value="overview" className="rounded-xl px-4 py-2 text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+        <TabsList className="inline-flex h-auto w-max justify-start gap-1 rounded-2xl border border-border bg-card p-1.5 sm:w-auto">
+          <TabsTrigger value="overview" className="rounded-xl px-3 py-2 text-xs sm:px-4 sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
             Overview
           </TabsTrigger>
-          <TabsTrigger value="log" className="rounded-xl px-4 py-2 text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
+          <TabsTrigger value="log" className="rounded-xl px-3 py-2 text-xs sm:px-4 sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
             Add data
           </TabsTrigger>
-          <TabsTrigger value="analyze" className="rounded-xl px-4 py-2 text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
+          <TabsTrigger value="analyze" className="rounded-xl px-3 py-2 text-xs sm:px-4 sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
             Hotel Insights
           </TabsTrigger>
           <Link
             to="/workspace"
             search={{ tab: "settings" } as never}
-            className="inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground transition-colors data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm hover:bg-muted hover:text-foreground"
+            className="inline-flex items-center justify-center whitespace-nowrap rounded-xl px-3 py-2 text-xs sm:px-4 sm:text-sm font-medium text-muted-foreground transition-colors data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm hover:bg-muted hover:text-foreground"
             data-state={activeTab === "settings" ? "active" : "inactive"}
             onClick={(e) => {
               e.preventDefault();
@@ -452,7 +453,7 @@ function HomePage() {
           <Link
             to="/workspace"
             search={{ tab: "benchmarks" } as never}
-            className="inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground transition-colors data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm hover:bg-muted hover:text-foreground"
+            className="inline-flex items-center justify-center whitespace-nowrap rounded-xl px-3 py-2 text-xs sm:px-4 sm:text-sm font-medium text-muted-foreground transition-colors data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm hover:bg-muted hover:text-foreground"
             data-state={activeTab === "benchmarks" ? "active" : "inactive"}
             onClick={(e) => {
               e.preventDefault();
@@ -462,6 +463,7 @@ function HomePage() {
             Peers Benchmark
           </Link>
         </TabsList>
+        </div>
         <HotelSwitcher />
         </div>
 
