@@ -890,6 +890,19 @@ function HomePage() {
             {/* Right rail: chart explainer + Sera chat */}
             <div className="space-y-6 lg:col-span-2">
               <div className="lg:sticky lg:top-6 space-y-6">
+                <MiniAssistantCard
+                  title="Ask Sera about your charts"
+                  subtitle="Spot trends, compare months, plan actions"
+                  starters={[
+                    "What does my CO₂e trend tell me?",
+                    "Which utility moved the most this month?",
+                    "Where am I worst vs peers?",
+                    "Explain my intensity per room-night",
+                  ]}
+                  height="default"
+                  pendingPrompt={pendingPrompt}
+                  onPromptConsumed={() => setPendingPrompt(null)}
+                />
                 <ChartExplainerCard
                   chartId={activeChart}
                   isLatestLogged={!!isCurrentLogged}
@@ -925,19 +938,6 @@ function HomePage() {
                         : `Highlighted ${fields.length} fields in the log form`,
                     );
                   }}
-                />
-                <MiniAssistantCard
-                  title="Ask Sera about your charts"
-                  subtitle="Spot trends, compare months, plan actions"
-                  starters={[
-                    "What does my CO₂e trend tell me?",
-                    "Which utility moved the most this month?",
-                    "Where am I worst vs peers?",
-                    "Explain my intensity per room-night",
-                  ]}
-                  height="default"
-                  pendingPrompt={pendingPrompt}
-                  onPromptConsumed={() => setPendingPrompt(null)}
                 />
               </div>
             </div>
