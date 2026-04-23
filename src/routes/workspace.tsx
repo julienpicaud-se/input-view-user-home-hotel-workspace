@@ -1636,6 +1636,31 @@ function MonthlyChangeSummary({
                 </div>
               </PopoverContent>
             </Popover>
+              {onAskSera && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const driverList =
+                      summary.drivers.length > 0
+                        ? summary.drivers
+                            .map(
+                              (d) =>
+                                `${d.label} ${d.delta > 0 ? "+" : ""}${d.delta} pts`,
+                            )
+                            .join(", ")
+                        : "no clear drivers identified";
+                    const monthLabel = `${MONTH_NAMES[latest.month - 1]} ${latest.year}`;
+                    const prevLabel = `${MONTH_NAMES[prev.month - 1]} ${prev.year}`;
+                    const prompt = `Help me understand my AI summary for ${monthLabel} vs ${prevLabel}. The summary says: "${summary.headline} ${summary.body}" Top movers: ${driverList}. What's actually driving this and what specific actions should I take next month?`;
+                    onAskSera(prompt);
+                  }}
+                  className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary transition hover:bg-primary/15 hover:border-primary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                >
+                  <Sparkles className="h-3 w-3" />
+                  Ask Sera about this
+                </button>
+              )}
+            </div>
           )}
         </div>
       </div>
