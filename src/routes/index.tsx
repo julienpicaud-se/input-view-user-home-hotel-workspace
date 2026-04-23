@@ -43,6 +43,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { generateBriefing, type BriefingPayload } from "@/server/assistant.functions";
 import { SeraBriefingCard } from "@/components/sera-briefing-card";
+import { DataQualityCard } from "@/components/data-quality-card";
+import { buildDataQualityIssues, type DataQualityIssue } from "@/lib/data-quality";
 
 export const Route = createFileRoute("/")({
   head: () => ({
