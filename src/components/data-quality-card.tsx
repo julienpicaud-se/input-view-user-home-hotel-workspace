@@ -100,9 +100,9 @@ function diversifyIssues(issues: DataQualityIssue[], n: number): DataQualityIssu
 
 export function DataQualityCard({ loading, issues, onIssueClick }: DataQualityCardProps) {
   const [expanded, setExpanded] = React.useState(false);
-  // Show only out-of-range issues in this card.
+  // Show out-of-range values AND month-over-month spikes in this card.
   const rangeIssues = React.useMemo(
-    () => issues.filter((i) => i.kind === "implausible-range"),
+    () => issues.filter((i) => i.kind === "implausible-range" || i.kind === "huge-jump"),
     [issues]
   );
   const summary = React.useMemo(() => summariseIssues(rangeIssues), [rangeIssues]);
@@ -132,14 +132,14 @@ export function DataQualityCard({ loading, issues, onIssueClick }: DataQualityCa
           </div>
           <div>
             <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-              Data quality · out of range
+              Data quality · out of range &amp; spikes
             </div>
             <h2 className="font-serif text-2xl font-semibold text-foreground">
               {loading
                 ? "Checking your data…"
                 : summary.total === 0
-                  ? "No out-of-range values"
-                  : `${summary.total} out-of-range ${summary.total === 1 ? "value" : "values"} to review`}
+                  ? "No out-of-range values or spikes"
+                  : `${summary.total} ${summary.total === 1 ? "value" : "values"} to review`}
             </h2>
           </div>
         </div>
