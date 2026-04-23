@@ -270,20 +270,6 @@ export function SeraBriefingCard({
               </div>
             )}
 
-            <div className="flex flex-col items-start gap-3 rounded-xl border border-border/50 bg-background/50 p-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-start gap-2 text-sm text-foreground">
-                <Wand2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                <span>
-                  <span className="font-medium">Today's focus:</span>{" "}
-                  <span className="text-muted-foreground">{briefing.focus}</span>
-                </span>
-              </div>
-              <Button size="sm" variant="outline" onClick={onAsk} className="shrink-0">
-                Open analysis
-                <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-              </Button>
-            </div>
-
             {/* Inline chat with Sera */}
             <div className="rounded-xl border border-border/50 bg-background/40">
               <div className="flex items-center justify-between gap-2 border-b border-border/50 px-3 py-2">
