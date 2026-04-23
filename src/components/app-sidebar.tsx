@@ -13,8 +13,14 @@ interface NavItem {
 const NAV: NavItem[] = [
   { label: "Home", to: "/", icon: Home },
   { label: "Hotel workspace", to: "/workspace", icon: Building2, matchPrefix: "/workspace" },
-  { label: "Profile & settings", to: "/profile", icon: UserCircle2, matchPrefix: "/profile" },
 ];
+
+const PROFILE_ITEM: NavItem = {
+  label: "Profile & settings",
+  to: "/profile",
+  icon: UserCircle2,
+  matchPrefix: "/profile",
+};
 
 const STORAGE_KEY = "ra-plus-sidebar-collapsed";
 
