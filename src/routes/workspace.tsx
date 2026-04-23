@@ -1099,6 +1099,10 @@ function ChartExplainerCard({
   const [data, setData] = React.useState<ChartExplanation | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [actionPanel, setActionPanel] = React.useState<{
+    action: string;
+    prompt: string;
+  } | null>(null);
 
   React.useEffect(() => {
     let cancelled = false;
