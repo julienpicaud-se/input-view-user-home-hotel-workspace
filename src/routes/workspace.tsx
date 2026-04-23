@@ -972,7 +972,7 @@ function HomePage() {
           <BenchmarksPanel showHeader={false} />
         </TabsContent>
       </Tabs>
-
+    </PageContainer>
   );
 }
 
