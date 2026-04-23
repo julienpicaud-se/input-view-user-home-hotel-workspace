@@ -1363,8 +1363,8 @@ function HotelProgressRow({
         </div>
       </div>
 
-      {/* Field tiles — cleaner, no overlapping mini-badges */}
-      <div className="hidden items-center gap-1 sm:flex">
+      {/* Field tiles — colored when logged so each utility's status pops */}
+      <div className="hidden items-center gap-1.5 sm:flex">
         {FIELD_ORDER.map((f) => {
           const filled = progress.fields[f];
           const Icon = FIELD_META[f].icon;
@@ -1372,10 +1372,10 @@ function HotelProgressRow({
             <div
               key={f}
               title={`${FIELD_META[f].label}: ${filled ? "logged" : "missing"}`}
-              className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
+              className={`flex h-8 w-8 items-center justify-center rounded-lg ring-1 ring-inset transition-colors ${
                 filled
-                  ? "bg-success/10 text-success ring-1 ring-inset ring-success/25"
-                  : "bg-muted/50 text-muted-foreground/70 ring-1 ring-inset ring-border/40"
+                  ? FIELD_META[f].filled
+                  : "bg-muted/40 text-muted-foreground/50 ring-border/40 [background-image:repeating-linear-gradient(135deg,transparent_0_4px,hsl(var(--muted-foreground)/0.06)_4px_5px)]"
               }`}
             >
               <Icon className="h-3.5 w-3.5" />
@@ -1384,16 +1384,22 @@ function HotelProgressRow({
         })}
       </div>
 
-      {/* Progress: thin bar + chip */}
-      <div className="flex w-28 shrink-0 items-center gap-2">
-        <div className="h-1 flex-1 overflow-hidden rounded-full bg-muted">
+      {/* Progress: thicker gradient bar + status-tinted count chip */}
+      <div className="flex w-36 shrink-0 items-center gap-2.5">
+        <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-muted/70 ring-1 ring-inset ring-border/40">
           <div
-            className={`h-full rounded-full transition-all ${tone.bar}`}
-            style={{ width: `${pct}%` }}
+            className={`h-full rounded-full bg-gradient-to-r shadow-[0_0_0_1px_color-mix(in_oklab,currentColor_25%,transparent)] transition-all ${
+              progress.complete
+                ? "from-success to-success/70 text-success"
+                : empty
+                  ? "from-warning to-warning/60 text-warning"
+                  : "from-primary to-primary/60 text-primary"
+            }`}
+            style={{ width: `${Math.max(pct, empty ? 0 : 6)}%` }}
           />
         </div>
         <span
-          className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium tabular-nums ring-1 ring-inset ${tone.chip}`}
+          className={`min-w-[44px] rounded-full px-2 py-0.5 text-center text-[10px] font-semibold tabular-nums ring-1 ring-inset ${tone.chip}`}
         >
           {progress.filledCount}/{progress.totalCount}
         </span>
