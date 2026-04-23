@@ -359,9 +359,22 @@ function HomePage() {
   }, [summary, firstName]);
 
   const fetchBriefing = React.useCallback(
-    async (force = false) => {
+    async (
+      force = false,
+      payload?: {
+        todos: { title: string; description?: string; done?: boolean; tone?: Todo["tone"] }[];
+        issues: { hotelName: string; severity: DataQualityIssue["severity"]; title: string; detail?: string }[];
+      }
+    ) => {
       if (!briefingSignature) return;
-      const cacheKey = `ra-plus-briefing:${briefingSignature}`;
+      // Build a focus-signature so the cache invalidates when todos/issues change
+      const focusSig = payload
+        ? `${payload.todos.filter((t) => !t.done).length}t-${payload.issues.length}i-${payload.issues
+            .slice(0, 6)
+            .map((i) => `${i.severity[0]}${i.hotelName.slice(0, 4)}`)
+            .join(",")}`
+        : "no-focus";
+      const cacheKey = `ra-plus-briefing:${briefingSignature}:${focusSig}`;
       if (!force && typeof window !== "undefined") {
         const cached = window.localStorage.getItem(cacheKey);
         if (cached) {
@@ -377,7 +390,13 @@ function HomePage() {
       setBriefingLoading(true);
       setBriefingError(null);
       try {
-        const res = await callBriefing({ data: { firstName } });
+        const res = await callBriefing({
+          data: {
+            firstName,
+            todos: payload?.todos,
+            issues: payload?.issues,
+          },
+        });
         if (res.ok) {
           setBriefing(res.briefing);
           if (typeof window !== "undefined") {
@@ -400,10 +419,6 @@ function HomePage() {
     [briefingSignature, callBriefing, firstName]
   );
 
-  React.useEffect(() => {
-    if (!briefingSignature) return;
-    void fetchBriefing(false);
-  }, [briefingSignature, fetchBriefing]);
 
   // Build the full task list (deep-linked, per-hotel where useful)
   const allTodos: Todo[] = React.useMemo(() => {
@@ -512,6 +527,30 @@ function HomePage() {
     void navigate({ to: "/workspace", search: { tab: "log" } });
   }
 
+  // Build the focus payload (todos + issues) for the Sera briefing
+  const briefingFocusPayload = React.useMemo(() => {
+    return {
+      todos: visibleTodos.map((t) => ({
+        title: t.title,
+        description: t.description,
+        done: t.done,
+        tone: t.tone,
+      })),
+      issues: dataQualityIssues.map((i) => ({
+        hotelName: i.hotelName,
+        severity: i.severity,
+        title: i.title,
+        detail: i.detail,
+      })),
+    };
+  }, [visibleTodos, dataQualityIssues]);
+
+  // Trigger the briefing once we have both portfolio summary and the focus payload
+  React.useEffect(() => {
+    if (!briefingSignature) return;
+    void fetchBriefing(false, briefingFocusPayload);
+  }, [briefingSignature, briefingFocusPayload, fetchBriefing]);
+
 
   const co2Change = summary
     ? pctChange(summary.co2eLatest || null, summary.co2ePrev || null)
@@ -581,22 +620,7 @@ function HomePage() {
         <div className="mt-6 h-px gold-divider" />
       </header>
 
-      {/* AI personalised briefing from Sera */}
-      <section className="mb-12">
-        <SeraBriefingCard
-          firstName={firstName}
-          loading={loading || (briefingLoading && !briefing)}
-          briefing={briefing}
-          error={briefingError}
-          refreshing={briefingLoading && Boolean(briefing)}
-          onRefresh={() => void fetchBriefing(true)}
-          onAsk={() => {
-            void navigate({ to: "/workspace", search: { tab: "analyze" } });
-          }}
-        />
-      </section>
-
-      {/* Briefing */}
+      {/* Briefing — Your portfolio at a glance (top of page) */}
       <section className="mb-12">
         <div className="mb-4 flex items-end justify-between">
           <div>
@@ -727,6 +751,21 @@ function HomePage() {
             </div>
           </Card>
         )}
+      </section>
+
+      {/* AI personalised briefing from Sera — focused on to-dos & data quality */}
+      <section className="mb-12">
+        <SeraBriefingCard
+          firstName={firstName}
+          loading={loading || (briefingLoading && !briefing)}
+          briefing={briefing}
+          error={briefingError}
+          refreshing={briefingLoading && Boolean(briefing)}
+          onRefresh={() => void fetchBriefing(true, briefingFocusPayload)}
+          onAsk={() => {
+            void navigate({ to: "/workspace", search: { tab: "analyze" } });
+          }}
+        />
       </section>
 
       {/* Reporting progress */}
