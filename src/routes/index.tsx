@@ -62,8 +62,28 @@ interface PortfolioSummary {
   co2eLatest: number;
   co2ePrev: number;
   totalElectricity: number;
-  hotelsMissingCurrent: { id: string; name: string; lastPeriod: string | null }[];
+  expectedYear: number;
+  expectedMonth: number;
+  hotelProgress: HotelProgress[];
   anomalies: Anomaly[];
+}
+
+type RequiredField =
+  | "electricity"
+  | "gas"
+  | "water"
+  | "waste"
+  | "occupancy";
+
+interface HotelProgress {
+  id: string;
+  name: string;
+  lastPeriod: string | null;
+  // Status of each required field for the expected reporting month
+  fields: Record<RequiredField, boolean>;
+  filledCount: number;
+  totalCount: number; // always 5
+  complete: boolean;
 }
 
 interface Anomaly {
