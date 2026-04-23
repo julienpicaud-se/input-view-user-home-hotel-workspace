@@ -2,26 +2,20 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import * as React from "react";
 import {
   ArrowRight,
-  Bolt,
   Building2,
   CheckCircle2,
   ClipboardList,
-  Flame,
   Leaf,
-  
   Sun,
   Sunrise,
   Sunset,
   TrendingDown,
   TrendingUp,
-  Users,
   Wand2,
   AlertTriangle,
   X,
   Eye,
   EyeOff,
-  Droplets,
-  Trash2,
   RefreshCw,
   CalendarClock,
 } from "lucide-react";
