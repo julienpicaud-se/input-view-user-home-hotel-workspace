@@ -1297,7 +1297,187 @@ function ActionChip({
   );
 }
 
-function ExplainerSection({
+function ActionAskSeraPanel({
+  open,
+  action,
+  prompt,
+  chartTitle,
+  onClose,
+}: {
+  open: boolean;
+  action: string;
+  prompt: string;
+  chartTitle: string;
+  onClose: () => void;
+}) {
+  const send = useServerFn(sendAssistantMessage);
+  const [messages, setMessages] = React.useState<ChatMsg[]>([]);
+  const [loading, setLoading] = React.useState(false);
+  const [input, setInput] = React.useState("");
+  const sentRef = React.useRef<string | null>(null);
+  const scrollRef = React.useRef<HTMLDivElement | null>(null);
+
+  // Reset and auto-send when a new prompt opens the panel
+  React.useEffect(() => {
+    if (!open) return;
+    if (sentRef.current === prompt) return;
+    sentRef.current = prompt;
+    setMessages([{ role: "user", content: prompt }]);
+    setLoading(true);
+    send({ data: { message: prompt, history: [], hotelId: getActiveHotelId() } })
+      .then((res) => {
+        if (res.ok) {
+          setMessages((m) => [...m, { role: "assistant", content: res.content }]);
+        } else {
+          toast.error(res.error);
+        }
+      })
+      .catch(() => toast.error("Something went wrong"))
+      .finally(() => setLoading(false));
+  }, [open, prompt, send]);
+
+  // Reset state fully when closed
+  React.useEffect(() => {
+    if (!open) {
+      sentRef.current = null;
+      setMessages([]);
+      setInput("");
+      setLoading(false);
+    }
+  }, [open]);
+
+  React.useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [messages, loading]);
+
+  async function handleSend(text: string) {
+    const t = text.trim();
+    if (!t || loading) return;
+    const userMsg: ChatMsg = { role: "user", content: t };
+    const history = messages.slice(-10);
+    setMessages((m) => [...m, userMsg]);
+    setInput("");
+    setLoading(true);
+    try {
+      const res = await send({ data: { message: t, history, hotelId: getActiveHotelId() } });
+      if (res.ok) {
+        setMessages((m) => [...m, { role: "assistant", content: res.content }]);
+      } else {
+        toast.error(res.error);
+        setMessages((m) => m.slice(0, -1));
+      }
+    } catch {
+      toast.error("Something went wrong");
+      setMessages((m) => m.slice(0, -1));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-40 bg-foreground/20 backdrop-blur-[2px]"
+            onClick={onClose}
+          />
+          <motion.aside
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={{ type: "spring", damping: 28, stiffness: 280 }}
+            className="fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col border-l border-border bg-card shadow-2xl"
+          >
+            <div className="flex items-start gap-3 border-b border-border/70 bg-gradient-to-br from-card to-accent/10 px-5 py-4">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
+                <Sparkles className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                  Ask Sera · {chartTitle}
+                </div>
+                <h3 className="mt-0.5 line-clamp-2 font-serif text-sm font-semibold leading-snug text-foreground">
+                  {action}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="-mr-1 -mt-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+                aria-label="Close panel"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto px-5 py-5">
+              {messages.map((m, i) =>
+                m.role === "user" ? (
+                  <div key={i} className="flex justify-end">
+                    <div className="max-w-[90%] rounded-2xl bg-secondary px-3.5 py-2.5 text-sm text-secondary-foreground">
+                      <div className="whitespace-pre-wrap">{m.content}</div>
+                    </div>
+                  </div>
+                ) : (
+                  <div key={i} className="flex justify-start">
+                    <div className="max-w-[95%] rounded-2xl border border-border bg-background px-3.5 py-2.5 text-sm text-foreground">
+                      <div className="prose prose-sm max-w-none prose-headings:font-serif prose-headings:font-semibold prose-p:my-2 prose-p:text-foreground prose-strong:text-foreground prose-li:my-0.5 prose-ul:my-2">
+                        <ReactMarkdown>{m.content}</ReactMarkdown>
+                      </div>
+                    </div>
+                  </div>
+                ),
+              )}
+              {loading && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Sera is thinking…
+                </div>
+              )}
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void handleSend(input);
+              }}
+              className="border-t border-border bg-card px-4 py-3"
+            >
+              <div className="flex items-end gap-2 rounded-2xl border border-border bg-background px-3 py-2 focus-within:ring-1 focus-within:ring-ring">
+                <textarea
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      void handleSend(input);
+                    }
+                  }}
+                  placeholder="Ask a follow-up…"
+                  rows={1}
+                  className="flex-1 resize-none bg-transparent py-1 text-sm focus:outline-none"
+                />
+                <Button
+                  type="submit"
+                  size="icon"
+                  disabled={loading || !input.trim()}
+                  className="h-8 w-8 rounded-xl"
+                >
+                  <Send className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </form>
+          </motion.aside>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}
   icon,
   label,
   items,
