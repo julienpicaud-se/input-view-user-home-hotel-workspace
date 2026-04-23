@@ -575,7 +575,21 @@ function HomePage() {
 
   function handleDataQualityClick(issue: DataQualityIssue) {
     setActiveHotelId(issue.hotelId);
-    void navigate({ to: "/workspace", search: { tab: "log" } });
+    // Deep-link to the editable history table with the offending row/cell
+    // highlighted and focused. Falls back to plain navigation when the issue
+    // does not refer to a specific period (e.g. "no data logged at all").
+    if (issue.year && issue.month) {
+      void navigate({
+        to: "/history",
+        search: {
+          hy: issue.year,
+          hm: issue.month,
+          ...(issue.field ? { hf: issue.field } : {}),
+        },
+      });
+    } else {
+      void navigate({ to: "/history" });
+    }
   }
 
   // Data-quality badges shown on the "Latest data" and "CO₂e" glance cards.
