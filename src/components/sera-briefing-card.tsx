@@ -45,10 +45,58 @@ export function SeraBriefingCard({
   onAsk,
 }: SeraBriefingCardProps) {
   const send = useServerFn(sendAssistantMessage);
+  const hotelId = getActiveHotelId();
+  const storageKey = React.useMemo(
+    () => `sera:briefing-chat:${hotelId ?? "default"}`,
+    [hotelId],
+  );
   const [turns, setTurns] = React.useState<ChatTurn[]>([]);
   const [input, setInput] = React.useState("");
   const [pending, setPending] = React.useState(false);
+  const [hydrated, setHydrated] = React.useState(false);
   const scrollRef = React.useRef<HTMLDivElement | null>(null);
+
+  // Load persisted chat history when hotel changes
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(storageKey);
+      if (raw) {
+        const parsed = JSON.parse(raw) as ChatTurn[];
+        if (Array.isArray(parsed)) {
+          setTurns(
+            parsed.filter(
+              (t) =>
+                t &&
+                (t.role === "user" || t.role === "assistant") &&
+                typeof t.content === "string",
+            ),
+          );
+        } else {
+          setTurns([]);
+        }
+      } else {
+        setTurns([]);
+      }
+    } catch {
+      setTurns([]);
+    }
+    setHydrated(true);
+  }, [storageKey]);
+
+  // Persist chat history whenever it changes (after initial hydration)
+  React.useEffect(() => {
+    if (!hydrated || typeof window === "undefined") return;
+    try {
+      if (turns.length === 0) {
+        window.localStorage.removeItem(storageKey);
+      } else {
+        window.localStorage.setItem(storageKey, JSON.stringify(turns));
+      }
+    } catch {
+      // Ignore quota / serialization errors
+    }
+  }, [turns, storageKey, hydrated]);
 
   React.useEffect(() => {
     scrollRef.current?.scrollTo({
@@ -82,7 +130,7 @@ export function SeraBriefingCard({
         data: {
           message: trimmed,
           history,
-          hotelId: getActiveHotelId(),
+          hotelId,
         },
       });
       if (res.ok) {
