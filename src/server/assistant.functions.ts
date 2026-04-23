@@ -402,12 +402,63 @@ export const generateBriefing = createServerFn({ method: "POST" })
     z
       .object({
         firstName: z.string().min(1).max(80).optional(),
+        todos: z
+          .array(
+            z.object({
+              title: z.string().max(200),
+              description: z.string().max(400).optional(),
+              done: z.boolean().optional(),
+              tone: z.enum(["primary", "warning", "muted", "danger"]).optional(),
+            })
+          )
+          .max(40)
+          .optional(),
+        issues: z
+          .array(
+            z.object({
+              hotelName: z.string().max(120),
+              severity: z.enum(["critical", "warning", "info"]),
+              title: z.string().max(200),
+              detail: z.string().max(400).optional(),
+            })
+          )
+          .max(40)
+          .optional(),
       })
       .default({})
   )
   .handler(async ({ data }): Promise<{ ok: true; briefing: BriefingPayload; signature: string } | { ok: false; error: string }> => {
     const { context, signature, hasData } = await getPortfolioContext();
     const name = data.firstName?.trim() || "there";
+    const todos = data.todos ?? [];
+    const issues = data.issues ?? [];
+
+    const openTodos = todos.filter((t) => !t.done);
+    const todosBlock =
+      openTodos.length === 0
+        ? "No open to-dos right now."
+        : openTodos
+            .slice(0, 20)
+            .map(
+              (t, i) =>
+                `${i + 1}. [${t.tone ?? "primary"}] ${t.title}${
+                  t.description ? ` — ${t.description}` : ""
+                }`
+            )
+            .join("\n");
+
+    const issuesBlock =
+      issues.length === 0
+        ? "No data quality issues detected."
+        : issues
+            .slice(0, 20)
+            .map(
+              (i, idx) =>
+                `${idx + 1}. [${i.severity}] ${i.hotelName}: ${i.title}${
+                  i.detail ? ` — ${i.detail}` : ""
+                }`
+            )
+            .join("\n");
 
     if (!hasData) {
       return {
@@ -434,25 +485,33 @@ export const generateBriefing = createServerFn({ method: "POST" })
     const messages: ChatMsg[] = [
       {
         role: "system",
-        content: `You are Sera, a warm sustainability consultant briefing a hotel manager named ${name} on their portfolio. Speak directly to them by first name. Be specific, cite real numbers and units (kWh, m³, kg, %). No jargon, no fluff. Return ONLY valid JSON of shape:
+        content: `You are Sera, a warm sustainability consultant briefing a hotel manager named ${name}. Your ONLY job in this briefing is to focus them on (a) their open to-dos and (b) their data quality issues. Do NOT summarise consumption or CO₂e trends — those live elsewhere on the page. Speak directly to ${name} by first name. Be specific, cite hotel names and the exact issues/to-dos listed below. No jargon, no fluff.
+
+Return ONLY valid JSON of shape:
 {
-  "headline": "one sentence, <= 14 words, addressed to ${name}, captures the single most important thing this morning",
-  "summary": "2 short sentences (<= 45 words total) explaining what changed across the portfolio and why it matters",
+  "headline": "one sentence, <= 14 words, addressed to ${name}, naming the single most pressing to-do or data issue today",
+  "summary": "2 short sentences (<= 45 words total) explaining what needs ${name}'s attention across to-dos and data quality, grouped sensibly",
   "highlights": [
-    {"label": "<= 7 words with a real number", "tone": "positive" | "warning" | "neutral"}
+    {"label": "<= 7 words referencing a real to-do or issue (e.g. '3 critical data issues', 'April missing for Costa Azul')", "tone": "positive" | "warning" | "neutral"}
   ],
-  "focus": "one sentence telling ${name} the single best next action today, <= 20 words",
+  "focus": "one sentence telling ${name} the single best next action today drawn from the to-dos or issues, <= 20 words",
   "questions": [
-    "4 short follow-up questions ${name} would naturally ask after reading this briefing — each <= 10 words, written in first person ('Why did...', 'How can I...', 'What should I...'), grounded in the specific numbers/hotels above"
+    "4 short follow-up questions ${name} would naturally ask about these to-dos or data issues — each <= 10 words, first person ('Why is...', 'How do I fix...', 'What should I do about...'), grounded in the specific items below"
   ]
 }
-Return 3 highlights and exactly 4 questions. Use "positive" for wins (drops in CO₂e, intensity improvements), "warning" for spikes or missing data, "neutral" for context.
-Questions must be specific (mention a hotel name, utility, or number when relevant) — never generic.
+Return exactly 3 highlights and exactly 4 questions. Use "warning" for critical issues or overdue to-dos, "neutral" for routine items, "positive" only when the to-do/issue list is genuinely light. If there are no to-dos and no issues, say so warmly and suggest one optional next step (e.g. reviewing peer benchmarks).
+Questions must reference a specific hotel name, to-do, or issue from the lists below — never generic.
 
-PORTFOLIO CONTEXT:
+OPEN TO-DOS (${openTodos.length}):
+${todosBlock}
+
+DATA QUALITY ISSUES (${issues.length}):
+${issuesBlock}
+
+PORTFOLIO CONTEXT (for grounding only — do not summarise):
 ${context}`,
       },
-      { role: "user", content: `Brief me for today.` },
+      { role: "user", content: `Brief me on what needs my attention today.` },
     ];
 
     let res: Response;
