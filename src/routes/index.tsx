@@ -928,6 +928,46 @@ function HomePage() {
           </div>
         </div>
 
+        {/* Monthly calendar — at-a-glance view of due dates */}
+        {!loading && visibleTodos.length > 0 && (
+          <div className="mb-4">
+            <TodoCalendar
+              todos={visibleTodos}
+              onSelectDay={(d) => {
+                setSelectedDay((cur) =>
+                  cur &&
+                  cur.getFullYear() === d.getFullYear() &&
+                  cur.getMonth() === d.getMonth() &&
+                  cur.getDate() === d.getDate()
+                    ? null
+                    : d
+                );
+              }}
+            />
+          </div>
+        )}
+
+        {/* Active day filter chip */}
+        {selectedDay && (
+          <div className="mb-3 flex items-center gap-2 text-xs">
+            <span className="text-muted-foreground">Showing tasks due</span>
+            <span className="rounded-full bg-primary/10 px-2 py-0.5 font-medium text-primary">
+              {selectedDay.toLocaleDateString("en-US", {
+                weekday: "short",
+                month: "short",
+                day: "numeric",
+              })}
+            </span>
+            <button
+              type="button"
+              onClick={() => setSelectedDay(null)}
+              className="rounded-lg border border-border/60 px-2 py-0.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              Clear
+            </button>
+          </div>
+        )}
+
         <div className="space-y-3">
           {loading ? (
             Array.from({ length: 3 }).map((_, i) => (
@@ -943,8 +983,12 @@ function HomePage() {
                 You're all caught up. Enjoy the quiet.
               </p>
             </Card>
+          ) : filteredTodos.length === 0 ? (
+            <Card className="rounded-2xl border-border/60 p-8 text-center text-sm text-muted-foreground">
+              No tasks due on this day.
+            </Card>
           ) : (
-            visibleTodos.map((t) => (
+            filteredTodos.map((t) => (
               <TodoRow
                 key={t.id}
                 todo={t}
