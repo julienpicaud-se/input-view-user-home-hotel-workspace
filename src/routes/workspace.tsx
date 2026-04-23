@@ -810,6 +810,7 @@ function HomePage() {
                 id="co2e"
                 active={activeChart}
                 onSelect={setActiveChart}
+                onExplain={setExplainerChart}
                 title="CO₂e emissions"
                 subtitle="Estimated kg CO₂e per month."
                 aside={<BarChart3 className="h-5 w-5 text-muted-foreground" />}
