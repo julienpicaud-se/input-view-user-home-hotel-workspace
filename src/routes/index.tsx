@@ -485,6 +485,19 @@ function HomePage() {
     const items: Todo[] = [];
     const expected = { year: summary.expectedYear, month: summary.expectedMonth };
     const allComplete = summary.hotelProgress.every((h) => h.complete);
+    // Logging deadline for the expected reporting period (10th of next month)
+    const logDue = loggingDueDate(expected.year, expected.month);
+    // Anomalies are time-sensitive — give a tighter deadline (3 days from today)
+    const anomalyDue = (() => {
+      const d = new Date();
+      d.setDate(d.getDate() + 3);
+      return d;
+    })();
+    // Generic engagement tasks — end of the current month
+    const engagementDue = (() => {
+      const now = new Date();
+      return new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    })();
 
     // Per-hotel "log data" tasks — auto-mark done when all 5 fields are filled
     if (summary.hotelProgress.length === 0) {
@@ -497,6 +510,7 @@ function HomePage() {
         tone: "warning",
         target: { kind: "workspace", tab: "settings" },
         dismissible: false,
+        dueDate: logDue,
       });
     } else if (allComplete) {
       items.push({
@@ -508,6 +522,7 @@ function HomePage() {
         tone: "muted",
         target: { kind: "workspace", tab: "log" },
         dismissible: false,
+        dueDate: logDue,
       });
     } else {
       for (const h of summary.hotelProgress) {
@@ -529,6 +544,7 @@ function HomePage() {
           tone: h.complete ? "muted" : h.filledCount > 0 ? "primary" : "warning",
           target: { kind: "workspace", tab: "log", hotelId: h.id },
           dismissible: !h.complete,
+          dueDate: logDue,
         });
       }
     }
@@ -544,6 +560,7 @@ function HomePage() {
         tone: "danger",
         target: { kind: "workspace", tab: "overview", hotelId: a.hotelId },
         dismissible: true,
+        dueDate: anomalyDue,
       });
     }
 
@@ -557,18 +574,30 @@ function HomePage() {
       tone: "primary",
       target: { kind: "workspace", tab: "benchmarks" },
       dismissible: true,
+      dueDate: engagementDue,
     });
 
     return items;
   }, [summary]);
 
+  // Sort: open tasks first, then by soonest due date, then done tasks at the end.
+  // Tasks without a due date sink below dated ones within their group.
+  const sortTodos = React.useCallback((list: Todo[]) => {
+    return [...list].sort((a, b) => {
+      if (a.done !== b.done) return a.done ? 1 : -1;
+      const at = a.dueDate ? a.dueDate.getTime() : Number.POSITIVE_INFINITY;
+      const bt = b.dueDate ? b.dueDate.getTime() : Number.POSITIVE_INFINITY;
+      return at - bt;
+    });
+  }, []);
+
   const visibleTodos = React.useMemo(
-    () => allTodos.filter((t) => !dismissed.has(t.id)),
-    [allTodos, dismissed]
+    () => sortTodos(allTodos.filter((t) => !dismissed.has(t.id))),
+    [allTodos, dismissed, sortTodos]
   );
   const dismissedTodos = React.useMemo(
-    () => allTodos.filter((t) => dismissed.has(t.id)),
-    [allTodos, dismissed]
+    () => sortTodos(allTodos.filter((t) => dismissed.has(t.id))),
+    [allTodos, dismissed, sortTodos]
   );
 
   const dataQualityIssues: DataQualityIssue[] = React.useMemo(() => {
