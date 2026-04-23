@@ -336,6 +336,68 @@ function HomePage() {
   const g = greeting();
   const firstName = (profile?.display_name?.split(" ")[0] || "Julien").trim();
 
+  // Build a stable signature so we cache the briefing per portfolio state + name.
+  const briefingSignature = React.useMemo(() => {
+    if (!summary) return null;
+    const latest = summary.latestEntry;
+    return [
+      firstName,
+      summary.hotelCount,
+      latest ? `${latest.year}-${latest.month}` : "none",
+      Math.round(summary.co2eLatest),
+      Math.round(summary.co2ePrev),
+      summary.hotelProgress.reduce((acc, h) => acc + h.filledCount, 0),
+      summary.anomalies.length,
+    ].join("|");
+  }, [summary, firstName]);
+
+  const fetchBriefing = React.useCallback(
+    async (force = false) => {
+      if (!briefingSignature) return;
+      const cacheKey = `ra-plus-briefing:${briefingSignature}`;
+      if (!force && typeof window !== "undefined") {
+        const cached = window.localStorage.getItem(cacheKey);
+        if (cached) {
+          try {
+            setBriefing(JSON.parse(cached) as BriefingPayload);
+            setBriefingError(null);
+            return;
+          } catch {
+            // fall through
+          }
+        }
+      }
+      setBriefingLoading(true);
+      setBriefingError(null);
+      try {
+        const res = await callBriefing({ data: { firstName } });
+        if (res.ok) {
+          setBriefing(res.briefing);
+          if (typeof window !== "undefined") {
+            try {
+              window.localStorage.setItem(cacheKey, JSON.stringify(res.briefing));
+            } catch {
+              // ignore quota errors
+            }
+          }
+        } else {
+          setBriefingError(res.error);
+        }
+      } catch (e) {
+        console.error("Briefing fetch failed:", e);
+        setBriefingError("Briefing unavailable right now.");
+      } finally {
+        setBriefingLoading(false);
+      }
+    },
+    [briefingSignature, callBriefing, firstName]
+  );
+
+  React.useEffect(() => {
+    if (!briefingSignature) return;
+    void fetchBriefing(false);
+  }, [briefingSignature, fetchBriefing]);
+
   // Build the full task list (deep-linked, per-hotel where useful)
   const allTodos: Todo[] = React.useMemo(() => {
     if (!summary) return [];
