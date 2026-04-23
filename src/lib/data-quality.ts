@@ -142,9 +142,8 @@ export function buildDataQualityIssues({
         }
       }
 
-      // 4. Implausible percentages
+      // 4. Implausible percentages (recycled only — renewable_pct intentionally excluded)
       const pctFields: { key: keyof MonthlyEntry; label: string }[] = [
-        { key: "renewable_pct", label: "Renewable %" },
         { key: "recycled_pct", label: "Recycled %" },
       ];
       for (const f of pctFields) {
