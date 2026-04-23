@@ -1359,6 +1359,7 @@ function MonthlyChangeSummary({
   currentBreakdown,
   previousBreakdown,
   onDriverClick,
+  onAskSera,
 }: {
   latest: MonthlyEntry | undefined;
   prev: MonthlyEntry | undefined;
@@ -1367,6 +1368,7 @@ function MonthlyChangeSummary({
   currentBreakdown: ScoreBreakdown;
   previousBreakdown: ScoreBreakdown;
   onDriverClick?: (fieldKey: HighlightedField) => void;
+  onAskSera?: (prompt: string) => void;
 }) {
   const summary = React.useMemo(() => {
     type Driver = {
