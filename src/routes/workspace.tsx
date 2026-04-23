@@ -2800,6 +2800,7 @@ function HotelSettingsPanel({
     setYearBuilt(hotel.year_built != null ? String(hotel.year_built) : "");
     setFloors(hotel.floors != null ? String(hotel.floors) : "");
     setPropertyType(hotel.property_type ?? "");
+    setLocked(true);
   }
 
   return (
