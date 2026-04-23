@@ -859,43 +859,6 @@ function HomePage() {
         )}
       </section>
 
-      {/* Quick links */}
-      <section>
-        <div className="mb-4">
-          <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-            Shortcuts
-          </div>
-          <h2 className="font-serif text-2xl font-semibold text-foreground">
-            Jump into the workspace
-          </h2>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <ShortcutLink
-            to="/workspace"
-            search={{ tab: "overview" }}
-            icon={Building2}
-            title="Overview"
-          />
-          <ShortcutLink
-            to="/workspace"
-            search={{ tab: "log" }}
-            icon={Flame}
-            title="Add data"
-          />
-          <ShortcutLink
-            to="/workspace"
-            search={{ tab: "benchmarks" }}
-            icon={Users}
-            title="Peer benchmarks"
-          />
-          <ShortcutLink
-            to="/workspace"
-            search={{ tab: "analyze" }}
-            icon={Sparkles}
-            title="Hotel insights"
-          />
-        </div>
-      </section>
     </PageContainer>
   );
 }
