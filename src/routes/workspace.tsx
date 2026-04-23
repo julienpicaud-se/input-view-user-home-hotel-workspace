@@ -1152,6 +1152,7 @@ function ChartExplainerCard({
   }, [chartId, hasMissingFields, worstUtilityLabel]);
 
   return (
+    <>
     <Card className="rounded-3xl border-border/70 bg-gradient-to-br from-card to-accent/5 p-5">
       <div className="flex items-start gap-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
