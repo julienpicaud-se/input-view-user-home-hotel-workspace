@@ -120,8 +120,32 @@ export function AppSidebar() {
         })}
       </nav>
 
-      {collapsed && (
-        <div className="border-t border-border/60 p-2">
+      <div className="border-t border-border/60 px-2 py-3 space-y-1">
+        {(() => {
+          const item = PROFILE_ITEM;
+          const Icon = item.icon;
+          const path = location.pathname;
+          const isActive = item.matchPrefix
+            ? path === item.matchPrefix || path.startsWith(item.matchPrefix + "/")
+            : path === item.to;
+          return (
+            <Link
+              to={item.to}
+              className={cn(
+                "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+                isActive
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                collapsed && "justify-center px-0"
+              )}
+              title={collapsed ? item.label : undefined}
+            >
+              <Icon className="h-4 w-4 shrink-0" />
+              {!collapsed && <span className="truncate">{item.label}</span>}
+            </Link>
+          );
+        })()}
+        {collapsed && (
           <button
             type="button"
             aria-label="Expand sidebar"
@@ -130,8 +154,8 @@ export function AppSidebar() {
           >
             <ChevronLeft className="h-4 w-4 rotate-180" />
           </button>
-        </div>
-      )}
+        )}
+      </div>
     </aside>
   );
 }
