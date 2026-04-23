@@ -967,31 +967,6 @@ function TodoRow({
   );
 }
 
-function ShortcutLink({
-  to,
-  search,
-  icon: Icon,
-  title,
-}: {
-  to: string;
-  search?: Record<string, string>;
-  icon: React.ComponentType<{ className?: string }>;
-  title: string;
-}) {
-  return (
-    <Link
-      to={to as never}
-      search={search as never}
-      className="group flex items-center gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3.5 text-sm font-medium text-foreground transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-sm"
-    >
-      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
-        <Icon className="h-4 w-4" />
-      </span>
-      <span className="flex-1">{title}</span>
-      <ArrowRight className="h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
-    </Link>
-  );
-}
 
 const FIELD_META: Record<
   RequiredField,
