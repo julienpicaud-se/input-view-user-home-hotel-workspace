@@ -620,22 +620,7 @@ function HomePage() {
         <div className="mt-6 h-px gold-divider" />
       </header>
 
-      {/* AI personalised briefing from Sera */}
-      <section className="mb-12">
-        <SeraBriefingCard
-          firstName={firstName}
-          loading={loading || (briefingLoading && !briefing)}
-          briefing={briefing}
-          error={briefingError}
-          refreshing={briefingLoading && Boolean(briefing)}
-          onRefresh={() => void fetchBriefing(true, briefingFocusPayload)}
-          onAsk={() => {
-            void navigate({ to: "/workspace", search: { tab: "analyze" } });
-          }}
-        />
-      </section>
-
-      {/* Briefing */}
+      {/* Briefing — Your portfolio at a glance (top of page) */}
       <section className="mb-12">
         <div className="mb-4 flex items-end justify-between">
           <div>
@@ -766,6 +751,21 @@ function HomePage() {
             </div>
           </Card>
         )}
+      </section>
+
+      {/* AI personalised briefing from Sera — focused on to-dos & data quality */}
+      <section className="mb-12">
+        <SeraBriefingCard
+          firstName={firstName}
+          loading={loading || (briefingLoading && !briefing)}
+          briefing={briefing}
+          error={briefingError}
+          refreshing={briefingLoading && Boolean(briefing)}
+          onRefresh={() => void fetchBriefing(true, briefingFocusPayload)}
+          onAsk={() => {
+            void navigate({ to: "/workspace", search: { tab: "analyze" } });
+          }}
+        />
       </section>
 
       {/* Reporting progress */}
