@@ -40,6 +40,7 @@ import {
   Lock,
   Unlock,
   MessageCircle,
+  X,
 } from "lucide-react";
 import {
   ResponsiveContainer,
