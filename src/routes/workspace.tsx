@@ -2873,6 +2873,7 @@ function HotelSettingsPanel({
               value={rooms}
               onChange={(e) => setRooms(e.target.value)}
               placeholder="120"
+              disabled={locked}
             />
           </div>
 
