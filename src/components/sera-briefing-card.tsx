@@ -394,9 +394,9 @@ export function SeraBriefingCard({
               )}
 
               {/* Suggested clarification questions */}
-              {briefing.questions.length > 0 && !pending && (
+              {(briefing.questions?.length ?? 0) > 0 && !pending && (
                 <div className="flex flex-wrap gap-1.5 px-3 pt-3">
-                  {briefing.questions.map((q) => (
+                  {(briefing.questions ?? []).map((q) => (
                     <button
                       key={q}
                       type="button"
