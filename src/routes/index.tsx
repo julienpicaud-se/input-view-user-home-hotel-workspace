@@ -1230,8 +1230,6 @@ function GlanceCard({
   );
 }
 
-
-const FIELD_META: Record<
 // Per-utility brand colors for the field tiles. Filled = saturated colored tile,
 // missing = muted neutral. Keeps the row instantly scannable.
 const FIELD_META: Record<
