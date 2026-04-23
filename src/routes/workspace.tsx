@@ -75,6 +75,7 @@ import {
   type Utility,
 } from "@/lib/peer-benchmarks";
 import { PageContainer } from "@/components/page-shell";
+import { SeraGuidedLog } from "@/components/sera-guided-log";
 
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
