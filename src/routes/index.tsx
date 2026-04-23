@@ -768,6 +768,7 @@ function HomePage() {
                 : "—"
             }
             valueSize="md"
+            badges={glanceBadges.latest}
             footer={summary?.latestEntry?.hotel_name ?? "No entries yet"}
           />
 
