@@ -3,15 +3,21 @@ import {
   AlertOctagon,
   AlertTriangle,
   ArrowRight,
+  CalendarX,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  Clock,
+  Gauge,
   Info,
+  MinusCircle,
   ShieldCheck,
+  TrendingUp,
+  Users,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { DataQualityIssue, DqSeverity } from "@/lib/data-quality";
+import type { DataQualityIssue, DqKind, DqSeverity } from "@/lib/data-quality";
 import { summariseIssues } from "@/lib/data-quality";
 
 interface DataQualityCardProps {
@@ -22,19 +28,19 @@ interface DataQualityCardProps {
 
 const severityStyle: Record<
   DqSeverity,
-  { chip: string; icon: React.ComponentType<{ className?: string }> }
+  { chip: string; iconColor: string }
 > = {
   critical: {
     chip: "border-destructive/30 bg-destructive/10 text-destructive",
-    icon: AlertOctagon,
+    iconColor: "text-destructive",
   },
   warning: {
     chip: "border-warning/30 bg-warning/10 text-warning",
-    icon: AlertTriangle,
+    iconColor: "text-warning",
   },
   info: {
     chip: "border-border/60 bg-muted text-muted-foreground",
-    icon: Info,
+    iconColor: "text-muted-foreground",
   },
 };
 
@@ -44,12 +50,61 @@ const SEVERITY_LABEL: Record<DqSeverity, string> = {
   info: "Info",
 };
 
+const KIND_META: Record<
+  DqKind,
+  { icon: React.ComponentType<{ className?: string }>; label: string }
+> = {
+  "missing-month": { icon: CalendarX, label: "Missing month" },
+  "zero-or-negative": { icon: MinusCircle, label: "Negative value" },
+  "implausible-range": { icon: Gauge, label: "Out of range" },
+  "low-occupancy": { icon: Users, label: "Low occupancy" },
+  "huge-jump": { icon: TrendingUp, label: "Sudden jump" },
+  "stale-data": { icon: Clock, label: "Stale data" },
+};
+
+const SEVERITY_RANK: Record<DqSeverity, number> = {
+  critical: 0,
+  warning: 1,
+  info: 2,
+};
+
+/**
+ * Build a "diversified" preview list: pick the worst issue of each kind first
+ * so the collapsed view shows variety (e.g. one missing-month, one out-of-range,
+ * one jump) instead of three identical rows.
+ */
+function diversifyIssues(issues: DataQualityIssue[], n: number): DataQualityIssue[] {
+  if (issues.length <= n) return issues;
+  const seenKinds = new Set<DqKind>();
+  const picked: DataQualityIssue[] = [];
+  // First pass: one of each kind (issues are already severity-sorted)
+  for (const i of issues) {
+    if (picked.length >= n) break;
+    if (!seenKinds.has(i.kind)) {
+      picked.push(i);
+      seenKinds.add(i.kind);
+    }
+  }
+  // Second pass: fill remainder with next-most-severe regardless of kind
+  if (picked.length < n) {
+    const pickedIds = new Set(picked.map((p) => p.id));
+    for (const i of issues) {
+      if (picked.length >= n) break;
+      if (!pickedIds.has(i.id)) picked.push(i);
+    }
+  }
+  // Re-sort the preview by severity so critical stays on top
+  picked.sort((a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity]);
+  return picked;
+}
+
 export function DataQualityCard({ loading, issues, onIssueClick }: DataQualityCardProps) {
   const [expanded, setExpanded] = React.useState(false);
   const summary = React.useMemo(() => summariseIssues(issues), [issues]);
 
-  const visibleIssues = expanded ? issues : issues.slice(0, 3);
-  const hasMore = issues.length > 3;
+  const previewIssues = React.useMemo(() => diversifyIssues(issues, 3), [issues]);
+  const visibleIssues = expanded ? issues : previewIssues;
+  const hasMore = issues.length > previewIssues.length;
 
   return (
     <Card className="overflow-hidden rounded-2xl border-border/60">
@@ -112,40 +167,9 @@ export function DataQualityCard({ loading, issues, onIssueClick }: DataQualityCa
       ) : (
         <>
           <ul className="divide-y divide-border/60">
-            {visibleIssues.map((issue) => {
-              const sev = severityStyle[issue.severity];
-              const Icon = sev.icon;
-              return (
-                <li key={issue.id}>
-                  <button
-                    type="button"
-                    onClick={() => onIssueClick(issue)}
-                    className="group flex w-full items-start gap-3 px-5 py-4 text-left transition-colors hover:bg-muted/40"
-                  >
-                    <span
-                      className={`mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border ${sev.chip}`}
-                      aria-label={SEVERITY_LABEL[issue.severity]}
-                    >
-                      <Icon className="h-3.5 w-3.5" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-baseline gap-x-2">
-                        <span className="text-sm font-medium text-foreground">
-                          {issue.title}
-                        </span>
-                        <span className="truncate text-xs text-muted-foreground">
-                          · {issue.hotelName}
-                        </span>
-                      </div>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        {issue.detail}
-                      </p>
-                    </div>
-                    <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
-                  </button>
-                </li>
-              );
-            })}
+            {visibleIssues.map((issue) => (
+              <IssueRow key={issue.id} issue={issue} onClick={() => onIssueClick(issue)} />
+            ))}
           </ul>
           {hasMore && (
             <button
@@ -170,9 +194,81 @@ export function DataQualityCard({ loading, issues, onIssueClick }: DataQualityCa
   );
 }
 
+/** Pull a numeric snippet out of the detail string for visual emphasis. */
+function extractValueSnippet(issue: DataQualityIssue): string | null {
+  if (issue.kind === "missing-month" || issue.kind === "stale-data") return null;
+  const detail = issue.detail;
+  // Match patterns like "12.34 kWh/room-night", "150%", "-200kWh", "1234 room-nights"
+  const patterns = [
+    /(-?\d+(?:\.\d+)?\s*(?:kWh\/room-night|m³\/room-night|kg\/room-night))/,
+    /(-?\d+(?:\.\d+)?\s*%)/,
+    /(-?\d+(?:\.\d+)?(?:kWh|m³|kg))/,
+    /(\d+\s*room-nights)/,
+  ];
+  for (const re of patterns) {
+    const m = detail.match(re);
+    if (m) return m[1].trim();
+  }
+  return null;
+}
+
+function IssueRow({
+  issue,
+  onClick,
+}: {
+  issue: DataQualityIssue;
+  onClick: () => void;
+}) {
+  const sev = severityStyle[issue.severity];
+  const kindMeta = KIND_META[issue.kind];
+  const KindIcon = kindMeta.icon;
+  const valueSnippet = extractValueSnippet(issue);
+
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={onClick}
+        className="group flex w-full items-start gap-3 px-5 py-4 text-left transition-colors hover:bg-muted/40"
+      >
+        <span
+          className={`mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${sev.chip}`}
+          aria-label={SEVERITY_LABEL[issue.severity]}
+          title={SEVERITY_LABEL[issue.severity]}
+        >
+          <KindIcon className="h-3.5 w-3.5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="text-sm font-medium text-foreground">{issue.title}</span>
+            {valueSnippet && (
+              <span
+                className={`inline-flex items-center rounded-md border px-1.5 py-0.5 font-mono text-[11px] tabular-nums ${sev.chip}`}
+              >
+                {valueSnippet}
+              </span>
+            )}
+          </div>
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1">
+              <span className="h-1 w-1 rounded-full bg-muted-foreground/50" />
+              {kindMeta.label}
+            </span>
+            <span aria-hidden>·</span>
+            <span className="truncate">{issue.hotelName}</span>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground/90">{issue.detail}</p>
+        </div>
+        <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
+      </button>
+    </li>
+  );
+}
+
 function SeverityPill({ severity, count }: { severity: DqSeverity; count: number }) {
   const sev = severityStyle[severity];
-  const Icon = sev.icon;
+  const Icon =
+    severity === "critical" ? AlertOctagon : severity === "warning" ? AlertTriangle : Info;
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${sev.chip}`}
