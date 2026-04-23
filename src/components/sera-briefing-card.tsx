@@ -56,7 +56,32 @@ export function SeraBriefingCard({
   const [input, setInput] = React.useState("");
   const [pending, setPending] = React.useState(false);
   const [hydrated, setHydrated] = React.useState(false);
+  const [searchOpen, setSearchOpen] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState("");
   const scrollRef = React.useRef<HTMLDivElement | null>(null);
+
+  const filteredTurns = React.useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return turns.map((turn, index) => ({ turn, index }));
+    return turns
+      .map((turn, index) => ({ turn, index }))
+      .filter(({ turn }) => turn.content.toLowerCase().includes(q));
+  }, [turns, searchQuery]);
+
+  function highlight(content: string): React.ReactNode {
+    const q = searchQuery.trim();
+    if (!q) return content;
+    const parts = content.split(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi"));
+    return parts.map((part, i) =>
+      part.toLowerCase() === q.toLowerCase() ? (
+        <mark key={i} className="rounded bg-warning/40 px-0.5 text-foreground">
+          {part}
+        </mark>
+      ) : (
+        <React.Fragment key={i}>{part}</React.Fragment>
+      ),
+    );
+  }
 
   // Load persisted chat history when hotel changes
   React.useEffect(() => {
