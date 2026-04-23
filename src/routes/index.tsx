@@ -628,7 +628,7 @@ function HomePage() {
           briefing={briefing}
           error={briefingError}
           refreshing={briefingLoading && Boolean(briefing)}
-          onRefresh={() => void fetchBriefing(true)}
+          onRefresh={() => void fetchBriefing(true, briefingFocusPayload)}
           onAsk={() => {
             void navigate({ to: "/workspace", search: { tab: "analyze" } });
           }}
