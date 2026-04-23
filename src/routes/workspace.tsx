@@ -1371,6 +1371,19 @@ function MonthlyChangeSummary({
   onDriverClick?: (fieldKey: HighlightedField) => void;
   onAskSera?: (prompt: string) => void;
 }) {
+  const send = useServerFn(sendAssistantMessage);
+  const [chatTurns, setChatTurns] = React.useState<ChatMsg[]>([]);
+  const [chatInput, setChatInput] = React.useState("");
+  const [chatPending, setChatPending] = React.useState(false);
+  const chatScrollRef = React.useRef<HTMLDivElement | null>(null);
+
+  React.useEffect(() => {
+    chatScrollRef.current?.scrollTo({
+      top: chatScrollRef.current.scrollHeight,
+      behavior: "smooth",
+    });
+  }, [chatTurns, chatPending]);
+
   const summary = React.useMemo(() => {
     type Driver = {
       key: HighlightedField;
