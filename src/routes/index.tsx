@@ -419,10 +419,6 @@ function HomePage() {
     [briefingSignature, callBriefing, firstName]
   );
 
-  React.useEffect(() => {
-    if (!briefingSignature) return;
-    void fetchBriefing(false);
-  }, [briefingSignature, fetchBriefing]);
 
   // Build the full task list (deep-linked, per-hotel where useful)
   const allTodos: Todo[] = React.useMemo(() => {
