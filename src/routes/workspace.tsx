@@ -1252,9 +1252,14 @@ function ChartExplainerCard({
         <div className="flex flex-wrap gap-2">
           <ActionChip
             icon={<Wand2 className="h-3.5 w-3.5" />}
-            label="Ask Sera for a recommendation"
+            label="Ask Sera for more recommendations"
             primary
-            onClick={() => onAskSera(actionConfig.ask)}
+            onClick={() =>
+              setActionPanel({
+                action: `More recommendations for "${CHART_TITLES[chartId]}"`,
+                prompt: actionConfig.ask,
+              })
+            }
           />
         </div>
       </div>
