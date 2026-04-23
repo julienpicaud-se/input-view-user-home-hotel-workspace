@@ -486,7 +486,7 @@ function HomePage() {
     });
 
     return items;
-  }, [summary, profile]);
+  }, [summary]);
 
   const visibleTodos = React.useMemo(
     () => allTodos.filter((t) => !dismissed.has(t.id)),
