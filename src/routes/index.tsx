@@ -22,8 +22,6 @@ import {
   EyeOff,
   Droplets,
   Trash2,
-  Check,
-  Minus,
   RefreshCw,
   CalendarClock,
 } from "lucide-react";
@@ -1355,7 +1353,7 @@ function HotelProgressRow({
                   : "bg-muted/50 text-muted-foreground/70 ring-1 ring-inset ring-border/40"
               }`}
             >
-              <Icon className="h-3.5 w-3.5" strokeWidth={2} />
+              <Icon className="h-3.5 w-3.5" />
             </div>
           );
         })}
