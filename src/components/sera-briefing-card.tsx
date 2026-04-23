@@ -1,16 +1,24 @@
+import * as React from "react";
 import {
   AlertTriangle,
   ArrowRight,
+  Loader2,
+  MessageCircle,
   Minus,
   RefreshCw,
+  Send,
   Sparkles,
   TrendingDown,
   Wand2,
 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { BriefingPayload } from "@/server/assistant.functions";
+import { sendAssistantMessage, type BriefingPayload } from "@/server/assistant.functions";
+import { getActiveHotelId } from "@/lib/hotel";
 
 interface SeraBriefingCardProps {
   firstName: string;
@@ -22,6 +30,11 @@ interface SeraBriefingCardProps {
   onAsk: () => void;
 }
 
+interface ChatTurn {
+  role: "user" | "assistant";
+  content: string;
+}
+
 export function SeraBriefingCard({
   firstName,
   loading,
@@ -31,6 +44,63 @@ export function SeraBriefingCard({
   onRefresh,
   onAsk,
 }: SeraBriefingCardProps) {
+  const send = useServerFn(sendAssistantMessage);
+  const [turns, setTurns] = React.useState<ChatTurn[]>([]);
+  const [input, setInput] = React.useState("");
+  const [pending, setPending] = React.useState(false);
+  const scrollRef = React.useRef<HTMLDivElement | null>(null);
+
+  React.useEffect(() => {
+    scrollRef.current?.scrollTo({
+      top: scrollRef.current.scrollHeight,
+      behavior: "smooth",
+    });
+  }, [turns, pending]);
+
+  async function handleAsk(text: string) {
+    const trimmed = text.trim();
+    if (!trimmed || pending) return;
+
+    // Build a short context message so Sera knows what briefing the user is reacting to.
+    const briefingContext = briefing
+      ? `Context — today's briefing for ${firstName}:\nHeadline: ${briefing.headline}\nSummary: ${briefing.summary}\nFocus: ${briefing.focus}`
+      : "";
+
+    const history: ChatTurn[] = [];
+    if (briefingContext && turns.length === 0) {
+      history.push({ role: "assistant", content: briefingContext });
+    }
+    history.push(...turns);
+
+    const userTurn: ChatTurn = { role: "user", content: trimmed };
+    setTurns((t) => [...t, userTurn]);
+    setInput("");
+    setPending(true);
+
+    try {
+      const res = await send({
+        data: {
+          message: trimmed,
+          history,
+          hotelId: getActiveHotelId(),
+        },
+      });
+      if (res.ok) {
+        setTurns((t) => [...t, { role: "assistant", content: res.content }]);
+      } else {
+        toast.error(res.error);
+        setTurns((t) => t.slice(0, -1));
+      }
+    } catch {
+      toast.error("Something went wrong");
+      setTurns((t) => t.slice(0, -1));
+    } finally {
+      setPending(false);
+    }
+  }
+
+  const showChat = turns.length > 0 || pending;
+
   return (
     <Card className="relative overflow-hidden rounded-2xl border-border/60 bg-gradient-to-br from-primary/8 via-card to-accent/12 p-5 md:p-6">
       <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-primary/10 blur-3xl" />
@@ -133,10 +203,111 @@ export function SeraBriefingCard({
                   <span className="text-muted-foreground">{briefing.focus}</span>
                 </span>
               </div>
-              <Button size="sm" variant="default" onClick={onAsk} className="shrink-0">
-                Ask Sera
+              <Button size="sm" variant="outline" onClick={onAsk} className="shrink-0">
+                Open analysis
                 <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
               </Button>
+            </div>
+
+            {/* Inline chat with Sera */}
+            <div className="rounded-xl border border-border/50 bg-background/40">
+              <div className="flex items-center justify-between gap-2 border-b border-border/50 px-3 py-2">
+                <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                  <MessageCircle className="h-3.5 w-3.5" />
+                  Ask Sera about this briefing
+                </div>
+                {turns.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setTurns([])}
+                    className="text-[11px] text-muted-foreground hover:text-foreground"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+
+              {showChat && (
+                <div
+                  ref={scrollRef}
+                  className="max-h-72 space-y-3 overflow-y-auto px-3 py-3"
+                >
+                  {turns.map((t, i) => (
+                    <div
+                      key={i}
+                      className={`flex ${t.role === "user" ? "justify-end" : "justify-start"}`}
+                    >
+                      <div
+                        className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed ${
+                          t.role === "user"
+                            ? "bg-primary text-primary-foreground"
+                            : "border border-border/60 bg-card text-foreground"
+                        }`}
+                      >
+                        {t.role === "user" ? (
+                          <div className="whitespace-pre-wrap">{t.content}</div>
+                        ) : (
+                          <div className="prose prose-sm max-w-none prose-p:my-1.5 prose-p:text-foreground prose-strong:text-foreground prose-li:my-0.5 prose-ul:my-1.5">
+                            <ReactMarkdown>{t.content}</ReactMarkdown>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  {pending && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Sera is thinking…
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Suggested clarification questions */}
+              {briefing.questions.length > 0 && !pending && (
+                <div className="flex flex-wrap gap-1.5 px-3 pt-3">
+                  {briefing.questions.map((q) => (
+                    <button
+                      key={q}
+                      type="button"
+                      onClick={() => void handleAsk(q)}
+                      className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/60 px-2.5 py-1 text-xs text-foreground transition hover:border-primary/40 hover:bg-primary/5"
+                    >
+                      {q}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void handleAsk(input);
+                }}
+                className="flex items-end gap-2 px-3 py-3"
+              >
+                <textarea
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      void handleAsk(input);
+                    }
+                  }}
+                  placeholder="Ask a follow-up question…"
+                  rows={1}
+                  className="flex-1 resize-none rounded-lg border border-border/60 bg-background px-3 py-2 text-sm focus:border-primary/40 focus:outline-none focus:ring-1 focus:ring-primary/30"
+                />
+                <Button
+                  type="submit"
+                  size="icon"
+                  disabled={pending || !input.trim()}
+                  className="h-9 w-9 shrink-0 rounded-lg"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              </form>
             </div>
           </>
         ) : null}
