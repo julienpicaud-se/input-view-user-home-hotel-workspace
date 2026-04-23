@@ -1519,8 +1519,19 @@ function HotelProgressRow({
         })}
       </div>
 
-      {/* Progress: thicker gradient bar + status-tinted count chip */}
-      <div className="flex w-36 shrink-0 items-center gap-2.5">
+      {/* Progress: % label + thicker gradient bar + status-tinted count chip */}
+      <div className="flex w-52 shrink-0 items-center gap-2.5">
+        <span
+          className={`w-9 shrink-0 text-right font-serif text-sm font-semibold tabular-nums ${
+            progress.complete
+              ? "text-success"
+              : empty
+                ? "text-warning-foreground"
+                : "text-foreground"
+          }`}
+        >
+          {pct}%
+        </span>
         <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-muted/70 ring-1 ring-inset ring-border/40">
           <div
             className={`h-full rounded-full bg-gradient-to-r shadow-[0_0_0_1px_color-mix(in_oklab,currentColor_25%,transparent)] transition-all ${
