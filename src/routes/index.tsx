@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import * as React from "react";
 import {
   ArrowRight,
@@ -735,11 +735,21 @@ function HomePage() {
     <PageContainer>
       {/* Welcome */}
       <header className="mb-10">
-        <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-          <g.icon className="h-3.5 w-3.5" />
-          <span>{g.label}</span>
-          <span className="text-border">·</span>
-          <span>{todayLabel()}</span>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+            <g.icon className="h-3.5 w-3.5" />
+            <span>{g.label}</span>
+            <span className="text-border">·</span>
+            <span>{todayLabel()}</span>
+          </div>
+          <Link
+            to="/workspace"
+            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground transition hover:border-primary/40 hover:bg-accent/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Building2 className="h-3.5 w-3.5 text-secondary" />
+            Hotel workspace
+            <ArrowRight className="h-3 w-3" />
+          </Link>
         </div>
         <h1 className="mt-3 font-serif text-4xl md:text-5xl font-semibold leading-[1.05] text-foreground">
           Welcome back, {firstName}.
