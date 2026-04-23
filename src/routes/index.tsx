@@ -601,6 +601,47 @@ function HomePage() {
     void navigate({ to: "/workspace", search: { tab: "log" } });
   }
 
+  // Build the unified list of items the AI insights panel should explain.
+  // We combine utility spikes (from summary.anomalies, threshold ≥20%) with
+  // the higher-severity data-quality issues (critical + warning), capped to
+  // keep the prompt — and the panel — focused.
+  const explainableAnomalies: ExplainableAnomaly[] = React.useMemo(() => {
+    const items: ExplainableAnomaly[] = [];
+    if (summary) {
+      for (const a of summary.anomalies) {
+        items.push({
+          id: `spike-${a.hotelId}-${a.year}-${a.month}-${a.utility}`,
+          hotelId: a.hotelId,
+          hotelName: a.hotelName,
+          kind: "spike",
+          severity: a.pctChange >= 50 ? "critical" : "warning",
+          title: `${UTILITY_LABEL[a.utility]} spiked ${a.pctChange.toFixed(0)}% at ${a.hotelName}`,
+          detail: `${periodLabel(a.year, a.month)} vs prior month`,
+          year: a.year,
+          month: a.month,
+          utility: a.utility,
+          pctChange: a.pctChange,
+        });
+      }
+    }
+    for (const i of dataQualityIssues) {
+      if (i.severity === "info") continue;
+      items.push({
+        id: i.id,
+        hotelId: i.hotelId,
+        hotelName: i.hotelName,
+        kind: i.kind,
+        severity: i.severity,
+        title: i.title,
+        detail: i.detail,
+        year: i.year,
+        month: i.month,
+      });
+    }
+    // Cap to 8 — the AI handles up to 12 but we keep things skimmable.
+    return items.slice(0, 8);
+  }, [summary, dataQualityIssues]);
+
   // Data-quality badges shown on the "Latest data" and "CO₂e" glance cards.
   // We restrict to issues that affect the latest reporting period the cards
   // are summarising, so the badges reflect what the user is looking at.
