@@ -553,6 +553,81 @@ function HomePage() {
     void navigate({ to: "/workspace", search: { tab: "log" } });
   }
 
+  // Data-quality badges shown on the "Latest data" and "CO₂e" glance cards.
+  // We restrict to issues that affect the latest reporting period the cards
+  // are summarising, so the badges reflect what the user is looking at.
+  const glanceBadges = React.useMemo(() => {
+    const empty = { latest: [] as GlanceBadge[], co2e: [] as GlanceBadge[] };
+    if (!summary?.latestEntry || dataQualityIssues.length === 0) return empty;
+    const ly = summary.latestEntry.year;
+    const lm = summary.latestEntry.month;
+
+    const inLatest = dataQualityIssues.filter(
+      (i) => (i.year === ly && i.month === lm) || i.kind === "stale-data"
+    );
+
+    // ---- Latest data card ----
+    const latestBadges: GlanceBadge[] = [];
+    const missing = inLatest.filter((i) => i.kind === "missing-month");
+    if (missing.length > 0) {
+      latestBadges.push({
+        tone: "danger",
+        label: `${missing.length} missing`,
+        title: missing.map((m) => `${m.hotelName}: ${m.title}`).join("\n"),
+      });
+    }
+    const anomaliesLatest = inLatest.filter(
+      (i) =>
+        i.kind === "huge-jump" ||
+        i.kind === "implausible-range" ||
+        i.kind === "zero-or-negative" ||
+        i.kind === "low-occupancy"
+    );
+    if (anomaliesLatest.length > 0) {
+      latestBadges.push({
+        tone: "warning",
+        label: `${anomaliesLatest.length} ${anomaliesLatest.length === 1 ? "anomaly" : "anomalies"}`,
+        title: anomaliesLatest.map((a) => `${a.hotelName}: ${a.title}`).join("\n"),
+      });
+    }
+    const stale = dataQualityIssues.filter((i) => i.kind === "stale-data");
+    if (stale.length > 0) {
+      latestBadges.push({
+        tone: "info",
+        label: `${stale.length} stale`,
+        title: stale.map((s) => `${s.hotelName}: ${s.title}`).join("\n"),
+      });
+    }
+
+    // ---- CO2e card ----
+    // The CO2e total only sums hotels that reported in the latest period.
+    // If some hotels are missing, flag the total as incomplete.
+    const co2eBadges: GlanceBadge[] = [];
+    if (missing.length > 0) {
+      co2eBadges.push({
+        tone: "warning",
+        label: `Excludes ${missing.length} ${missing.length === 1 ? "hotel" : "hotels"}`,
+        title:
+          "These hotels haven't logged the latest period yet, so the CO₂e total under-represents the portfolio.\n\n" +
+          missing.map((m) => `• ${m.hotelName}`).join("\n"),
+      });
+    }
+    // Anomalies on the utilities that feed CO₂e (electricity, gas, waste)
+    const co2eAnomalies = anomaliesLatest.filter((i) =>
+      /electricity|gas|waste/i.test(i.title)
+    );
+    if (co2eAnomalies.length > 0) {
+      co2eBadges.push({
+        tone: "warning",
+        label: `${co2eAnomalies.length} suspect ${co2eAnomalies.length === 1 ? "reading" : "readings"}`,
+        title: co2eAnomalies.map((a) => `${a.hotelName}: ${a.title}`).join("\n"),
+      });
+    }
+
+    return { latest: latestBadges, co2e: co2eBadges };
+  }, [dataQualityIssues, summary]);
+
+
   // Build the focus payload (todos + issues) for the Sera briefing
   const briefingFocusPayload = React.useMemo(() => {
     return {
@@ -693,6 +768,7 @@ function HomePage() {
                 : "—"
             }
             valueSize="md"
+            badges={glanceBadges.latest}
             footer={summary?.latestEntry?.hotel_name ?? "No entries yet"}
           />
 
@@ -708,6 +784,7 @@ function HomePage() {
             }
             unit="kg"
             tone={co2Change === null ? "neutral" : co2Down ? "positive" : "warning"}
+            badges={glanceBadges.co2e}
             footer={
               co2Change !== null ? (
                 <span
@@ -983,6 +1060,12 @@ function TodoRow({
   );
 }
 
+interface GlanceBadge {
+  label: string;
+  tone: "warning" | "danger" | "info";
+  title?: string;
+}
+
 function GlanceCard({
   label,
   icon: Icon,
@@ -992,6 +1075,7 @@ function GlanceCard({
   footer,
   valueSize = "lg",
   tone = "neutral",
+  badges,
 }: {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
@@ -1001,11 +1085,17 @@ function GlanceCard({
   footer?: React.ReactNode;
   valueSize?: "md" | "lg";
   tone?: "neutral" | "positive" | "warning";
+  badges?: GlanceBadge[];
 }) {
   const accentByTone: Record<typeof tone, string> = {
     neutral: "bg-primary/10 text-primary",
     positive: "bg-success/10 text-success",
     warning: "bg-warning/10 text-warning",
+  };
+  const badgeStyle: Record<GlanceBadge["tone"], string> = {
+    danger: "bg-destructive/10 text-destructive ring-destructive/20",
+    warning: "bg-warning/10 text-warning ring-warning/20",
+    info: "bg-muted text-muted-foreground ring-border",
   };
   return (
     <Card className="group relative overflow-hidden rounded-2xl border-border/60 p-5 transition-all hover:border-border hover:shadow-sm">
@@ -1020,7 +1110,7 @@ function GlanceCard({
               : "bg-primary/30"
         }`}
       />
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
           {label}
         </div>
@@ -1045,6 +1135,21 @@ function GlanceCard({
           {unit && (
             <span className="text-sm text-muted-foreground">{unit}</span>
           )}
+        </div>
+      )}
+
+      {!loading && badges && badges.length > 0 && (
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          {badges.map((b, i) => (
+            <span
+              key={`${b.label}-${i}`}
+              title={b.title}
+              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-medium ring-1 ring-inset ${badgeStyle[b.tone]}`}
+            >
+              <AlertTriangle className="h-2.5 w-2.5" />
+              {b.label}
+            </span>
+          ))}
         </div>
       )}
 
