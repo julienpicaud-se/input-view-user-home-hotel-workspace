@@ -744,9 +744,9 @@ function HomePage() {
           </div>
           <Link
             to="/workspace"
-            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground transition hover:border-primary/40 hover:bg-accent/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary px-3.5 py-1.5 text-xs font-medium text-primary-foreground shadow-sm transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <Building2 className="h-3.5 w-3.5 text-secondary" />
+            <Building2 className="h-3.5 w-3.5" />
             Hotel workspace
             <ArrowRight className="h-3 w-3" />
           </Link>
