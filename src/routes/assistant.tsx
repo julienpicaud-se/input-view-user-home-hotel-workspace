@@ -1,17 +1,23 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import { Send, Sparkles, Loader2, Hotel as HotelIcon } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
+import { z } from "zod";
 import { PageContainer, PageHeader } from "@/components/page-shell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { sendAssistantMessage } from "@/server/assistant.functions";
 import { getActiveHotelId } from "@/lib/hotel";
 
+const assistantSearchSchema = z.object({
+  prompt: z.string().optional(),
+});
+
 export const Route = createFileRoute("/assistant")({
+  validateSearch: assistantSearchSchema,
   head: () => ({
     meta: [
       { title: "AI assistant — RA+" },
@@ -38,10 +44,13 @@ const STARTER_PROMPTS = [
 
 function AssistantPage() {
   const send = useServerFn(sendAssistantMessage);
+  const navigate = useNavigate();
+  const search = Route.useSearch();
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [input, setInput] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const scrollRef = React.useRef<HTMLDivElement | null>(null);
+  const consumedPromptRef = React.useRef<string | null>(null);
 
   React.useEffect(() => {
     scrollRef.current?.scrollTo({
