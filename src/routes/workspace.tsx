@@ -2919,6 +2919,7 @@ function HotelSettingsPanel({
               value={floors}
               onChange={(e) => setFloors(e.target.value)}
               placeholder="6"
+              disabled={locked}
             />
           </div>
 
