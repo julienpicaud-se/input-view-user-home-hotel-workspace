@@ -111,7 +111,7 @@ import { BenchmarksPanel } from "@/components/benchmarks-panel";
 
 type IndexSearch = { tab?: "overview" | "log" | "analyze" | "settings" | "benchmarks" };
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/workspace")({
   validateSearch: (search: Record<string, unknown>): IndexSearch => {
     const tab = search.tab;
     if (tab === "overview" || tab === "log" || tab === "analyze" || tab === "settings" || tab === "benchmarks") {

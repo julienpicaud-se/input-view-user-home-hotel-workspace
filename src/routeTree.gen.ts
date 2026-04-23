@@ -9,13 +9,18 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WorkspaceRouteImport } from './routes/workspace'
 import { Route as LogRouteImport } from './routes/log'
 import { Route as HotelRouteImport } from './routes/hotel'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as BenchmarksRouteImport } from './routes/benchmarks'
 import { Route as AssistantRouteImport } from './routes/assistant'
-import { Route as IndexRouteImport } from './routes/index'
 
+const WorkspaceRoute = WorkspaceRouteImport.update({
+  id: '/workspace',
+  path: '/workspace',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LogRoute = LogRouteImport.update({
   id: '/log',
   path: '/log',
@@ -41,63 +46,77 @@ const AssistantRoute = AssistantRouteImport.update({
   path: '/assistant',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
   '/assistant': typeof AssistantRoute
   '/benchmarks': typeof BenchmarksRoute
   '/history': typeof HistoryRoute
   '/hotel': typeof HotelRoute
   '/log': typeof LogRoute
+  '/workspace': typeof WorkspaceRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
   '/assistant': typeof AssistantRoute
   '/benchmarks': typeof BenchmarksRoute
   '/history': typeof HistoryRoute
   '/hotel': typeof HotelRoute
   '/log': typeof LogRoute
+  '/workspace': typeof WorkspaceRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
   '/assistant': typeof AssistantRoute
   '/benchmarks': typeof BenchmarksRoute
   '/history': typeof HistoryRoute
   '/hotel': typeof HotelRoute
   '/log': typeof LogRoute
+  '/workspace': typeof WorkspaceRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/assistant' | '/benchmarks' | '/history' | '/hotel' | '/log'
-  fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/assistant' | '/benchmarks' | '/history' | '/hotel' | '/log'
-  id:
-    | '__root__'
-    | '/'
+  fullPaths:
     | '/assistant'
     | '/benchmarks'
     | '/history'
     | '/hotel'
     | '/log'
+    | '/workspace'
+  fileRoutesByTo: FileRoutesByTo
+  to:
+    | '/assistant'
+    | '/benchmarks'
+    | '/history'
+    | '/hotel'
+    | '/log'
+    | '/workspace'
+  id:
+    | '__root__'
+    | '/assistant'
+    | '/benchmarks'
+    | '/history'
+    | '/hotel'
+    | '/log'
+    | '/workspace'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
   AssistantRoute: typeof AssistantRoute
   BenchmarksRoute: typeof BenchmarksRoute
   HistoryRoute: typeof HistoryRoute
   HotelRoute: typeof HotelRoute
   LogRoute: typeof LogRoute
+  WorkspaceRoute: typeof WorkspaceRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/workspace': {
+      id: '/workspace'
+      path: '/workspace'
+      fullPath: '/workspace'
+      preLoaderRoute: typeof WorkspaceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/log': {
       id: '/log'
       path: '/log'
@@ -133,23 +152,16 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AssistantRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
   AssistantRoute: AssistantRoute,
   BenchmarksRoute: BenchmarksRoute,
   HistoryRoute: HistoryRoute,
   HotelRoute: HotelRoute,
   LogRoute: LogRoute,
+  WorkspaceRoute: WorkspaceRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
