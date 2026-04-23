@@ -2904,6 +2904,7 @@ function HotelSettingsPanel({
               value={yearBuilt}
               onChange={(e) => setYearBuilt(e.target.value)}
               placeholder="1998"
+              disabled={locked}
             />
           </div>
 
