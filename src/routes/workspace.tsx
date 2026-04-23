@@ -414,6 +414,13 @@ function HomePage() {
     <PageContainer>
       {/* Hero header */}
       <header className="mb-6">
+        <Link
+          to="/"
+          className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition hover:border-primary/40 hover:bg-accent/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" />
+          Back to My home
+        </Link>
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
