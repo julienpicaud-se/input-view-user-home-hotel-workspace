@@ -840,6 +840,7 @@ function HomePage() {
                 id="intensity"
                 active={activeChart}
                 onSelect={setActiveChart}
+                onExplain={setExplainerChart}
                 title="Intensity per room-night"
                 subtitle="Normalised consumption — independent of occupancy."
                 aside={
@@ -884,6 +885,7 @@ function HomePage() {
                 id="peer"
                 active={activeChart}
                 onSelect={setActiveChart}
+                onExplain={setExplainerChart}
                 title="Peer comparison"
                 subtitle={`vs ${cohortSize} similar Mediterranean hotels`}
                 aside={<Trophy className="h-5 w-5" style={{ color: "var(--champagne)" }} />}
