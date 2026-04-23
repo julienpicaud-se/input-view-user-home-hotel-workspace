@@ -26,6 +26,14 @@ export interface DataQualityIssue {
   // Lets the UI render explicit "Expected 5–150 kWh/room-night · got 212.40" chips.
   observed?: { value: number; unit: string };
   expected?: { min: number; max: number; unit: string };
+  // Which monthly_entries column this issue refers to (used to deep-link the
+  // user to the editable cell in /history).
+  field?:
+    | "electricity_kwh"
+    | "gas_kwh"
+    | "water_m3"
+    | "waste_kg"
+    | "occupied_room_nights";
 }
 
 interface BuildIssuesArgs {
