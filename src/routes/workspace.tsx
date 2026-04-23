@@ -2888,6 +2888,7 @@ function HotelSettingsPanel({
               value={totalSurface}
               onChange={(e) => setTotalSurface(e.target.value)}
               placeholder="8500"
+              disabled={locked}
             />
           </div>
 
