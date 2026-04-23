@@ -1224,6 +1224,16 @@ function ChartExplainerCard({
             {CHART_TITLES[chartId]}
           </h3>
         </div>
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="-mr-1 -mt-1 inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+            aria-label="Close explainer"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
       </div>
 
       <div className="mt-4 min-h-[180px]">
