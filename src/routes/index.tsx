@@ -46,7 +46,6 @@ import { generateBriefing, type BriefingPayload } from "@/server/assistant.funct
 import { SeraBriefingCard } from "@/components/sera-briefing-card";
 import { DataQualityCard } from "@/components/data-quality-card";
 import { buildDataQualityIssues, type DataQualityIssue } from "@/lib/data-quality";
-import { TodoCalendar } from "@/components/todo-calendar";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -216,9 +215,6 @@ function HomePage() {
   const [summary, setSummary] = React.useState<PortfolioSummary | null>(null);
   const [dismissed, setDismissed] = React.useState<Set<string>>(() => loadDismissed());
   const [showDismissed, setShowDismissed] = React.useState(false);
-  // When set, the to-do list is filtered to tasks due on this exact day
-  // (driven by clicks on the monthly calendar).
-  const [selectedDay, setSelectedDay] = React.useState<Date | null>(null);
   const [briefing, setBriefing] = React.useState<BriefingPayload | null>(null);
   const [briefingLoading, setBriefingLoading] = React.useState(false);
   const [briefingError, setBriefingError] = React.useState<string | null>(null);
