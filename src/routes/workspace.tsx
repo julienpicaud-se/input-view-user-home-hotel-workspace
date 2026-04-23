@@ -1649,6 +1649,7 @@ function MonthlyChangeSummary({
                   )}
                 </div>
               </PopoverContent>
+            </Popover>
             </div>
           )}
 
