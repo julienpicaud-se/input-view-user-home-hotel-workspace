@@ -2634,6 +2634,8 @@ function HotelSettingsPanel({
   const [saving, setSaving] = React.useState(false);
   const [changes, setChanges] = React.useState<SettingsChange[]>([]);
   const [logLoading, setLogLoading] = React.useState(false);
+  // The form is read-only by default; user must explicitly unlock to edit.
+  const [locked, setLocked] = React.useState(true);
 
   React.useEffect(() => {
     if (hotel) {
