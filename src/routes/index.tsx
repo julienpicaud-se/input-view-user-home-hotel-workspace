@@ -1232,14 +1232,41 @@ function GlanceCard({
 
 
 const FIELD_META: Record<
+// Per-utility brand colors for the field tiles. Filled = saturated colored tile,
+// missing = muted neutral. Keeps the row instantly scannable.
+const FIELD_META: Record<
   RequiredField,
-  { label: string; icon: React.ComponentType<{ className?: string }> }
+  {
+    label: string;
+    icon: React.ComponentType<{ className?: string }>;
+    filled: string; // tile + icon styles when this field is logged
+  }
 > = {
-  electricity: { label: "Electricity", icon: Bolt },
-  gas: { label: "Gas", icon: Flame },
-  water: { label: "Water", icon: Droplets },
-  waste: { label: "Waste", icon: Trash2 },
-  occupancy: { label: "Occupancy", icon: Users },
+  electricity: {
+    label: "Electricity",
+    icon: Bolt,
+    filled: "bg-amber-500/15 text-amber-600 ring-amber-500/30",
+  },
+  gas: {
+    label: "Gas",
+    icon: Flame,
+    filled: "bg-orange-500/15 text-orange-600 ring-orange-500/30",
+  },
+  water: {
+    label: "Water",
+    icon: Droplets,
+    filled: "bg-sky-500/15 text-sky-600 ring-sky-500/30",
+  },
+  waste: {
+    label: "Waste",
+    icon: Trash2,
+    filled: "bg-emerald-500/15 text-emerald-600 ring-emerald-500/30",
+  },
+  occupancy: {
+    label: "Occupancy",
+    icon: Users,
+    filled: "bg-violet-500/15 text-violet-600 ring-violet-500/30",
+  },
 };
 
 const FIELD_ORDER: RequiredField[] = ["electricity", "gas", "water", "waste", "occupancy"];
