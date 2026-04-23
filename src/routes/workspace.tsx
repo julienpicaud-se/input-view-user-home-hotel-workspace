@@ -4400,7 +4400,7 @@ function MiniAssistantCard({
       : "max-h-[360px] min-h-[280px]";
 
   return (
-    <Card className="flex h-full flex-col overflow-hidden rounded-3xl border-border/70 p-0">
+    <Card data-sera-assistant className="flex h-full flex-col overflow-hidden rounded-3xl border-border/70 p-0">
       <div className="flex items-center gap-2 border-b border-border/60 px-5 py-4">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
           <Sparkles className="h-4 w-4" />
