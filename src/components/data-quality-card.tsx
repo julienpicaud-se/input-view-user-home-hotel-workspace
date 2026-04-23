@@ -188,7 +188,7 @@ export function DataQualityCard({ loading, issues, onIssueClick }: DataQualityCa
                 </>
               ) : (
                 <>
-                  Show all {rangeIssues.length} out-of-range values{" "}
+                  Show all {rangeIssues.length} issues{" "}
                   <ChevronDown className="h-3.5 w-3.5" />
                 </>
               )}
