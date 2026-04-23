@@ -198,6 +198,8 @@ export function buildDataQualityIssues({
             detail: `${occ} room-nights but capacity is only ${capacity}.`,
             year: entry.year,
             month: entry.month,
+            observed: { value: occ, unit: "room-nights" },
+            expected: { min: 0, max: capacity, unit: "room-nights" },
           });
         }
       }
