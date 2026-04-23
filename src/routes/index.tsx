@@ -20,6 +20,10 @@ import {
   X,
   Eye,
   EyeOff,
+  Droplets,
+  Trash2,
+  Check,
+  Minus,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { setActiveHotelId, type Hotel, type MonthlyEntry } from "@/lib/hotel";
@@ -58,8 +62,28 @@ interface PortfolioSummary {
   co2eLatest: number;
   co2ePrev: number;
   totalElectricity: number;
-  hotelsMissingCurrent: { id: string; name: string; lastPeriod: string | null }[];
+  expectedYear: number;
+  expectedMonth: number;
+  hotelProgress: HotelProgress[];
   anomalies: Anomaly[];
+}
+
+type RequiredField =
+  | "electricity"
+  | "gas"
+  | "water"
+  | "waste"
+  | "occupancy";
+
+interface HotelProgress {
+  id: string;
+  name: string;
+  lastPeriod: string | null;
+  // Status of each required field for the expected reporting month
+  fields: Record<RequiredField, boolean>;
+  filledCount: number;
+  totalCount: number; // always 5
+  complete: boolean;
 }
 
 interface Anomaly {
@@ -213,30 +237,36 @@ function HomePage() {
         }
       }
 
-      // Missing-data list for the expected period
+      // Per-hotel progress for the expected reporting period
       const expected = expectedReportingPeriod();
-      const hotelsMissingCurrent = hotels
-        .filter((h) => {
-          return !entries.some(
-            (e) =>
-              e.hotel_id === h.id &&
-              e.year === expected.year &&
-              e.month === expected.month
-          );
-        })
-        .map((h) => {
-          const hotelEntries = entries
-            .filter((e) => e.hotel_id === h.id)
-            .sort((a, b) =>
-              a.year !== b.year ? b.year - a.year : b.month - a.month
-            );
-          const last = hotelEntries[0];
-          return {
-            id: h.id,
-            name: h.name,
-            lastPeriod: last ? periodLabel(last.year, last.month) : null,
-          };
-        });
+      const hotelProgress: HotelProgress[] = hotels.map((h) => {
+        const expectedEntry = entries.find(
+          (e) => e.hotel_id === h.id && e.year === expected.year && e.month === expected.month
+        );
+        const filled = (v: number | null | undefined) =>
+          v !== null && v !== undefined && Number(v) > 0;
+        const fields: Record<RequiredField, boolean> = {
+          electricity: filled(expectedEntry?.electricity_kwh ?? null),
+          gas: filled(expectedEntry?.gas_kwh ?? null),
+          water: filled(expectedEntry?.water_m3 ?? null),
+          waste: filled(expectedEntry?.waste_kg ?? null),
+          occupancy: filled(expectedEntry?.occupied_room_nights ?? null),
+        };
+        const filledCount = Object.values(fields).filter(Boolean).length;
+        const hotelEntries = entries
+          .filter((e) => e.hotel_id === h.id)
+          .sort((a, b) => (a.year !== b.year ? b.year - a.year : b.month - a.month));
+        const last = hotelEntries[0];
+        return {
+          id: h.id,
+          name: h.name,
+          lastPeriod: last ? periodLabel(last.year, last.month) : null,
+          fields,
+          filledCount,
+          totalCount: 5,
+          complete: filledCount === 5,
+        };
+      });
 
       // Anomaly detection: for each hotel's most recent entry, compare each
       // utility to its prior month. Flag >20% increase as a spike.
@@ -287,7 +317,9 @@ function HomePage() {
         co2eLatest,
         co2ePrev,
         totalElectricity,
-        hotelsMissingCurrent,
+        expectedYear: expected.year,
+        expectedMonth: expected.month,
+        hotelProgress,
         anomalies: topAnomalies,
       });
       setLoading(false);
@@ -301,14 +333,26 @@ function HomePage() {
   const allTodos: Todo[] = React.useMemo(() => {
     if (!summary) return [];
     const items: Todo[] = [];
-    const expected = expectedReportingPeriod();
+    const expected = { year: summary.expectedYear, month: summary.expectedMonth };
+    const allComplete = summary.hotelProgress.every((h) => h.complete);
 
-    // Per-hotel "log data" tasks
-    if (summary.hotelsMissingCurrent.length === 0) {
+    // Per-hotel "log data" tasks — auto-mark done when all 5 fields are filled
+    if (summary.hotelProgress.length === 0) {
+      items.push({
+        id: "log-no-hotels",
+        title: "Add your first hotel to start logging",
+        description: "Once you have a hotel, monthly data tasks will appear here.",
+        cta: "Open workspace",
+        done: false,
+        tone: "warning",
+        target: { kind: "workspace", tab: "settings" },
+        dismissible: false,
+      });
+    } else if (allComplete) {
       items.push({
         id: "log-up-to-date",
-        title: "All monthly data is up to date",
-        description: "Every hotel has reported the expected period.",
+        title: `${MONTH_NAMES[expected.month - 1]} ${expected.year} data is complete`,
+        description: "Every hotel has all required fields filled in.",
         cta: "Open log",
         done: true,
         tone: "muted",
@@ -316,18 +360,25 @@ function HomePage() {
         dismissible: false,
       });
     } else {
-      for (const m of summary.hotelsMissingCurrent) {
+      for (const h of summary.hotelProgress) {
+        const remaining = h.totalCount - h.filledCount;
         items.push({
-          id: `log-${m.id}-${expected.year}-${expected.month}`,
-          title: `Log ${MONTH_NAMES[expected.month - 1]} ${expected.year} for ${m.name}`,
-          description: m.lastPeriod
-            ? `Last entry: ${m.lastPeriod}. Add electricity, gas, water and waste in ~2 min.`
-            : "No data yet for this hotel — start with the most recent month.",
-          cta: "Add data",
-          done: false,
-          tone: "warning",
-          target: { kind: "workspace", tab: "log", hotelId: m.id },
-          dismissible: true,
+          id: `log-${h.id}-${expected.year}-${expected.month}`,
+          title: h.complete
+            ? `${h.name}: ${MONTH_NAMES[expected.month - 1]} ${expected.year} fully logged`
+            : `Log ${MONTH_NAMES[expected.month - 1]} ${expected.year} for ${h.name}`,
+          description: h.complete
+            ? "All 5 fields filled — electricity, gas, water, waste, occupancy."
+            : h.filledCount === 0
+              ? h.lastPeriod
+                ? `Last entry: ${h.lastPeriod}. Add electricity, gas, water, waste and occupancy.`
+                : "No data yet — start with the most recent month."
+              : `${h.filledCount}/${h.totalCount} filled — ${remaining} ${remaining === 1 ? "field" : "fields"} to go.`,
+          cta: h.complete ? "View" : "Add data",
+          done: h.complete,
+          tone: h.complete ? "muted" : h.filledCount > 0 ? "primary" : "warning",
+          target: { kind: "workspace", tab: "log", hotelId: h.id },
+          dismissible: !h.complete,
         });
       }
     }
@@ -599,6 +650,52 @@ function HomePage() {
         )}
       </section>
 
+      {/* Reporting progress */}
+      <section className="mb-12">
+        <div className="mb-4 flex items-end justify-between gap-3">
+          <div>
+            <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              Reporting progress
+            </div>
+            <h2 className="font-serif text-2xl font-semibold text-foreground">
+              {summary
+                ? `${MONTH_NAMES[summary.expectedMonth - 1]} ${summary.expectedYear}`
+                : "Expected period"}
+            </h2>
+          </div>
+          {summary && summary.hotelProgress.length > 0 && (
+            <PortfolioProgressBadge progress={summary.hotelProgress} />
+          )}
+        </div>
+
+        <Card className="overflow-hidden rounded-2xl border-border/60">
+          {loading ? (
+            <div className="space-y-3 p-5">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </div>
+          ) : !summary || summary.hotelProgress.length === 0 ? (
+            <div className="p-8 text-center text-sm text-muted-foreground">
+              Add a hotel to start tracking monthly reporting progress.
+            </div>
+          ) : (
+            <div className="divide-y divide-border/60">
+              {summary.hotelProgress.map((h) => (
+                <HotelProgressRow
+                  key={h.id}
+                  progress={h}
+                  onClick={() => {
+                    setActiveHotelId(h.id);
+                    void navigate({ to: "/workspace", search: { tab: "log" } });
+                  }}
+                />
+              ))}
+            </div>
+          )}
+        </Card>
+      </section>
+
       {/* To-dos */}
       <section className="mb-12">
         <div className="mb-4 flex items-end justify-between gap-3">
@@ -842,5 +939,136 @@ function ShortcutLink({
       <span className="flex-1">{title}</span>
       <ArrowRight className="h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
     </Link>
+  );
+}
+
+const FIELD_META: Record<
+  RequiredField,
+  { label: string; icon: React.ComponentType<{ className?: string }> }
+> = {
+  electricity: { label: "Electricity", icon: Bolt },
+  gas: { label: "Gas", icon: Flame },
+  water: { label: "Water", icon: Droplets },
+  waste: { label: "Waste", icon: Trash2 },
+  occupancy: { label: "Occupancy", icon: Users },
+};
+
+const FIELD_ORDER: RequiredField[] = ["electricity", "gas", "water", "waste", "occupancy"];
+
+function PortfolioProgressBadge({ progress }: { progress: HotelProgress[] }) {
+  const totalFields = progress.length * 5;
+  const filled = progress.reduce((acc, h) => acc + h.filledCount, 0);
+  const pct = totalFields === 0 ? 0 : Math.round((filled / totalFields) * 100);
+  const allDone = pct === 100;
+  return (
+    <div className="flex items-center gap-3 text-xs">
+      <div className="flex flex-col items-end leading-tight">
+        <span className="font-serif text-base font-semibold text-foreground">{pct}%</span>
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+          {filled}/{totalFields} fields
+        </span>
+      </div>
+      <div className="h-2 w-24 overflow-hidden rounded-full bg-muted">
+        <div
+          className={`h-full transition-all ${allDone ? "bg-success" : "bg-primary"}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function HotelProgressRow({
+  progress,
+  onClick,
+}: {
+  progress: HotelProgress;
+  onClick: () => void;
+}) {
+  const pct = Math.round((progress.filledCount / progress.totalCount) * 100);
+  const remaining = progress.totalCount - progress.filledCount;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group flex w-full items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-muted/40"
+    >
+      <div
+        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+          progress.complete
+            ? "bg-success/15 text-success"
+            : progress.filledCount > 0
+              ? "bg-primary/10 text-primary"
+              : "bg-warning/15 text-warning"
+        }`}
+      >
+        {progress.complete ? (
+          <CheckCircle2 className="h-4 w-4" />
+        ) : (
+          <ClipboardList className="h-4 w-4" />
+        )}
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <span className="truncate text-sm font-medium text-foreground">{progress.name}</span>
+          {progress.complete && (
+            <span className="rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-success">
+              Complete
+            </span>
+          )}
+        </div>
+        <div className="mt-0.5 text-xs text-muted-foreground">
+          {progress.complete
+            ? "All 5 fields logged"
+            : progress.filledCount === 0
+              ? progress.lastPeriod
+                ? `Nothing yet — last entry ${progress.lastPeriod}`
+                : "No data yet"
+              : `${remaining} ${remaining === 1 ? "field" : "fields"} to go`}
+        </div>
+      </div>
+
+      <div className="hidden items-center gap-1.5 sm:flex">
+        {FIELD_ORDER.map((f) => {
+          const filled = progress.fields[f];
+          const Icon = FIELD_META[f].icon;
+          return (
+            <div
+              key={f}
+              title={`${FIELD_META[f].label}: ${filled ? "logged" : "missing"}`}
+              className={`relative flex h-8 w-8 items-center justify-center rounded-lg border transition-colors ${
+                filled
+                  ? "border-success/40 bg-success/10 text-success"
+                  : "border-border/60 bg-muted/40 text-muted-foreground"
+              }`}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              <span
+                className={`absolute -bottom-0.5 -right-0.5 flex h-3 w-3 items-center justify-center rounded-full ${
+                  filled ? "bg-success text-success-foreground" : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {filled ? <Check className="h-2 w-2" /> : <Minus className="h-2 w-2" />}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="flex w-20 shrink-0 flex-col items-end gap-1">
+        <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+          <div
+            className={`h-full transition-all ${progress.complete ? "bg-success" : "bg-primary"}`}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+        <span className="text-[10px] tabular-nums text-muted-foreground">
+          {progress.filledCount}/{progress.totalCount}
+        </span>
+      </div>
+
+      <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
+    </button>
   );
 }
