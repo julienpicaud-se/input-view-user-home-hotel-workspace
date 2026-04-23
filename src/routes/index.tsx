@@ -359,9 +359,22 @@ function HomePage() {
   }, [summary, firstName]);
 
   const fetchBriefing = React.useCallback(
-    async (force = false) => {
+    async (
+      force = false,
+      payload?: {
+        todos: { title: string; description?: string; done?: boolean; tone?: Todo["tone"] }[];
+        issues: { hotelName: string; severity: DataQualityIssue["severity"]; title: string; detail?: string }[];
+      }
+    ) => {
       if (!briefingSignature) return;
-      const cacheKey = `ra-plus-briefing:${briefingSignature}`;
+      // Build a focus-signature so the cache invalidates when todos/issues change
+      const focusSig = payload
+        ? `${payload.todos.filter((t) => !t.done).length}t-${payload.issues.length}i-${payload.issues
+            .slice(0, 6)
+            .map((i) => `${i.severity[0]}${i.hotelName.slice(0, 4)}`)
+            .join(",")}`
+        : "no-focus";
+      const cacheKey = `ra-plus-briefing:${briefingSignature}:${focusSig}`;
       if (!force && typeof window !== "undefined") {
         const cached = window.localStorage.getItem(cacheKey);
         if (cached) {
@@ -377,7 +390,13 @@ function HomePage() {
       setBriefingLoading(true);
       setBriefingError(null);
       try {
-        const res = await callBriefing({ data: { firstName } });
+        const res = await callBriefing({
+          data: {
+            firstName,
+            todos: payload?.todos,
+            issues: payload?.issues,
+          },
+        });
         if (res.ok) {
           setBriefing(res.briefing);
           if (typeof window !== "undefined") {
