@@ -983,6 +983,12 @@ function TodoRow({
   );
 }
 
+interface GlanceBadge {
+  label: string;
+  tone: "warning" | "danger" | "info";
+  title?: string;
+}
+
 function GlanceCard({
   label,
   icon: Icon,
@@ -992,6 +998,7 @@ function GlanceCard({
   footer,
   valueSize = "lg",
   tone = "neutral",
+  badges,
 }: {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
@@ -1001,11 +1008,17 @@ function GlanceCard({
   footer?: React.ReactNode;
   valueSize?: "md" | "lg";
   tone?: "neutral" | "positive" | "warning";
+  badges?: GlanceBadge[];
 }) {
   const accentByTone: Record<typeof tone, string> = {
     neutral: "bg-primary/10 text-primary",
     positive: "bg-success/10 text-success",
     warning: "bg-warning/10 text-warning",
+  };
+  const badgeStyle: Record<GlanceBadge["tone"], string> = {
+    danger: "bg-destructive/10 text-destructive ring-destructive/20",
+    warning: "bg-warning/10 text-warning ring-warning/20",
+    info: "bg-muted text-muted-foreground ring-border",
   };
   return (
     <Card className="group relative overflow-hidden rounded-2xl border-border/60 p-5 transition-all hover:border-border hover:shadow-sm">
@@ -1020,7 +1033,7 @@ function GlanceCard({
               : "bg-primary/30"
         }`}
       />
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
           {label}
         </div>
@@ -1045,6 +1058,21 @@ function GlanceCard({
           {unit && (
             <span className="text-sm text-muted-foreground">{unit}</span>
           )}
+        </div>
+      )}
+
+      {!loading && badges && badges.length > 0 && (
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          {badges.map((b, i) => (
+            <span
+              key={`${b.label}-${i}`}
+              title={b.title}
+              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-medium ring-1 ring-inset ${badgeStyle[b.tone]}`}
+            >
+              <AlertTriangle className="h-2.5 w-2.5" />
+              {b.label}
+            </span>
+          ))}
         </div>
       )}
 
