@@ -1123,6 +1123,33 @@ function TodoRow({
   );
 }
 
+function DueBadge({ due, done }: { due: Date; done: boolean }) {
+  const { label, tone } = formatDue(due, done);
+  const cls =
+    tone === "overdue"
+      ? "bg-destructive/10 text-destructive ring-1 ring-destructive/20"
+      : tone === "soon"
+        ? "bg-warning/15 text-warning-foreground ring-1 ring-warning/30"
+        : tone === "done"
+          ? "bg-muted text-muted-foreground"
+          : "bg-muted/60 text-muted-foreground";
+  const fullDate = due.toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+  return (
+    <span
+      title={fullDate}
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider ${cls}`}
+    >
+      <CalendarClock className="h-3 w-3" />
+      {label}
+    </span>
+  );
+}
+
 interface GlanceBadge {
   label: string;
   tone: "warning" | "danger" | "info";
