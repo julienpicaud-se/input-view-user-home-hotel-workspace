@@ -242,9 +242,9 @@ export function SeraBriefingCard({
               {briefing.summary}
             </p>
 
-            {briefing.highlights.length > 0 && (
+            {(briefing.highlights?.length ?? 0) > 0 && (
               <div className="flex flex-wrap gap-2">
-                {briefing.highlights.map((h, i) => {
+                {(briefing.highlights ?? []).map((h, i) => {
                   const tone =
                     h.tone === "positive"
                       ? "border-success/30 bg-success/10 text-success"
