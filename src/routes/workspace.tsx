@@ -915,8 +915,8 @@ function HomePage() {
                       toast.success(`Draft started for ${latest ? `${MONTH_NAMES[latest.month - 1]} ${latest.year}` : "this month"}`);
                     }}
                     onAskSera={(prompt) => {
-                      setPendingPrompt(prompt);
                       toast.success("Sera is on it");
+                      void navigate({ to: "/assistant", search: { prompt } });
                     }}
                     onHighlightFix={() => {
                       const fields =
