@@ -8,6 +8,7 @@ import {
 import type { ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AppSidebar } from "@/components/app-sidebar";
 
 import appCss from "../styles.css?url";
 
@@ -25,7 +26,7 @@ function NotFoundComponent() {
             to="/"
             className="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            Back to Dashboard
+            Back to Home
           </Link>
         </div>
       </div>
@@ -87,25 +88,36 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
-function TopBar() {
+function MobileTopBar() {
   return (
-    <header className="sticky top-0 z-30 border-b border-border/60 bg-background/85 backdrop-blur-md">
-      <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-4 md:px-10">
-        <Link to="/" className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <span className="font-serif text-lg font-semibold">V</span>
-          </div>
-          <div className="leading-tight">
-            <div className="font-serif text-lg">RA+</div>
-            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-              Hotel workspace
-            </div>
-          </div>
-        </Link>
-        <div className="hidden items-center gap-2 text-xs text-muted-foreground md:flex">
-          <span className="h-1.5 w-1.5 rounded-full bg-success" />
-          All systems live
+    <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border/60 bg-background/85 px-5 py-4 backdrop-blur-md md:hidden">
+      <Link to="/" className="flex items-center gap-2.5">
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+          <span className="font-serif text-lg font-semibold">V</span>
         </div>
+        <div className="leading-tight">
+          <div className="font-serif text-lg">RA+</div>
+          <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+            Sustainability
+          </div>
+        </div>
+      </Link>
+      <div className="flex items-center gap-3 text-xs">
+        <Link
+          to="/"
+          className="rounded-lg px-2.5 py-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+          activeProps={{ className: "rounded-lg px-2.5 py-1.5 bg-primary text-primary-foreground" }}
+          activeOptions={{ exact: true }}
+        >
+          Home
+        </Link>
+        <Link
+          to="/workspace"
+          className="rounded-lg px-2.5 py-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+          activeProps={{ className: "rounded-lg px-2.5 py-1.5 bg-primary text-primary-foreground" }}
+        >
+          Workspace
+        </Link>
       </div>
     </header>
   );
@@ -114,13 +126,17 @@ function TopBar() {
 function RootComponent() {
   return (
     <TooltipProvider delayDuration={200}>
-      <div className="min-h-screen w-full bg-background text-foreground">
-        <TopBar />
-        <main>
-          <Outlet />
-        </main>
+      <div className="flex min-h-screen w-full bg-background text-foreground">
+        <AppSidebar />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <MobileTopBar />
+          <main className="flex-1">
+            <Outlet />
+          </main>
+        </div>
       </div>
       <Toaster richColors position="top-center" />
     </TooltipProvider>
   );
 }
+
