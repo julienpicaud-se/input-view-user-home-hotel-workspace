@@ -600,17 +600,6 @@ function HomePage() {
     [allTodos, dismissed, sortTodos]
   );
 
-  // Tasks shown in the list — narrowed when a calendar day is selected.
-  const filteredTodos = React.useMemo(() => {
-    if (!selectedDay) return visibleTodos;
-    return visibleTodos.filter(
-      (t) =>
-        t.dueDate &&
-        t.dueDate.getFullYear() === selectedDay.getFullYear() &&
-        t.dueDate.getMonth() === selectedDay.getMonth() &&
-        t.dueDate.getDate() === selectedDay.getDate()
-    );
-  }, [visibleTodos, selectedDay]);
 
   const dataQualityIssues: DataQualityIssue[] = React.useMemo(() => {
     if (!summary || hotels.length === 0) return [];
