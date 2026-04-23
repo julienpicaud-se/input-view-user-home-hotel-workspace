@@ -760,6 +760,7 @@ function HomePage() {
                 id="consumption"
                 active={activeChart}
                 onSelect={setActiveChart}
+                onExplain={setExplainerChart}
                 title="12-month consumption"
                 subtitle="Stacked utilities with CO₂e overlay."
                 aside={
