@@ -1230,16 +1230,41 @@ function GlanceCard({
   );
 }
 
-
+// Per-utility brand colors for the field tiles. Filled = saturated colored tile,
+// missing = muted neutral. Keeps the row instantly scannable.
 const FIELD_META: Record<
   RequiredField,
-  { label: string; icon: React.ComponentType<{ className?: string }> }
+  {
+    label: string;
+    icon: React.ComponentType<{ className?: string }>;
+    filled: string; // tile + icon styles when this field is logged
+  }
 > = {
-  electricity: { label: "Electricity", icon: Bolt },
-  gas: { label: "Gas", icon: Flame },
-  water: { label: "Water", icon: Droplets },
-  waste: { label: "Waste", icon: Trash2 },
-  occupancy: { label: "Occupancy", icon: Users },
+  electricity: {
+    label: "Electricity",
+    icon: Bolt,
+    filled: "bg-amber-500/15 text-amber-600 ring-amber-500/30",
+  },
+  gas: {
+    label: "Gas",
+    icon: Flame,
+    filled: "bg-orange-500/15 text-orange-600 ring-orange-500/30",
+  },
+  water: {
+    label: "Water",
+    icon: Droplets,
+    filled: "bg-sky-500/15 text-sky-600 ring-sky-500/30",
+  },
+  waste: {
+    label: "Waste",
+    icon: Trash2,
+    filled: "bg-emerald-500/15 text-emerald-600 ring-emerald-500/30",
+  },
+  occupancy: {
+    label: "Occupancy",
+    icon: Users,
+    filled: "bg-violet-500/15 text-violet-600 ring-violet-500/30",
+  },
 };
 
 const FIELD_ORDER: RequiredField[] = ["electricity", "gas", "water", "waste", "occupancy"];
@@ -1338,8 +1363,8 @@ function HotelProgressRow({
         </div>
       </div>
 
-      {/* Field tiles — cleaner, no overlapping mini-badges */}
-      <div className="hidden items-center gap-1 sm:flex">
+      {/* Field tiles — colored when logged so each utility's status pops */}
+      <div className="hidden items-center gap-1.5 sm:flex">
         {FIELD_ORDER.map((f) => {
           const filled = progress.fields[f];
           const Icon = FIELD_META[f].icon;
@@ -1347,10 +1372,10 @@ function HotelProgressRow({
             <div
               key={f}
               title={`${FIELD_META[f].label}: ${filled ? "logged" : "missing"}`}
-              className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
+              className={`flex h-8 w-8 items-center justify-center rounded-lg ring-1 ring-inset transition-colors ${
                 filled
-                  ? "bg-success/10 text-success ring-1 ring-inset ring-success/25"
-                  : "bg-muted/50 text-muted-foreground/70 ring-1 ring-inset ring-border/40"
+                  ? FIELD_META[f].filled
+                  : "bg-muted/40 text-muted-foreground/50 ring-border/40 [background-image:repeating-linear-gradient(135deg,transparent_0_4px,hsl(var(--muted-foreground)/0.06)_4px_5px)]"
               }`}
             >
               <Icon className="h-3.5 w-3.5" />
@@ -1359,16 +1384,22 @@ function HotelProgressRow({
         })}
       </div>
 
-      {/* Progress: thin bar + chip */}
-      <div className="flex w-28 shrink-0 items-center gap-2">
-        <div className="h-1 flex-1 overflow-hidden rounded-full bg-muted">
+      {/* Progress: thicker gradient bar + status-tinted count chip */}
+      <div className="flex w-36 shrink-0 items-center gap-2.5">
+        <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-muted/70 ring-1 ring-inset ring-border/40">
           <div
-            className={`h-full rounded-full transition-all ${tone.bar}`}
-            style={{ width: `${pct}%` }}
+            className={`h-full rounded-full bg-gradient-to-r shadow-[0_0_0_1px_color-mix(in_oklab,currentColor_25%,transparent)] transition-all ${
+              progress.complete
+                ? "from-success to-success/70 text-success"
+                : empty
+                  ? "from-warning to-warning/60 text-warning"
+                  : "from-primary to-primary/60 text-primary"
+            }`}
+            style={{ width: `${Math.max(pct, empty ? 0 : 6)}%` }}
           />
         </div>
         <span
-          className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium tabular-nums ring-1 ring-inset ${tone.chip}`}
+          className={`min-w-[44px] rounded-full px-2 py-0.5 text-center text-[10px] font-semibold tabular-nums ring-1 ring-inset ${tone.chip}`}
         >
           {progress.filledCount}/{progress.totalCount}
         </span>
