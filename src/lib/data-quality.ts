@@ -207,6 +207,7 @@ export function buildDataQualityIssues({
             month: entry.month,
             observed: { value: occ, unit: "room-nights" },
             expected: { min: 0, max: capacity, unit: "room-nights" },
+            field: "occupied_room_nights",
           });
         }
       }
@@ -251,6 +252,7 @@ export function buildDataQualityIssues({
               month: entry.month,
               observed: { value: Number(intensity.toFixed(2)), unit: c.unit },
               expected: { min: c.min, max: c.max, unit: c.unit },
+              field: c.key as DataQualityIssue["field"],
             });
           }
         }
@@ -284,6 +286,7 @@ export function buildDataQualityIssues({
             detail: `From ${Math.round(p)}${u.unit} to ${Math.round(c)}${u.unit} vs prior month — please confirm the meter reading.`,
             year: cur.year,
             month: cur.month,
+            field: u.key as DataQualityIssue["field"],
           });
         }
       }
