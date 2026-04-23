@@ -166,7 +166,7 @@ export function DataQualityCard({ loading, issues, onIssueClick }: DataQualityCa
         <div className="flex items-center gap-3 p-6">
           <CheckCircle2 className="h-5 w-5 shrink-0 text-success" />
           <p className="text-sm text-muted-foreground">
-            All logged values fall within the expected ranges.
+            All logged values are within range and stable month-over-month.
           </p>
         </div>
       ) : (
