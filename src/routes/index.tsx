@@ -46,6 +46,10 @@ import { generateBriefing, type BriefingPayload } from "@/server/assistant.funct
 import { SeraBriefingCard } from "@/components/sera-briefing-card";
 import { DataQualityCard } from "@/components/data-quality-card";
 import { buildDataQualityIssues, type DataQualityIssue } from "@/lib/data-quality";
+import {
+  AnomalyInsightsPanel,
+  type ExplainableAnomaly,
+} from "@/components/anomaly-insights-panel";
 
 export const Route = createFileRoute("/")({
   head: () => ({
