@@ -1543,16 +1543,17 @@ function MonthlyChangeSummary({
           )}
 
           {latest && prev && (
-            <Popover>
-              <PopoverTrigger asChild>
-                <button
-                  type="button"
-                  className="mt-3 inline-flex items-center gap-1 rounded-full border border-border/70 bg-background/60 px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <Info className="h-3 w-3" />
-                  How this changed
-                </button>
-              </PopoverTrigger>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-background/60 px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <Info className="h-3 w-3" />
+                    How this changed
+                  </button>
+                </PopoverTrigger>
               <PopoverContent
                 align="start"
                 side="bottom"
