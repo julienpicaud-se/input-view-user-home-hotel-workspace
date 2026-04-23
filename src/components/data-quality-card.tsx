@@ -100,11 +100,16 @@ function diversifyIssues(issues: DataQualityIssue[], n: number): DataQualityIssu
 
 export function DataQualityCard({ loading, issues, onIssueClick }: DataQualityCardProps) {
   const [expanded, setExpanded] = React.useState(false);
-  const summary = React.useMemo(() => summariseIssues(issues), [issues]);
+  // Show only out-of-range issues in this card.
+  const rangeIssues = React.useMemo(
+    () => issues.filter((i) => i.kind === "implausible-range"),
+    [issues]
+  );
+  const summary = React.useMemo(() => summariseIssues(rangeIssues), [rangeIssues]);
 
-  const previewIssues = React.useMemo(() => diversifyIssues(issues, 3), [issues]);
-  const visibleIssues = expanded ? issues : previewIssues;
-  const hasMore = issues.length > previewIssues.length;
+  const previewIssues = React.useMemo(() => diversifyIssues(rangeIssues, 3), [rangeIssues]);
+  const visibleIssues = expanded ? rangeIssues : previewIssues;
+  const hasMore = rangeIssues.length > previewIssues.length;
 
   return (
     <Card className="overflow-hidden rounded-2xl border-border/60">
