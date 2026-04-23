@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Link, useLocation } from "@tanstack/react-router";
-import { Home, ChevronLeft, UserCircle2 } from "lucide-react";
+import { ChevronLeft, UserCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
@@ -10,9 +10,7 @@ interface NavItem {
   matchPrefix?: string;
 }
 
-const NAV: NavItem[] = [
-  { label: "Home", to: "/", icon: Home },
-];
+const NAV: NavItem[] = [];
 
 const PROFILE_ITEM: NavItem = {
   label: "Profile & settings",
