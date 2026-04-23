@@ -1649,33 +1649,172 @@ function MonthlyChangeSummary({
                   )}
                 </div>
               </PopoverContent>
-            </Popover>
-              {onAskSera && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    const driverList =
-                      summary.drivers.length > 0
-                        ? summary.drivers
-                            .map(
-                              (d) =>
-                                `${d.label} ${d.delta > 0 ? "+" : ""}${d.delta} pts`,
-                            )
-                            .join(", ")
-                        : "no clear drivers identified";
-                    const monthLabel = `${MONTH_NAMES[latest.month - 1]} ${latest.year}`;
-                    const prevLabel = `${MONTH_NAMES[prev.month - 1]} ${prev.year}`;
-                    const prompt = `Help me understand my AI summary for ${monthLabel} vs ${prevLabel}. The summary says: "${summary.headline} ${summary.body}" Top movers: ${driverList}. What's actually driving this and what specific actions should I take next month?`;
-                    onAskSera(prompt);
-                  }}
-                  className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary transition hover:bg-primary/15 hover:border-primary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                >
-                  <Sparkles className="h-3 w-3" />
-                  Ask Sera about this
-                </button>
-              )}
             </div>
           )}
+
+          {/* Inline mini chat with Sera */}
+          {latest && prev && (() => {
+            const monthLabel = `${MONTH_NAMES[latest.month - 1]} ${latest.year}`;
+            const prevLabel = `${MONTH_NAMES[prev.month - 1]} ${prev.year}`;
+            const driverList =
+              summary.drivers.length > 0
+                ? summary.drivers
+                    .map((d) => `${d.label} ${d.delta > 0 ? "+" : ""}${d.delta} pts`)
+                    .join(", ")
+                : "no clear drivers identified";
+            const summaryContext = `Context — AI summary for ${monthLabel} vs ${prevLabel}.\nHeadline: ${summary.headline}\nBody: ${summary.body}\nTop movers: ${driverList}.`;
+
+            const starters: string[] = [];
+            if (summary.drivers.length > 0) {
+              const worst = summary.drivers.find((d) => d.tone === "negative");
+              const best = summary.drivers.find((d) => d.tone === "positive");
+              if (worst) starters.push(`Why did ${worst.label.toLowerCase()} weaken in ${MONTH_NAMES[latest.month - 1]}?`);
+              if (best) starters.push(`What drove the ${best.label.toLowerCase()} improvement?`);
+            }
+            starters.push("What 2 actions would lift my score most next month?");
+            starters.push(`Compare ${monthLabel} to the same month last year.`);
+
+            async function handleAsk(text: string) {
+              const trimmed = text.trim();
+              if (!trimmed || chatPending) return;
+
+              const history: ChatMsg[] = [];
+              if (chatTurns.length === 0) {
+                history.push({ role: "assistant", content: summaryContext });
+              }
+              history.push(...chatTurns);
+
+              const userTurn: ChatMsg = { role: "user", content: trimmed };
+              setChatTurns((t) => [...t, userTurn]);
+              setChatInput("");
+              setChatPending(true);
+
+              try {
+                const res = await send({
+                  data: {
+                    message: trimmed,
+                    history,
+                    hotelId: getActiveHotelId(),
+                  },
+                });
+                if (res.ok) {
+                  setChatTurns((t) => [...t, { role: "assistant", content: res.content }]);
+                } else {
+                  toast.error(res.error);
+                  setChatTurns((t) => t.slice(0, -1));
+                }
+              } catch {
+                toast.error("Something went wrong");
+                setChatTurns((t) => t.slice(0, -1));
+              } finally {
+                setChatPending(false);
+              }
+            }
+
+            const showChat = chatTurns.length > 0 || chatPending;
+
+            return (
+              <div className="mt-4 rounded-2xl border border-border/50 bg-background/40">
+                <div className="flex items-center justify-between gap-2 border-b border-border/50 px-3 py-2">
+                  <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                    <MessageCircle className="h-3.5 w-3.5" />
+                    Ask Sera about this summary
+                  </div>
+                  {chatTurns.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setChatTurns([])}
+                      className="text-[11px] text-muted-foreground hover:text-foreground"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+
+                {showChat && (
+                  <div
+                    ref={chatScrollRef}
+                    className="max-h-72 space-y-3 overflow-y-auto px-3 py-3"
+                  >
+                    {chatTurns.map((t, i) => (
+                      <div
+                        key={i}
+                        className={`flex ${t.role === "user" ? "justify-end" : "justify-start"}`}
+                      >
+                        <div
+                          className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed ${
+                            t.role === "user"
+                              ? "bg-primary text-primary-foreground"
+                              : "border border-border/60 bg-card text-foreground"
+                          }`}
+                        >
+                          {t.role === "user" ? (
+                            <div className="whitespace-pre-wrap">{t.content}</div>
+                          ) : (
+                            <div className="prose prose-sm max-w-none prose-p:my-1.5 prose-p:text-foreground prose-strong:text-foreground prose-li:my-0.5 prose-ul:my-1.5">
+                              <ReactMarkdown>{t.content}</ReactMarkdown>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {chatPending && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        Sera is thinking…
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Suggested starter questions */}
+                {!chatPending && chatTurns.length === 0 && (
+                  <div className="flex flex-wrap gap-1.5 px-3 pt-3">
+                    {starters.map((q) => (
+                      <button
+                        key={q}
+                        type="button"
+                        onClick={() => void handleAsk(q)}
+                        className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/60 px-2.5 py-1 text-xs text-foreground transition hover:border-primary/40 hover:bg-primary/5"
+                      >
+                        {q}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    void handleAsk(chatInput);
+                  }}
+                  className="flex items-end gap-2 px-3 py-3"
+                >
+                  <textarea
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        void handleAsk(chatInput);
+                      }
+                    }}
+                    placeholder="Ask a follow-up question…"
+                    rows={1}
+                    className="flex-1 resize-none rounded-lg border border-border/60 bg-background px-3 py-2 text-sm focus:border-primary/40 focus:outline-none focus:ring-1 focus:ring-primary/30"
+                  />
+                  <Button
+                    type="submit"
+                    size="icon"
+                    disabled={chatPending || !chatInput.trim()}
+                    className="h-9 w-9 shrink-0 rounded-lg"
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </form>
+              </div>
+            );
+          })()}
         </div>
       </div>
     </Card>
