@@ -564,19 +564,6 @@ function HomePage() {
       });
     }
 
-    // Generic engagement tasks
-    items.push({
-      id: "review-benchmarks",
-      title: "Review this month's peer benchmarks",
-      description: "See how your portfolio compares to similar hotels on energy, water and waste.",
-      cta: "View benchmarks",
-      done: false,
-      tone: "primary",
-      target: { kind: "workspace", tab: "benchmarks" },
-      dismissible: true,
-      dueDate: engagementDue,
-    });
-
     return items;
   }, [summary]);
 
