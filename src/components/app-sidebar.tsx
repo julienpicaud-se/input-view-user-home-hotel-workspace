@@ -1,18 +1,17 @@
 import * as React from "react";
 import { Link, useLocation } from "@tanstack/react-router";
-import { Home, Building2, ChevronLeft, UserCircle2 } from "lucide-react";
+import { Home, ChevronLeft, UserCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
   label: string;
-  to: "/" | "/workspace" | "/profile";
+  to: "/" | "/profile";
   icon: React.ComponentType<{ className?: string }>;
   matchPrefix?: string;
 }
 
 const NAV: NavItem[] = [
   { label: "Home", to: "/", icon: Home },
-  { label: "Hotel workspace", to: "/workspace", icon: Building2, matchPrefix: "/workspace" },
 ];
 
 const PROFILE_ITEM: NavItem = {
