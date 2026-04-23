@@ -485,34 +485,6 @@ function HomePage() {
       dismissible: true,
     });
 
-    items.push({
-      id: "ask-sera",
-      title: "Get AI insights from Sera",
-      description: "Ask about trends, anomalies, or where to cut footprint next.",
-      cta: "Open Insights",
-      done: false,
-      tone: "primary",
-      target: { kind: "workspace", tab: "analyze" },
-      dismissible: true,
-    });
-
-    // Profile completeness
-    const profileComplete = Boolean(
-      profile?.display_name && profile?.email && profile?.company_name
-    );
-    items.push({
-      id: "complete-profile",
-      title: profileComplete ? "Profile is complete" : "Finish setting up your profile",
-      description: profileComplete
-        ? "Name, email and company are filled in."
-        : "Add your email and company so reports can be addressed to you.",
-      cta: profileComplete ? "View profile" : "Complete profile",
-      done: profileComplete,
-      tone: profileComplete ? "muted" : "warning",
-      target: { kind: "profile" },
-      dismissible: false,
-    });
-
     return items;
   }, [summary, profile]);
 
