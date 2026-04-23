@@ -2960,22 +2960,24 @@ function HotelSettingsPanel({
           </div>
         </div>
 
-        <div className="mt-8 flex flex-wrap items-center justify-end gap-2 border-t border-border pt-5">
-          <Button variant="ghost" onClick={onReset} disabled={saving}>
-            <RotateCcw className="mr-2 h-4 w-4" />
-            Reset
-          </Button>
-          <Button onClick={onSave} disabled={!isValid || saving}>
-            {saving ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving…
-              </>
-            ) : (
-              "Save changes"
-            )}
-          </Button>
-        </div>
+        {!locked && (
+          <div className="mt-8 flex flex-wrap items-center justify-end gap-2 border-t border-border pt-5">
+            <Button variant="ghost" onClick={onReset} disabled={saving}>
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Reset
+            </Button>
+            <Button onClick={onSave} disabled={!isValid || saving}>
+              {saving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving…
+                </>
+              ) : (
+                "Save changes"
+              )}
+            </Button>
+          </div>
+        )}
       </Card>
 
       <Card className="rounded-2xl border-dashed bg-card/50 p-5 text-sm text-muted-foreground">
