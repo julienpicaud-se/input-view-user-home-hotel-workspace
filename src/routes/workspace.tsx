@@ -37,6 +37,8 @@ import {
   Download,
   Users,
   History,
+  Lock,
+  Unlock,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -2632,6 +2634,8 @@ function HotelSettingsPanel({
   const [saving, setSaving] = React.useState(false);
   const [changes, setChanges] = React.useState<SettingsChange[]>([]);
   const [logLoading, setLogLoading] = React.useState(false);
+  // The form is read-only by default; user must explicitly unlock to edit.
+  const [locked, setLocked] = React.useState(true);
 
   React.useEffect(() => {
     if (hotel) {
@@ -2645,8 +2649,10 @@ function HotelSettingsPanel({
       setYearBuilt(hotel.year_built != null ? String(hotel.year_built) : "");
       setFloors(hotel.floors != null ? String(hotel.floors) : "");
       setPropertyType(hotel.property_type ?? "");
+      // Re-lock whenever the active hotel changes
+      setLocked(true);
     }
-  }, [hotel]);
+  }, [hotel?.id]);
 
   // Restore "changed by" name from localStorage
   React.useEffect(() => {
@@ -2773,6 +2779,7 @@ function HotelSettingsPanel({
     }
 
     setSaving(false);
+    setLocked(true);
     toast.success(
       diffs.length > 0
         ? `Saved · ${diffs.length} change${diffs.length === 1 ? "" : "s"} recorded`
@@ -2793,6 +2800,7 @@ function HotelSettingsPanel({
     setYearBuilt(hotel.year_built != null ? String(hotel.year_built) : "");
     setFloors(hotel.floors != null ? String(hotel.floors) : "");
     setPropertyType(hotel.property_type ?? "");
+    setLocked(true);
   }
 
   return (
@@ -2807,8 +2815,37 @@ function HotelSettingsPanel({
               Update your property profile. These values shape your benchmarks
               and per-room intensity calculations.
             </p>
+            {locked && (
+              <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Lock className="h-3 w-3" />
+                Read-only — click <span className="font-medium text-foreground">Edit</span> to make changes.
+              </p>
+            )}
           </div>
-          <Settings2 className="h-5 w-5 text-muted-foreground" />
+          {locked ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setLocked(false)}
+              className="shrink-0"
+            >
+              <Unlock className="mr-2 h-4 w-4" />
+              Edit
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                onReset();
+              }}
+              className="shrink-0 text-muted-foreground"
+              disabled={saving}
+            >
+              <Lock className="mr-2 h-4 w-4" />
+              Lock
+            </Button>
+          )}
         </div>
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
@@ -2821,6 +2858,7 @@ function HotelSettingsPanel({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Hotel Aurora"
+              disabled={locked}
             />
           </div>
 
@@ -2835,6 +2873,7 @@ function HotelSettingsPanel({
               value={rooms}
               onChange={(e) => setRooms(e.target.value)}
               placeholder="120"
+              disabled={locked}
             />
           </div>
 
@@ -2849,6 +2888,7 @@ function HotelSettingsPanel({
               value={totalSurface}
               onChange={(e) => setTotalSurface(e.target.value)}
               placeholder="8500"
+              disabled={locked}
             />
           </div>
 
@@ -2864,6 +2904,7 @@ function HotelSettingsPanel({
               value={yearBuilt}
               onChange={(e) => setYearBuilt(e.target.value)}
               placeholder="1998"
+              disabled={locked}
             />
           </div>
 
@@ -2878,6 +2919,7 @@ function HotelSettingsPanel({
               value={floors}
               onChange={(e) => setFloors(e.target.value)}
               placeholder="6"
+              disabled={locked}
             />
           </div>
 
@@ -2885,7 +2927,7 @@ function HotelSettingsPanel({
             <Label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">
               Property type
             </Label>
-            <Select value={propertyType} onValueChange={setPropertyType}>
+            <Select value={propertyType} onValueChange={setPropertyType} disabled={locked}>
               <SelectTrigger>
                 <SelectValue placeholder="Select type" />
               </SelectTrigger>
@@ -2903,7 +2945,7 @@ function HotelSettingsPanel({
             <Label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">
               Size band (rooms)
             </Label>
-            <Select value={sizeBand} onValueChange={setSizeBand}>
+            <Select value={sizeBand} onValueChange={setSizeBand} disabled={locked}>
               <SelectTrigger>
                 <SelectValue placeholder="Select size band" />
               </SelectTrigger>
@@ -2918,22 +2960,24 @@ function HotelSettingsPanel({
           </div>
         </div>
 
-        <div className="mt-8 flex flex-wrap items-center justify-end gap-2 border-t border-border pt-5">
-          <Button variant="ghost" onClick={onReset} disabled={saving}>
-            <RotateCcw className="mr-2 h-4 w-4" />
-            Reset
-          </Button>
-          <Button onClick={onSave} disabled={!isValid || saving}>
-            {saving ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving…
-              </>
-            ) : (
-              "Save changes"
-            )}
-          </Button>
-        </div>
+        {!locked && (
+          <div className="mt-8 flex flex-wrap items-center justify-end gap-2 border-t border-border pt-5">
+            <Button variant="ghost" onClick={onReset} disabled={saving}>
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Reset
+            </Button>
+            <Button onClick={onSave} disabled={!isValid || saving}>
+              {saving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving…
+                </>
+              ) : (
+                "Save changes"
+              )}
+            </Button>
+          </div>
+        )}
       </Card>
 
       <Card className="rounded-2xl border-dashed bg-card/50 p-5 text-sm text-muted-foreground">
