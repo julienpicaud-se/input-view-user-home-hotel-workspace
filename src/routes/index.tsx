@@ -1255,26 +1255,175 @@ const FIELD_META: Record<
 
 const FIELD_ORDER: RequiredField[] = ["electricity", "gas", "water", "waste", "occupancy"];
 
-function PortfolioProgressBadge({ progress }: { progress: HotelProgress[] }) {
-  const totalFields = progress.length * 5;
-  const filled = progress.reduce((acc, h) => acc + h.filledCount, 0);
-  const pct = totalFields === 0 ? 0 : Math.round((filled / totalFields) * 100);
-  const allDone = pct === 100;
-  return (
-    <div className="flex items-center gap-3 text-xs">
-      <div className="flex flex-col items-end leading-tight">
-        <span className="font-serif text-base font-semibold text-foreground">{pct}%</span>
-        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-          {filled}/{totalFields} fields
-        </span>
+function ReportingProgressHeader({ summary }: { summary: PortfolioSummary | null }) {
+  const today = React.useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
+
+  if (!summary) {
+    return (
+      <div className="mb-4">
+        <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+          Reporting progress
+        </div>
+        <h2 className="font-serif text-2xl font-semibold text-foreground">
+          Expected period
+        </h2>
       </div>
-      <div className="h-2 w-24 overflow-hidden rounded-full bg-muted">
-        <div
-          className={`h-full transition-all ${allDone ? "bg-success" : "bg-primary"}`}
-          style={{ width: `${pct}%` }}
-        />
+    );
+  }
+
+  const totalFields = summary.hotelProgress.length * 5;
+  const filled = summary.hotelProgress.reduce((acc, h) => acc + h.filledCount, 0);
+  const pct = totalFields === 0 ? 0 : Math.round((filled / totalFields) * 100);
+  const completeCount = summary.hotelProgress.filter((h) => h.complete).length;
+  const inProgressCount = summary.hotelProgress.filter(
+    (h) => h.filledCount > 0 && !h.complete,
+  ).length;
+  const notStartedCount = summary.hotelProgress.filter(
+    (h) => h.filledCount === 0,
+  ).length;
+
+  // Due-date calculation: data for the expected period is due on the 10th of
+  // the following month (mirrors `loggingDueDate` used elsewhere on the page).
+  const due = loggingDueDate(summary.expectedYear, summary.expectedMonth);
+  due.setHours(0, 0, 0, 0);
+  const diffDays = Math.round((due.getTime() - today.getTime()) / 86_400_000);
+  const allDone = pct === 100;
+
+  // Status pill — drives header color & due-date wording
+  const status: {
+    label: string;
+    tone: "success" | "warning" | "danger" | "muted";
+    sub: string;
+  } = allDone
+    ? {
+        label: "On track",
+        tone: "success",
+        sub: `Wrapped up ${MONTH_NAMES[summary.expectedMonth - 1]} reporting`,
+      }
+    : diffDays < 0
+      ? {
+          label: "Overdue",
+          tone: "danger",
+          sub: `${Math.abs(diffDays)}d past due — was due ${due.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
+        }
+      : diffDays <= 3
+        ? {
+            label: `Due in ${diffDays}d`,
+            tone: "warning",
+            sub: `Deadline ${due.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
+          }
+        : {
+            label: `Due in ${diffDays}d`,
+            tone: "muted",
+            sub: `Deadline ${due.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
+          };
+
+  const toneStyles: Record<typeof status.tone, { pill: string; bar: string; pct: string }> = {
+    success: {
+      pill: "bg-success/15 text-success ring-success/25",
+      bar: "from-success to-success/60",
+      pct: "text-success",
+    },
+    warning: {
+      pill: "bg-warning/15 text-warning-foreground ring-warning/30",
+      bar: "from-warning to-warning/60",
+      pct: "text-warning-foreground",
+    },
+    danger: {
+      pill: "bg-destructive/12 text-destructive ring-destructive/25",
+      bar: "from-destructive to-destructive/60",
+      pct: "text-destructive",
+    },
+    muted: {
+      pill: "bg-muted text-muted-foreground ring-border/60",
+      bar: "from-primary to-primary/60",
+      pct: "text-foreground",
+    },
+  };
+  const ts = toneStyles[status.tone];
+
+  return (
+    <div className="mb-4 overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-background to-muted/30 px-5 py-4">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+            <CalendarClock className="h-3.5 w-3.5" />
+            <span>Reporting progress</span>
+          </div>
+          <h2 className="mt-0.5 font-serif text-2xl font-semibold text-foreground">
+            {MONTH_NAMES[summary.expectedMonth - 1]} {summary.expectedYear}
+          </h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">{status.sub}</p>
+        </div>
+
+        <div className="flex flex-col items-end gap-1.5">
+          <span
+            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset ${ts.pill}`}
+          >
+            {status.tone === "danger" && <AlertTriangle className="h-3 w-3" />}
+            {status.tone === "success" && <CheckCircle2 className="h-3 w-3" />}
+            {status.label}
+          </span>
+          <div className="text-right leading-tight">
+            <span className={`font-serif text-xl font-semibold tabular-nums ${ts.pct}`}>
+              {pct}%
+            </span>
+            <span className="ml-1 text-[10px] uppercase tracking-wider text-muted-foreground">
+              {filled}/{totalFields} fields
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Segmented progress bar — one slot per hotel */}
+      <div className="mt-3">
+        <div className="relative h-2.5 overflow-hidden rounded-full bg-muted/70 ring-1 ring-inset ring-border/40">
+          <div
+            className={`h-full rounded-full bg-gradient-to-r transition-all ${ts.bar}`}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+          <StatusCount
+            dotClass="bg-success"
+            label="complete"
+            count={completeCount}
+          />
+          <StatusCount
+            dotClass="bg-primary"
+            label="in progress"
+            count={inProgressCount}
+          />
+          <StatusCount
+            dotClass="bg-warning"
+            label="not started"
+            count={notStartedCount}
+          />
+        </div>
       </div>
     </div>
+  );
+}
+
+function StatusCount({
+  dotClass,
+  label,
+  count,
+}: {
+  dotClass: string;
+  label: string;
+  count: number;
+}) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span className={`h-1.5 w-1.5 rounded-full ${dotClass}`} aria-hidden />
+      <span className="font-medium tabular-nums text-foreground">{count}</span>
+      <span>{label}</span>
+    </span>
   );
 }
 
