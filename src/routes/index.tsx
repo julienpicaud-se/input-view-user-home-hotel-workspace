@@ -8,7 +8,7 @@ import {
   ClipboardList,
   Flame,
   Leaf,
-  Sparkles,
+  
   Sun,
   Sunrise,
   Sunset,
