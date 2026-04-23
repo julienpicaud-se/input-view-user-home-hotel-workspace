@@ -248,6 +248,7 @@ export interface BriefingPayload {
   summary: string;
   highlights: { label: string; tone: "positive" | "warning" | "neutral" }[];
   focus: string;
+  questions: string[];
 }
 
 async function getPortfolioContext(): Promise<{
@@ -421,6 +422,11 @@ export const generateBriefing = createServerFn({ method: "POST" })
             { label: "Ready when you are", tone: "neutral" },
           ],
           focus: "Log your most recent month for one hotel to unlock benchmarks.",
+          questions: [
+            "What data do I need to log first?",
+            "How will Sera help once I add data?",
+            "Which utilities matter most for my CO₂e?",
+          ],
         },
       };
     }
@@ -435,9 +441,13 @@ export const generateBriefing = createServerFn({ method: "POST" })
   "highlights": [
     {"label": "<= 7 words with a real number", "tone": "positive" | "warning" | "neutral"}
   ],
-  "focus": "one sentence telling ${name} the single best next action today, <= 20 words"
+  "focus": "one sentence telling ${name} the single best next action today, <= 20 words",
+  "questions": [
+    "4 short follow-up questions ${name} would naturally ask after reading this briefing — each <= 10 words, written in first person ('Why did...', 'How can I...', 'What should I...'), grounded in the specific numbers/hotels above"
+  ]
 }
-Return 3 highlights. Use "positive" for wins (drops in CO₂e, intensity improvements), "warning" for spikes or missing data, "neutral" for context.
+Return 3 highlights and exactly 4 questions. Use "positive" for wins (drops in CO₂e, intensity improvements), "warning" for spikes or missing data, "neutral" for context.
+Questions must be specific (mention a hotel name, utility, or number when relevant) — never generic.
 
 PORTFOLIO CONTEXT:
 ${context}`,
@@ -482,6 +492,10 @@ ${context}`,
             tone: h.tone === "positive" || h.tone === "warning" ? h.tone : "neutral",
           })),
           focus: String(parsed.focus ?? "").slice(0, 240),
+          questions: (parsed.questions ?? [])
+            .slice(0, 4)
+            .map((q) => String(q ?? "").slice(0, 120))
+            .filter((q) => q.length > 0),
         },
       };
     } catch {
