@@ -1491,7 +1491,11 @@ function HotelProgressRow({
     <button
       type="button"
       onClick={onClick}
-      className="group relative flex w-full items-center gap-5 px-5 py-4 text-left transition-colors hover:bg-muted/30"
+      className={`group relative flex w-full items-center gap-5 px-5 py-4 text-left transition-colors ${
+        overdue
+          ? "bg-destructive/[0.03] hover:bg-destructive/[0.06]"
+          : "hover:bg-muted/30"
+      }`}
     >
       {/* Leading status dot — small, calm, replaces the large amber tile */}
       <span
