@@ -3762,6 +3762,9 @@ function LogDataTabs({
           {method === "voice" && (
             <VoiceLogCard entries={entries} onSaved={onSaved} />
           )}
+          {method === "autopilot" && (
+            <AutopilotLogCard entries={entries} onSaved={onSaved} />
+          )}
         </div>
       </div>
 
