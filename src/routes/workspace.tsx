@@ -3667,9 +3667,9 @@ function LogDataTabs({
   highlightFields?: HighlightedField[];
   onHighlightConsumed?: () => void;
 }) {
-  const [method, setMethod] = React.useState<"manual" | "survey" | "import" | "smart" | "voice">(
-    "voice",
-  );
+  const [method, setMethod] = React.useState<
+    "manual" | "survey" | "import" | "smart" | "voice" | "autopilot"
+  >("autopilot");
 
   // When highlighted fields arrive, force-switch to manual entry so user sees them.
   React.useEffect(() => {
@@ -3679,13 +3679,14 @@ function LogDataTabs({
   }, [highlightFields, method]);
 
   const METHODS: {
-    key: "manual" | "survey" | "import" | "smart" | "voice";
+    key: "manual" | "survey" | "import" | "smart" | "voice" | "autopilot";
     label: string;
     desc: string;
     icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
     badge?: string;
   }[] = [
-    { key: "voice", label: "Voice journal", desc: "Just talk — Sera transcribes, normalises units and turns your sentence into rows", icon: Mic, badge: "New" },
+    { key: "autopilot", label: "Sera Autopilot", desc: "Sera predicts each value from your history and asks one quick question — usually just say 'yes'", icon: Plane, badge: "New" },
+    { key: "voice", label: "Voice journal", desc: "Just talk — Sera transcribes, normalises units and turns your sentence into rows", icon: Mic },
     { key: "smart", label: "Smart data input", desc: "Paste an email, a sentence, or a screenshot — Sera turns it into clean rows", icon: Sparkles },
     { key: "import", label: "Guided invoice upload", desc: "Snap a bill, Sera reads and saves it", icon: FileSpreadsheet },
     { key: "manual", label: "Manual entry", desc: "Type values from your bills", icon: Pencil },
