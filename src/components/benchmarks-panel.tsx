@@ -33,10 +33,10 @@ const UTILITIES: {
   icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   color: string;
 }[] = [
-  { key: "electricity", label: "Electricity", unit: "kWh/room-night", entryKey: "electricity_kwh", icon: Bolt, color: "var(--chart-3)" },
-  { key: "gas", label: "Gas", unit: "kWh/room-night", entryKey: "gas_kwh", icon: Flame, color: "var(--chart-1)" },
-  { key: "water", label: "Water", unit: "m³/room-night", entryKey: "water_m3", icon: Droplets, color: "var(--chart-2)" },
-  { key: "waste", label: "Waste", unit: "kg/room-night", entryKey: "waste_kg", icon: Trash2, color: "var(--chart-5)" },
+  { key: "electricity", label: "Electricity", unit: "kWh/rn", entryKey: "electricity_kwh", icon: Bolt, color: "var(--chart-3)" },
+  { key: "gas", label: "Gas", unit: "kWh/rn", entryKey: "gas_kwh", icon: Flame, color: "var(--chart-1)" },
+  { key: "water", label: "Water", unit: "m³/rn", entryKey: "water_m3", icon: Droplets, color: "var(--chart-2)" },
+  { key: "waste", label: "Waste", unit: "kg/rn", entryKey: "waste_kg", icon: Trash2, color: "var(--chart-5)" },
 ];
 
 export function BenchmarksPanel({ showHeader = true }: { showHeader?: boolean }) {
@@ -235,12 +235,14 @@ function BenchmarkCard({
           <div className="text-xs text-muted-foreground">You (latest)</div>
           <div className="num font-serif text-lg font-semibold">
             {latest?.yours ? formatNumber(latest.yours, 2) : "—"}
+            <span className="ml-1 text-xs font-normal text-muted-foreground">{utility.unit}</span>
           </div>
         </div>
         <div>
           <div className="text-xs text-muted-foreground">Peer median</div>
           <div className="num font-serif text-lg font-semibold text-muted-foreground">
             {latestStats ? formatNumber(latestStats.median, 2) : "—"}
+            <span className="ml-1 text-xs font-normal">{utility.unit}</span>
           </div>
         </div>
         <div className="col-span-2 mt-2 flex items-center gap-2 rounded-xl bg-accent/15 px-3 py-2">
