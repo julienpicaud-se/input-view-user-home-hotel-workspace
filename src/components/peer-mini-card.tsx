@@ -14,6 +14,7 @@ export interface PeerMiniKpi {
   icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   color: string;
   utility: Utility;
+  unit: string;
 }
 
 export const PEER_MINI_KPIS: PeerMiniKpi[] = [
