@@ -6,7 +6,8 @@ import {
   type Utility,
 } from "@/lib/peer-benchmarks";
 import type { MonthlyEntry } from "@/lib/hotel";
-import { formatNumber, formatPct } from "@/lib/format";
+import { formatNumber, formatPct, MONTH_NAMES } from "@/lib/format";
+import { ChartExplainButton } from "@/components/chart-explain-button";
 
 export interface PeerMiniKpi {
   key: "electricity_kwh" | "gas_kwh" | "water_m3" | "waste_kg";
