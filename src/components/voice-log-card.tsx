@@ -285,7 +285,7 @@ export function VoiceLogCard({ entries: _entries, onSaved }: VoiceLogCardProps) 
         data: {
           text,
           currentYear: new Date().getFullYear(),
-          sourceLanguage: detectedLang ?? undefined,
+          sourceLanguage: activeLang,
         },
       });
       if (!res.ok) {
@@ -312,7 +312,7 @@ export function VoiceLogCard({ entries: _entries, onSaved }: VoiceLogCardProps) 
     } finally {
       setExtracting(false);
     }
-  }, [extract, finalText, interimText, listening, stopListening, detectedLang]);
+  }, [extract, finalText, interimText, listening, stopListening, activeLang]);
 
   const handleSave = React.useCallback(async () => {
     const selected = drafts.filter((d) => d.selected);
@@ -367,8 +367,9 @@ export function VoiceLogCard({ entries: _entries, onSaved }: VoiceLogCardProps) 
     if (saved > 0) toast.success(`Saved ${saved} month${saved === 1 ? "" : "s"} from your voice note.`);
     if (failed > 0) toast.error(`${failed} month${failed === 1 ? "" : "s"} failed to save.`);
     setDrafts([]);
-    setLaneTexts({ en: { final: "", interim: "", score: 0 }, fr: { final: "", interim: "", score: 0 } });
-    setDetectedLang(null);
+    finalRef.current = "";
+    setFinalText("");
+    setInterimText("");
     setSummary("");
     setWarnings([]);
     setConfidence(null);
@@ -377,21 +378,22 @@ export function VoiceLogCard({ entries: _entries, onSaved }: VoiceLogCardProps) 
 
   const reset = React.useCallback(() => {
     if (listening) stopListening();
-    setLaneTexts({ en: { final: "", interim: "", score: 0 }, fr: { final: "", interim: "", score: 0 } });
-    setDetectedLang(null);
+    finalRef.current = "";
+    setFinalText("");
+    setInterimText("");
     setDrafts([]);
     setSummary("");
     setWarnings([]);
     setConfidence(null);
   }, [listening, stopListening]);
 
-  // Seed an example transcript (manual try-out) — defaults to English lane.
+  // Seed an example transcript (manual try-out). Also flips the active language
+  // so the AI extractor gets the right hint and the badge updates.
   const seedExample = React.useCallback((text: string, lang: LangCode) => {
-    setLaneTexts((prev) => ({
-      ...prev,
-      [lang]: { final: text, interim: "", score: text.split(/\s+/).length },
-    }));
-    setDetectedLang(lang);
+    finalRef.current = text;
+    setFinalText(text);
+    setInterimText("");
+    setActiveLang(lang);
   }, []);
 
   const updateDraft = (id: string, patch: Partial<DraftRow>) => {
