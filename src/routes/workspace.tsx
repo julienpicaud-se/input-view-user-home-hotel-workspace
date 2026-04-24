@@ -118,6 +118,7 @@ import {
   type ChartExplanation,
 } from "@/server/assistant.functions";
 import { BenchmarksPanel } from "@/components/benchmarks-panel";
+import { OverviewPerformanceSummary } from "@/components/overview-performance-summary";
 
 type IndexSearch = { tab?: "overview" | "log" | "analyze" | "settings" | "benchmarks" };
 
