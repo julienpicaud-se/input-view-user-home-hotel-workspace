@@ -230,7 +230,7 @@ export function VoiceLogCard({ entries: _entries, onSaved }: VoiceLogCardProps) 
         id: `${e.year}-${e.month}-${e.metric}-${i}`,
         selected: true,
         // Rows Sera flagged as medium/low must be explicitly confirmed before save.
-        reviewed: (e.confidence ?? "medium") === "high",
+        reviewed: (e.confidence ?? "high") === "high",
       }));
       setDrafts(rows);
       setSummary(res.extraction.summary);
@@ -525,7 +525,7 @@ export function VoiceLogCard({ entries: _entries, onSaved }: VoiceLogCardProps) 
               {/* Confirmation checklist — surfaces low-confidence rows up front */}
               {(() => {
                 const flagged = drafts.filter(
-                  (d) => d.selected && (d.confidence ?? "medium") !== "high",
+                  (d) => d.selected && (d.confidence ?? "high") !== "high",
                 );
                 const pending = flagged.filter((d) => !d.reviewed);
                 if (flagged.length === 0) return null;
@@ -554,7 +554,7 @@ export function VoiceLogCard({ entries: _entries, onSaved }: VoiceLogCardProps) 
                           onClick={() =>
                             setDrafts((prev) =>
                               prev.map((d) =>
-                                (d.confidence ?? "medium") !== "high" && d.selected
+                                (d.confidence ?? "high") !== "high" && d.selected
                                   ? { ...d, reviewed: true }
                                   : d,
                               ),
@@ -607,7 +607,7 @@ export function VoiceLogCard({ entries: _entries, onSaved }: VoiceLogCardProps) 
                 {drafts.map((d) => {
                   const meta = METRIC_META[d.metric];
                   const Icon = meta.icon;
-                  const conf = d.confidence ?? "medium";
+                  const conf = d.confidence ?? "high";
                   const flagged = conf !== "high";
                   const needsReview = flagged && d.selected && !d.reviewed;
                   return (
