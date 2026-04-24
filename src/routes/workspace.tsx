@@ -3906,13 +3906,13 @@ function PastDataSection({
         <table className="w-full text-xs">
           <thead className="text-left text-[10px] uppercase tracking-wider text-muted-foreground">
             <tr>
+              <th className="py-2 pr-3 font-medium">Site</th>
               <th className="py-2 pr-3 font-medium">Metric</th>
+              <th className="py-2 pr-3 text-right font-medium">Value</th>
+              <th className="py-2 pr-3 font-medium">Unit</th>
               <th className="py-2 pr-3 font-medium">Start date</th>
               <th className="py-2 pr-3 font-medium">End date</th>
-              <th className="py-2 pr-3 font-medium">Unit</th>
-              <th className="py-2 pr-3 text-right font-medium">Value</th>
-              <th className="py-2 pr-3 font-medium">Data owner</th>
-              <th className="py-2 pr-3 font-medium">Site</th>
+              <th className="py-2 pr-3 font-medium">Owner</th>
               <th className="py-2 font-medium">Input date</th>
             </tr>
           </thead>
@@ -3925,15 +3925,15 @@ function PastDataSection({
                   key={`${r.year}-${r.month}-${r.metricLabel}`}
                   className={`border-t ${isNewMonth ? "border-border" : "border-border/40"}`}
                 >
+                  <td className="py-2 pr-3 text-muted-foreground">{hotel.name}</td>
                   <td className="py-2 pr-3 font-medium">{r.metricLabel}</td>
-                  <td className="py-2 pr-3 text-muted-foreground">{formatIsoDate(r.startDate)}</td>
-                  <td className="py-2 pr-3 text-muted-foreground">{formatIsoDate(r.endDate)}</td>
-                  <td className="py-2 pr-3 text-muted-foreground">{r.unit}</td>
                   <td className="num py-2 pr-3 text-right">
                     {r.value != null ? formatNumber(r.value) : "—"}
                   </td>
+                  <td className="py-2 pr-3 text-muted-foreground">{r.unit}</td>
+                  <td className="py-2 pr-3 text-muted-foreground">{formatIsoDate(r.startDate)}</td>
+                  <td className="py-2 pr-3 text-muted-foreground">{formatIsoDate(r.endDate)}</td>
                   <td className="py-2 pr-3 text-muted-foreground">{ownerName}</td>
-                  <td className="py-2 pr-3 text-muted-foreground">{hotel.name}</td>
                   <td className="py-2 text-muted-foreground">
                     {r.inputDate ? formatIsoDate(r.inputDate) : "—"}
                   </td>
