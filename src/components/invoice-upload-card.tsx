@@ -81,8 +81,10 @@ export function InvoiceUploadCard({ entries, onSaved }: InvoiceUploadCardProps) 
     notes: string | null;
     fileName: string;
     detectedUtility: BillUtility | null;
+    detectedPeriod: boolean; // true if month/year were auto-derived from the bill
   } | null>(null);
   const [manualValue, setManualValue] = React.useState<string>("");
+  const [showPeriodEdit, setShowPeriodEdit] = React.useState<boolean>(false);
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const meta = UTILITIES.find((u) => u.key === utility)!;
