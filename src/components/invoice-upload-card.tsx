@@ -4,11 +4,13 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
   Bolt,
+  CalendarDays,
   CheckCircle2,
   Droplets,
   FileText,
   Flame,
   Loader2,
+  Pencil,
   Sparkles,
   Trash2,
   Upload,
