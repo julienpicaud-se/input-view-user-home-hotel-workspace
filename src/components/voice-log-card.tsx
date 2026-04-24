@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
+  AlertTriangle,
   AudioLines,
   Bolt,
   CheckCircle2,
@@ -11,6 +12,7 @@ import {
   Loader2,
   Mic,
   MicOff,
+  ShieldCheck,
   Sparkles,
   Square,
   Trash2,
@@ -62,7 +64,7 @@ const PROMPTS = [
   "April: electricity twelve point four megawatt-hours, waste one point two tonnes.",
 ];
 
-type DraftRow = SmartEntry & { id: string; selected: boolean };
+type DraftRow = SmartEntry & { id: string; selected: boolean; reviewed: boolean };
 
 // Minimal typing for the Web Speech API (vendor-prefixed in most browsers).
 type SpeechRecognitionResultLike = {
@@ -227,6 +229,8 @@ export function VoiceLogCard({ entries: _entries, onSaved }: VoiceLogCardProps) 
         ...e,
         id: `${e.year}-${e.month}-${e.metric}-${i}`,
         selected: true,
+        // Rows Sera flagged as medium/low must be explicitly confirmed before save.
+        reviewed: (e.confidence ?? "medium") === "high",
       }));
       setDrafts(rows);
       setSummary(res.extraction.summary);
@@ -247,6 +251,13 @@ export function VoiceLogCard({ entries: _entries, onSaved }: VoiceLogCardProps) 
     const selected = drafts.filter((d) => d.selected);
     if (selected.length === 0) {
       toast.error("Select at least one row to save.");
+      return;
+    }
+    const unreviewed = selected.filter((d) => (d.confidence ?? "medium") !== "high" && !d.reviewed);
+    if (unreviewed.length > 0) {
+      toast.error(
+        `Confirm ${unreviewed.length} flagged field${unreviewed.length === 1 ? "" : "s"} before saving.`,
+      );
       return;
     }
     setSaving(true);
@@ -511,17 +522,103 @@ export function VoiceLogCard({ entries: _entries, onSaved }: VoiceLogCardProps) 
                 </ul>
               )}
 
+              {/* Confirmation checklist — surfaces low-confidence rows up front */}
+              {(() => {
+                const flagged = drafts.filter(
+                  (d) => d.selected && (d.confidence ?? "medium") !== "high",
+                );
+                const pending = flagged.filter((d) => !d.reviewed);
+                if (flagged.length === 0) return null;
+                return (
+                  <div
+                    className={`rounded-xl border px-3 py-3 text-xs ${
+                      pending.length === 0
+                        ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-700 dark:text-emerald-400"
+                        : "border-amber-500/40 bg-amber-500/5 text-amber-700 dark:text-amber-400"
+                    }`}
+                  >
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 font-semibold">
+                        {pending.length === 0 ? (
+                          <ShieldCheck className="h-4 w-4" />
+                        ) : (
+                          <AlertTriangle className="h-4 w-4" />
+                        )}
+                        {pending.length === 0
+                          ? "All flagged fields confirmed"
+                          : `Please confirm ${pending.length} flagged field${pending.length === 1 ? "" : "s"}`}
+                      </div>
+                      {pending.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setDrafts((prev) =>
+                              prev.map((d) =>
+                                (d.confidence ?? "medium") !== "high" && d.selected
+                                  ? { ...d, reviewed: true }
+                                  : d,
+                              ),
+                            )
+                          }
+                          className="rounded-full border border-current px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider hover:bg-current/10"
+                        >
+                          Confirm all
+                        </button>
+                      )}
+                    </div>
+                    <p className="mb-2 text-[11px] opacity-80">
+                      Sera wasn't fully sure about these — tick each one after a quick check, or edit
+                      the value directly below.
+                    </p>
+                    <ul className="space-y-1.5">
+                      {flagged.map((d) => {
+                        const meta = METRIC_META[d.metric];
+                        return (
+                          <li key={`chk-${d.id}`} className="flex items-start gap-2">
+                            <input
+                              type="checkbox"
+                              checked={d.reviewed}
+                              onChange={(e) => updateDraft(d.id, { reviewed: e.target.checked })}
+                              className="mt-0.5 h-3.5 w-3.5 accent-current"
+                              aria-label={`Confirm ${meta.label} for ${MONTH_NAMES[d.month - 1]} ${d.year}`}
+                            />
+                            <span className="leading-tight">
+                              <span className="font-semibold">
+                                {meta.label} · {MONTH_NAMES[d.month - 1]} {d.year}
+                              </span>{" "}
+                              <span className="opacity-80">
+                                ({d.value.toLocaleString()} {meta.unit})
+                              </span>
+                              {d.confidence_reason && (
+                                <span className="block text-[11px] opacity-75">
+                                  Why flagged: {d.confidence_reason}
+                                </span>
+                              )}
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                );
+              })()}
+
               <div className="space-y-2">
                 {drafts.map((d) => {
                   const meta = METRIC_META[d.metric];
                   const Icon = meta.icon;
+                  const conf = d.confidence ?? "medium";
+                  const flagged = conf !== "high";
+                  const needsReview = flagged && d.selected && !d.reviewed;
                   return (
                     <div
                       key={d.id}
                       className={`flex flex-wrap items-center gap-3 rounded-xl border px-3 py-2 transition ${
-                        d.selected
-                          ? "border-primary/40 bg-primary/5"
-                          : "border-border bg-muted/40 opacity-60"
+                        !d.selected
+                          ? "border-border bg-muted/40 opacity-60"
+                          : needsReview
+                            ? "border-amber-500/50 bg-amber-500/5"
+                            : "border-primary/40 bg-primary/5"
                       }`}
                     >
                       <input
@@ -536,7 +633,25 @@ export function VoiceLogCard({ entries: _entries, onSaved }: VoiceLogCardProps) 
                       >
                         <Icon className="h-4 w-4" />
                       </div>
-                      <div className="min-w-[7rem] text-sm font-medium">{meta.label}</div>
+                      <div className="flex min-w-[7rem] flex-col">
+                        <span className="text-sm font-medium">{meta.label}</span>
+                        <span
+                          className={`mt-0.5 inline-flex w-fit items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${
+                            conf === "high"
+                              ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                              : conf === "medium"
+                                ? "bg-amber-500/15 text-amber-700 dark:text-amber-400"
+                                : "bg-rose-500/15 text-rose-600 dark:text-rose-400"
+                          }`}
+                        >
+                          {conf === "high" ? (
+                            <CheckCircle2 className="h-2.5 w-2.5" />
+                          ) : (
+                            <AlertTriangle className="h-2.5 w-2.5" />
+                          )}
+                          {conf}
+                        </span>
+                      </div>
                       <Select
                         value={String(d.month)}
                         onValueChange={(v) => updateDraft(d.id, { month: Number(v) })}
@@ -575,10 +690,19 @@ export function VoiceLogCard({ entries: _entries, onSaved }: VoiceLogCardProps) 
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
-                      {d.original_unit && (
+                      {(d.original_unit || d.confidence_reason) && (
                         <div className="basis-full pl-9 text-[10px] text-muted-foreground">
-                          You said: <span className="italic">{d.original_unit}</span>
+                          {d.original_unit && (
+                            <>
+                              You said: <span className="italic">{d.original_unit}</span>
+                            </>
+                          )}
                           {d.note ? ` · ${d.note}` : ""}
+                          {flagged && d.confidence_reason && (
+                            <span className="ml-1 text-amber-600 dark:text-amber-400">
+                              · {d.confidence_reason}
+                            </span>
+                          )}
                         </div>
                       )}
                     </div>
@@ -586,27 +710,42 @@ export function VoiceLogCard({ entries: _entries, onSaved }: VoiceLogCardProps) 
                 })}
               </div>
 
-              <div className="flex items-center justify-end gap-2 border-t border-border pt-3">
-                <Button variant="ghost" onClick={reset} disabled={saving}>
-                  Discard
-                </Button>
-                <Button
-                  onClick={handleSave}
-                  disabled={saving || drafts.filter((d) => d.selected).length === 0}
-                  className="bg-primary text-primary-foreground hover:bg-primary/90"
-                >
-                  {saving ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving…
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="mr-2 h-4 w-4" /> Save {drafts.filter((d) => d.selected).length} row
-                      {drafts.filter((d) => d.selected).length === 1 ? "" : "s"}
-                    </>
-                  )}
-                </Button>
-              </div>
+              {(() => {
+                const selectedRows = drafts.filter((d) => d.selected);
+                const pendingReview = selectedRows.filter(
+                  (d) => (d.confidence ?? "medium") !== "high" && !d.reviewed,
+                ).length;
+                const saveDisabled = saving || selectedRows.length === 0 || pendingReview > 0;
+                return (
+                  <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border pt-3">
+                    {pendingReview > 0 && (
+                      <span className="mr-auto text-xs text-amber-600 dark:text-amber-400">
+                        {pendingReview} flagged field{pendingReview === 1 ? "" : "s"} still need
+                        {pendingReview === 1 ? "s" : ""} confirmation.
+                      </span>
+                    )}
+                    <Button variant="ghost" onClick={reset} disabled={saving}>
+                      Discard
+                    </Button>
+                    <Button
+                      onClick={handleSave}
+                      disabled={saveDisabled}
+                      className="bg-primary text-primary-foreground hover:bg-primary/90"
+                    >
+                      {saving ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving…
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="mr-2 h-4 w-4" /> Save {selectedRows.length} row
+                          {selectedRows.length === 1 ? "" : "s"}
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                );
+              })()}
             </motion.div>
           )}
         </AnimatePresence>
