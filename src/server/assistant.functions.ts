@@ -1032,11 +1032,169 @@ User reply: "${data.reply}"`,
           intent,
           value,
           note: parsed.note ? String(parsed.note).slice(0, 80) : null,
-        };
-      } catch (e) {
-        console.error("parseAutopilotReply parse failed:", e, argStr);
-        return { ok: false, error: "Couldn't parse the AI response." };
+
+/* ---------- AI to-do generation ---------- */
+
+export type AiTodoCategory = "cost" | "compliance" | "waste" | "data";
+export type AiTodoTone = "urgent" | "important" | "routine";
+
+export interface AiTodo {
+  title: string;
+  description: string;
+  category: AiTodoCategory;
+  tone: AiTodoTone;
+  expectedImpact: string;
+  askSeraPrompt: string;
+}
+
+export const generateAiTodos = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      hotelId: z.string().min(1).optional(),
+    }).default({}),
+  )
+  .handler(async ({ data }) => {
+    const hotelId = data.hotelId ?? DEMO_HOTEL_ID;
+    const context = await getHotelContext(hotelId);
+
+    const apiKey = process.env.LOVABLE_API_KEY;
+    if (!apiKey) {
+      return { ok: false as const, error: "AI is not configured." };
+    }
+
+    const messages: ChatMsg[] = [
+      {
+        role: "system",
+        content: `You are Sera, a sustainability consultant for hotels. Based on the hotel data below, propose 3–4 SPECIFIC, actionable to-dos for the manager to do THIS month.
+
+Rules:
+- Reference real numbers, months, utilities and peer position from the data when available.
+- Each to-do must be doable in this calendar month and target a single concrete action (no "improve sustainability").
+- Mix categories where it makes sense (cost, compliance, waste, data).
+- "expectedImpact" must be specific and quantified (e.g. "−4% electricity intensity", "Avoid 120 kg CO2e", "Audit-ready in 1 day").
+- "askSeraPrompt" is the exact prompt the user can ask Sera to deep-dive into this to-do — phrase it as the user's first-person question (e.g. "Help me plan a chiller setpoint trial for May.").
+- Skip anything generic or already obvious (e.g. "log your data" — the app handles that separately).
+
+HOTEL CONTEXT:
+${context}`,
+      },
+      {
+        role: "user",
+        content: "Suggest this month's AI to-dos.",
+      },
+    ];
+
+    const tools = [
+      {
+        type: "function",
+        function: {
+          name: "propose_todos",
+          description: "Return 3–4 specific, actionable AI-generated to-dos for this hotel this month.",
+          parameters: {
+            type: "object",
+            properties: {
+              todos: {
+                type: "array",
+                minItems: 3,
+                maxItems: 4,
+                items: {
+                  type: "object",
+                  properties: {
+                    title: { type: "string", description: "Action-oriented, ≤ 9 words. Start with a verb." },
+                    description: {
+                      type: "string",
+                      description: "1–2 sentences (≤ 30 words) referencing real numbers, months and utilities.",
+                    },
+                    category: {
+                      type: "string",
+                      enum: ["cost", "compliance", "waste", "data"],
+                    },
+                    tone: {
+                      type: "string",
+                      enum: ["urgent", "important", "routine"],
+                    },
+                    expectedImpact: {
+                      type: "string",
+                      description: "Quantified expected outcome, ≤ 10 words.",
+                    },
+                    askSeraPrompt: {
+                      type: "string",
+                      description: "First-person question the user can send to Sera to dig deeper. ≤ 25 words.",
+                    },
+                  },
+                  required: [
+                    "title",
+                    "description",
+                    "category",
+                    "tone",
+                    "expectedImpact",
+                    "askSeraPrompt",
+                  ],
+                  additionalProperties: false,
+                },
+              },
+            },
+            required: ["todos"],
+            additionalProperties: false,
+          },
+        },
+      },
+    ];
+
+    let res: Response;
+    try {
+      res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages,
+          tools,
+          tool_choice: { type: "function", function: { name: "propose_todos" } },
+        }),
+      });
+    } catch (e) {
+      console.error("generateAiTodos AI call failed:", e);
+      return { ok: false as const, error: "Couldn't reach Sera." };
+    }
+
+    if (!res.ok) {
+      if (res.status === 429) {
+        return { ok: false as const, error: "Sera is busy. Please try again in a minute." };
       }
-    },
-  );
+      if (res.status === 402) {
+        return {
+          ok: false as const,
+          error: "AI credits exhausted. Add funds in workspace settings.",
+        };
+      }
+      return { ok: false as const, error: "Sera is unavailable right now." };
+    }
+
+    const json = (await res.json()) as {
+      choices?: {
+        message?: {
+          tool_calls?: { function?: { arguments?: string } }[];
+        };
+      }[];
+    };
+    const argStr = json.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
+    if (!argStr) {
+      return { ok: false as const, error: "Sera didn't return any to-dos." };
+    }
+    try {
+      const parsed = JSON.parse(argStr) as { todos: AiTodo[] };
+      const todos = (parsed.todos ?? []).slice(0, 4);
+      if (todos.length === 0) {
+        return { ok: false as const, error: "Sera couldn't suggest any to-dos." };
+      }
+      return { ok: true as const, todos };
+    } catch (e) {
+      console.error("generateAiTodos parse failed:", e, argStr);
+      return { ok: false as const, error: "Couldn't parse Sera's to-dos." };
+    }
+  });
 
