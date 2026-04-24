@@ -118,6 +118,7 @@ import {
   type ChartExplanation,
 } from "@/server/assistant.functions";
 import { BenchmarksPanel } from "@/components/benchmarks-panel";
+import { OverviewPerformanceSummary } from "@/components/overview-performance-summary";
 
 type IndexSearch = { tab?: "overview" | "log" | "analyze" | "settings" | "benchmarks" };
 
@@ -649,6 +650,18 @@ function HomePage() {
               </Card>
             );
           })()}
+
+          <OverviewPerformanceSummary
+            hotel={hotel}
+            entries={entries}
+            score={computeScore(latest)}
+            scoreDelta={
+              computeScore(latest) !== null && computeScore(prev) !== null
+                ? (computeScore(latest) as number) - (computeScore(prev) as number)
+                : null
+            }
+            cohortSize={benchmarkCohortSize}
+          />
 
           <TodosCard
             latest={latest}
