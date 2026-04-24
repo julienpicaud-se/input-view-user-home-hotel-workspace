@@ -4729,11 +4729,44 @@ function SurveyLogCard({
               onChange={(e) =>
                 setForm((s) => ({ ...s, [current.key]: e.target.value }))
               }
-              placeholder="Enter your value"
+              placeholder={`Enter value in ${current.unit}`}
               className="num h-10 flex-1 border-0 bg-transparent text-right text-2xl font-semibold focus-visible:ring-0"
             />
-            <span className="text-sm text-muted-foreground">{current.unitLabel}</span>
+            <span
+              className="rounded-md border border-border/60 bg-muted/40 px-2 py-1 font-mono text-xs font-semibold text-foreground"
+              title={current.unitLabel}
+            >
+              {current.unit}
+            </span>
+            <span className="hidden text-sm text-muted-foreground sm:inline">
+              {current.unitLabel}
+            </span>
           </div>
+
+          <div className="mt-1.5 flex items-center justify-end pr-1 text-[11px] text-muted-foreground">
+            Enter the total in <span className="mx-1 font-semibold text-foreground">{current.unit}</span>
+            ({current.unitLabel})
+          </div>
+
+          {current.conversions && current.conversions.length > 0 && (
+            <div className="mt-3 rounded-lg border border-dashed border-border/60 bg-muted/20 px-3 py-2">
+              <div className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                Convert to {current.unit}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {current.conversions.map((c) => (
+                  <span
+                    key={`${c.from}-${c.to}`}
+                    className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background/60 px-2 py-1 text-[11px]"
+                  >
+                    <span className="text-muted-foreground">{c.from}</span>
+                    <span className="text-muted-foreground/70">→</span>
+                    <span className="font-mono font-medium text-foreground">{c.factor}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
 
           {current.tip && (
             <div className="mt-2 text-[11px] italic text-muted-foreground">
