@@ -903,3 +903,140 @@ Return ONLY valid JSON via the tool call. Months are 1-12. Always reply in Engli
     }
   });
 
+/* -------------------- Autopilot — parse a single conversational reply -------------------- */
+
+/**
+ * Used by the "Sera on Autopilot" data input mode. The client already shows a
+ * predicted value (e.g. ~14,200 kWh) and the user replies freeform: "yes",
+ * "same", "+5%", "12500", "around twelve thousand", "a bit lower". We parse
+ * obvious cases client-side; this server function is the fallback when the
+ * regex didn't match — we let Gemini turn the sentence into a number anchored
+ * on the prediction.
+ */
+export const parseAutopilotReply = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      reply: z.string().min(1).max(400),
+      metric: z.enum(["electricity_kwh", "gas_kwh", "water_m3", "waste_kg", "occupied_room_nights"]),
+      unit: z.string().min(1).max(16),
+      predicted: z.number().nonnegative().nullable(),
+      lastYear: z.number().nonnegative().nullable(),
+    }),
+  )
+  .handler(
+    async ({
+      data,
+    }): Promise<
+      | { ok: true; value: number | null; intent: "value" | "skip" | "unknown"; note: string | null }
+      | { ok: false; error: string }
+    > => {
+      const apiKey = process.env.LOVABLE_API_KEY;
+      if (!apiKey) return { ok: false, error: "AI not configured." };
+
+      const systemPrompt = `You convert a hotel manager's casual reply into a single numeric value for ONE metric.
+You are given:
+- The metric being asked about (e.g. electricity_kwh in kWh).
+- A predicted baseline (Sera's best guess based on history) — may be null.
+- Last year's same-month value — may be null.
+- The user's reply.
+
+Decide one of three intents:
+- "value": the reply implies a specific number. Return it in the canonical unit.
+- "skip": the user doesn't know, wants to skip, or says "no idea" / "later".
+- "unknown": the reply is unrelated, nonsensical or you cannot decide.
+
+Rules:
+- "yes", "same", "as expected", "looks right", "ok" → value = predicted (if available).
+- "+5%", "5% more", "up 5" → predicted * 1.05.
+- "-10%", "10% less", "down 10" → predicted * 0.90.
+- "like last year" → lastYear value.
+- Spelled-out numbers ("twelve thousand four hundred") → 12400.
+- Plain numbers respect K/k = ×1000.
+- "a bit more" / "a bit less" without a number → adjust predicted by ±5%.
+- Never return a negative value.
+Always include a brief note (max 60 chars) explaining how you interpreted the reply.`;
+
+      const tools = [
+        {
+          type: "function",
+          function: {
+            name: "submit_value",
+            description: "Return the parsed numeric reply.",
+            parameters: {
+              type: "object",
+              properties: {
+                intent: { type: "string", enum: ["value", "skip", "unknown"] },
+                value: {
+                  type: "number",
+                  description: "Canonical-unit number when intent='value'. Omit otherwise.",
+                  minimum: 0,
+                },
+                note: { type: "string", description: "How you interpreted the reply (≤60 chars)." },
+              },
+              required: ["intent", "note"],
+              additionalProperties: false,
+            },
+          },
+        },
+      ];
+
+      let res: Response;
+      try {
+        res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash",
+            messages: [
+              { role: "system", content: systemPrompt },
+              {
+                role: "user",
+                content: `Metric: ${data.metric} (unit: ${data.unit})
+Predicted baseline: ${data.predicted ?? "null"}
+Last year same month: ${data.lastYear ?? "null"}
+User reply: "${data.reply}"`,
+              },
+            ],
+            tools,
+            tool_choice: { type: "function", function: { name: "submit_value" } },
+          }),
+        });
+      } catch (e) {
+        console.error("parseAutopilotReply fetch failed:", e);
+        return { ok: false, error: "Could not reach the AI service." };
+      }
+
+      if (res.status === 429) return { ok: false, error: "Rate limit hit. Try again in a moment." };
+      if (res.status === 402) return { ok: false, error: "AI credits exhausted." };
+      if (!res.ok) {
+        console.error("parseAutopilotReply error:", res.status);
+        return { ok: false, error: "The AI couldn't parse that reply." };
+      }
+
+      const json = (await res.json()) as {
+        choices?: { message?: { tool_calls?: { function?: { arguments?: string } }[] } }[];
+      };
+      const argStr = json.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments ?? "";
+      try {
+        const parsed = JSON.parse(argStr) as { intent?: string; value?: number; note?: string };
+        const intent =
+          parsed.intent === "value" || parsed.intent === "skip" || parsed.intent === "unknown"
+            ? parsed.intent
+            : "unknown";
+        const value =
+          intent === "value" && typeof parsed.value === "number" && Number.isFinite(parsed.value)
+            ? Math.max(0, parsed.value)
+            : null;
+        return {
+          ok: true as const,
+          intent,
+          value,
+          note: parsed.note ? String(parsed.note).slice(0, 80) : null,
+        };
+      } catch (e) {
+        console.error("parseAutopilotReply parse failed:", e, argStr);
+        return { ok: false, error: "Couldn't parse the AI response." };
+      }
+    },
+  );
+
