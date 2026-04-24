@@ -5,6 +5,7 @@ import {
   Bolt,
   Droplets,
   Flame,
+  Loader2,
   Minus,
   Sparkles,
   Trash2,
@@ -12,11 +13,16 @@ import {
   TrendingUp,
   Trophy,
 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { MONTH_NAMES, formatNumber } from "@/lib/format";
 import { getPeerRank, getPeerStats, type Utility } from "@/lib/peer-benchmarks";
-import type { Hotel, MonthlyEntry } from "@/lib/hotel";
+import { getActiveHotelId, type Hotel, type MonthlyEntry } from "@/lib/hotel";
+import { sendAssistantMessage } from "@/server/assistant.functions";
 
 interface UtilityDef {
   key: Utility;
@@ -189,6 +195,69 @@ export function OverviewPerformanceSummary({
   const occPrev = prev?.occupied_room_nights ?? null;
   const occMomPct = pctChange(occPrev, occThis);
 
+  // AI: explain score drivers + quickest wins
+  const send = useServerFn(sendAssistantMessage);
+  const [aiPending, setAiPending] = React.useState(false);
+  const [aiAnswer, setAiAnswer] = React.useState<string | null>(null);
+
+  async function explainScoreDrivers() {
+    if (aiPending) return;
+    setAiPending(true);
+    setAiAnswer(null);
+    try {
+      const utilityLines = rows
+        .map((r) => {
+          const valStr =
+            r.value !== null ? `${formatNumber(r.value, 2)} ${r.unit}` : "—";
+          const mom = r.momPct !== null ? formatPct(r.momPct) : "—";
+          const yoy = r.yoyPct !== null ? formatPct(r.yoyPct) : "—";
+          const rank =
+            r.position !== null
+              ? `#${r.position} of ${cohortSize} (percentile ${Math.round(r.rank ?? 0)})`
+              : "no peer data";
+          return `- ${r.label}: ${valStr} — MoM ${mom}, YoY ${yoy}, peer rank ${rank}`;
+        })
+        .join("\n");
+
+      const scoreLine =
+        scoreDisplay !== null
+          ? `${scoreDisplay}/100${
+              scoreDelta !== null
+                ? ` (${scoreDelta > 0 ? "+" : ""}${scoreDelta.toFixed(1)} vs last month)`
+                : ""
+            }`
+          : "not yet computed";
+
+      const prompt = `My sustainability score for ${monthLabel} at ${hotel.name} (${hotel.rooms} rooms, ${hotel.size_band} band, ${hotel.region}, ${hotel.star_rating}★) is **${scoreLine}**.
+
+Per-utility intensities (per occupied room-night) vs last month, last year, and ${cohortSize} similar Mediterranean hotels:
+${utilityLines}
+
+Occupancy this month: ${occThis !== null ? formatNumber(occThis, 0) : "—"} room-nights${occMomPct !== null ? ` (${formatPct(occMomPct)} MoM)` : ""}.
+
+Please:
+1. In 2–3 plain-language sentences, explain what is **driving my score up or down** this month — call out which utilities helped and which hurt, and reference the peer ranks and trends above.
+2. Then list **2–3 quickest wins for next month** as a short bullet list, prioritised by impact and ease. For each, name the utility, the concrete action, and a rough expected improvement (% or absolute). Skip generic advice.`;
+
+      const res = await send({
+        data: {
+          message: prompt,
+          hotelId: getActiveHotelId(),
+          history: [],
+        },
+      });
+      if (res.ok) {
+        setAiAnswer(res.content);
+      } else {
+        toast.error(res.error);
+      }
+    } catch {
+      toast.error("Couldn't reach Sera. Please try again.");
+    } finally {
+      setAiPending(false);
+    }
+  }
+
   return (
     <Card className="rounded-3xl border-border/70 bg-card/60 p-6 backdrop-blur-sm">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
@@ -357,6 +426,49 @@ export function OverviewPerformanceSummary({
         latest month to the previous month and to the same month last year (when
         available). Peer rank uses {cohortSize} similar Mediterranean hotels.
       </p>
+
+      <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border/50 pt-4">
+        <Button
+          type="button"
+          size="sm"
+          onClick={() => void explainScoreDrivers()}
+          disabled={aiPending}
+          className="rounded-full bg-gradient-to-r from-primary to-secondary text-primary-foreground shadow-sm hover:opacity-95"
+        >
+          {aiPending ? (
+            <>
+              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+              Sera is analysing…
+            </>
+          ) : (
+            <>
+              <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+              Explain my score & quickest wins
+            </>
+          )}
+        </Button>
+        {aiAnswer && !aiPending && (
+          <button
+            type="button"
+            onClick={() => setAiAnswer(null)}
+            className="text-[11px] text-muted-foreground hover:text-foreground"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+
+      {aiAnswer && (
+        <div className="mt-3 rounded-2xl border border-primary/25 bg-primary/5 p-4">
+          <div className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
+            <Sparkles className="h-3.5 w-3.5" />
+            Sera's take on your score
+          </div>
+          <div className="prose prose-sm max-w-none prose-p:my-1.5 prose-p:text-foreground prose-strong:text-foreground prose-li:my-0.5 prose-ul:my-1.5 prose-ol:my-1.5">
+            <ReactMarkdown>{aiAnswer}</ReactMarkdown>
+          </div>
+        </div>
+      )}
     </Card>
   );
 }
