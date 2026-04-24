@@ -158,7 +158,7 @@ function HomePage() {
   const [hotel, setHotel] = React.useState<Hotel | null>(null);
   const [entries, setEntries] = React.useState<MonthlyEntry[]>([]);
   const [loading, setLoading] = React.useState(true);
-  const [perRoom, setPerRoom] = React.useState(false);
+  const [perRoom, setPerRoom] = React.useState(true);
   const [insights, setInsights] = React.useState<Insight[]>([]);
   const [insightsLoading, setInsightsLoading] = React.useState(false);
   const [activeChart, setActiveChart] = React.useState<ChartId>("consumption");
