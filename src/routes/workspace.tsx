@@ -4384,6 +4384,7 @@ interface SurveyStep {
   examples: { label: string; value: string }[];
   subTypes?: string[];
   tip?: string;
+  conversions?: { from: string; to: string; factor: string }[];
   icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   color: string;
 }
