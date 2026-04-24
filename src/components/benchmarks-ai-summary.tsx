@@ -276,7 +276,7 @@ export function BenchmarksAiSummary({
                 <PopoverContent
                   align="start"
                   side="bottom"
-                  className="w-[22rem] rounded-2xl border-border/70 p-4 text-xs leading-relaxed"
+                  className="w-[min(22rem,calc(100vw-2rem))] rounded-2xl border-border/70 p-4 text-xs leading-relaxed"
                 >
                   <div className="mb-2 flex items-center gap-1.5">
                     <Info className="h-3.5 w-3.5 text-muted-foreground" />
