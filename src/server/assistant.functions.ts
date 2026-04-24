@@ -1032,6 +1032,13 @@ User reply: "${data.reply}"`,
           intent,
           value,
           note: parsed.note ? String(parsed.note).slice(0, 80) : null,
+        };
+      } catch (e) {
+        console.error("parseAutopilotReply parse failed:", e, argStr);
+        return { ok: false, error: "Couldn't parse the AI response." };
+      }
+    },
+  );
 
 /* ---------- AI to-do generation ---------- */
 
