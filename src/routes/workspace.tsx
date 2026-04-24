@@ -3754,7 +3754,7 @@ function LogDataTabs({
           <h2 className="text-lg font-semibold">Past data</h2>
           <span className="text-xs text-muted-foreground">{sorted.length} entries</span>
         </div>
-        <PastDataSection sorted={sorted} rooms={rooms} />
+        <PastDataSection sorted={sorted} rooms={rooms} hotel={hotel} />
       </div>
     </div>
   );
