@@ -17,16 +17,24 @@ import {
   Droplets,
   Flame,
   LineChart,
+  Loader2,
   Minus,
+  Sparkles,
   Trash2,
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { MONTH_NAMES, MONTH_SHORT, formatNumber } from "@/lib/format";
 import { getPeerStats, type Utility } from "@/lib/peer-benchmarks";
-import type { Hotel, MonthlyEntry } from "@/lib/hotel";
+import { getActiveHotelId, type Hotel, type MonthlyEntry } from "@/lib/hotel";
+import { sendAssistantMessage } from "@/server/assistant.functions";
+
 
 interface UtilityDef {
   key: Utility;
@@ -109,6 +117,10 @@ export function PeerTrendComparison({
   entries: MonthlyEntry[];
   cohortSize: number;
 }) {
+  const send = useServerFn(sendAssistantMessage);
+  const [aiPending, setAiPending] = React.useState(false);
+  const [aiAnswer, setAiAnswer] = React.useState<string | null>(null);
+
   const filters = {
     sizeBand: hotel.size_band,
     region: hotel.region,
@@ -226,7 +238,49 @@ export function PeerTrendComparison({
     return `${d.label} ${yoursWord} ${formatPct(d.yoursDeltaPct)} versus peers ${peersWord} ${formatPct(d.peersDeltaPct)} — a ${gapMag} pp shortfall.`;
   }
 
+  async function explainBiggestGap() {
+    if (!worstDriver || aiPending) return;
+    setAiPending(true);
+    setAiAnswer(null);
+    try {
+      const driverLines = deltas
+        .filter((d) => d.gapPct !== null)
+        .map(
+          (d) =>
+            `- ${d.label}: you ${formatPct(d.yoursDeltaPct!)} vs peers ${formatPct(d.peersDeltaPct!)} (gap ${formatPct(d.gapPct!)})`,
+        )
+        .join("\n");
+
+      const prompt = `My biggest peer-benchmark gap from ${prevMonthLabel} to ${currMonthLabel} is **${worstDriver.label}**: my intensity moved ${formatPct(worstDriver.yoursDeltaPct!)} while the median of ${cohortSize} similar Mediterranean hotels of ${hotel.size_band} rooms moved ${formatPct(worstDriver.peersDeltaPct!)} — a ${Math.abs(worstDriver.gapPct!).toFixed(1)} pp shortfall.
+
+Full month-over-month picture:
+${driverLines}
+
+Please:
+1. Explain in 2–3 plain-language sentences what likely caused this ${worstDriver.label.toLowerCase()} gap (consider seasonality, occupancy, equipment, operational habits — and reference the other utilities above when useful).
+2. Suggest **2–3 concrete actions** I can take next month to close the gap. Use a short bullet list and prioritise by impact and ease. Include rough expected savings in % or absolute units when reasonable. Skip generic advice.`;
+
+      const res = await send({
+        data: {
+          message: prompt,
+          hotelId: getActiveHotelId(),
+          history: [],
+        },
+      });
+      if (res.ok) {
+        setAiAnswer(res.content);
+      } else {
+        toast.error(res.error);
+      }
+    } catch {
+      toast.error("Couldn't reach Sera. Please try again.");
+    } finally {
+      setAiPending(false);
+    }
+  }
+
   return (
+
     <Card className="mb-6 rounded-3xl border-border/70 bg-card/60 p-6 backdrop-blur-sm">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
@@ -398,8 +452,52 @@ export function PeerTrendComparison({
             {currMonthLabel}). "Gap vs peers" = your % change minus the peer
             median's % change. Negative is better.
           </p>
+
+          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border/50 pt-3">
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => void explainBiggestGap()}
+              disabled={aiPending}
+              className="rounded-full bg-gradient-to-r from-primary to-secondary text-primary-foreground shadow-sm hover:opacity-95"
+            >
+              {aiPending ? (
+                <>
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                  Sera is analysing…
+                </>
+              ) : (
+                <>
+                  <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+                  Explain my biggest gap & suggest actions
+                </>
+              )}
+            </Button>
+            {aiAnswer && !aiPending && (
+              <button
+                type="button"
+                onClick={() => setAiAnswer(null)}
+                className="text-[11px] text-muted-foreground hover:text-foreground"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+
+          {aiAnswer && (
+            <div className="mt-3 rounded-2xl border border-primary/25 bg-primary/5 p-4">
+              <div className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
+                <Sparkles className="h-3.5 w-3.5" />
+                Sera's take on {worstDriver.label.toLowerCase()}
+              </div>
+              <div className="prose prose-sm max-w-none prose-p:my-1.5 prose-p:text-foreground prose-strong:text-foreground prose-li:my-0.5 prose-ul:my-1.5 prose-ol:my-1.5">
+                <ReactMarkdown>{aiAnswer}</ReactMarkdown>
+              </div>
+            </div>
+          )}
         </div>
       )}
+
     </Card>
   );
 }
