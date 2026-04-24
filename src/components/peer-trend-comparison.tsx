@@ -452,8 +452,52 @@ Please:
             {currMonthLabel}). "Gap vs peers" = your % change minus the peer
             median's % change. Negative is better.
           </p>
+
+          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border/50 pt-3">
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => void explainBiggestGap()}
+              disabled={aiPending}
+              className="rounded-full bg-gradient-to-r from-primary to-secondary text-primary-foreground shadow-sm hover:opacity-95"
+            >
+              {aiPending ? (
+                <>
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                  Sera is analysing…
+                </>
+              ) : (
+                <>
+                  <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+                  Explain my biggest gap & suggest actions
+                </>
+              )}
+            </Button>
+            {aiAnswer && !aiPending && (
+              <button
+                type="button"
+                onClick={() => setAiAnswer(null)}
+                className="text-[11px] text-muted-foreground hover:text-foreground"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+
+          {aiAnswer && (
+            <div className="mt-3 rounded-2xl border border-primary/25 bg-primary/5 p-4">
+              <div className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
+                <Sparkles className="h-3.5 w-3.5" />
+                Sera's take on {worstDriver.label.toLowerCase()}
+              </div>
+              <div className="prose prose-sm max-w-none prose-p:my-1.5 prose-p:text-foreground prose-strong:text-foreground prose-li:my-0.5 prose-ul:my-1.5 prose-ol:my-1.5">
+                <ReactMarkdown>{aiAnswer}</ReactMarkdown>
+              </div>
+            </div>
+          )}
         </div>
       )}
+
     </Card>
   );
 }
