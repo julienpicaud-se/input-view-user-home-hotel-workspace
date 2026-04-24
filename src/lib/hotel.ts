@@ -54,4 +54,6 @@ export interface MonthlyEntry {
   recycled_pct: number | null;
   attachment_url: string | null;
   notes: string | null;
+  created_at?: string;
+  updated_at?: string;
 }

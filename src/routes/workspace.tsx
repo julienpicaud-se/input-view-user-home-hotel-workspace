@@ -668,6 +668,7 @@ function HomePage() {
             onSaved={() => void reload()}
             sorted={sorted}
             rooms={hotel.rooms}
+            hotel={hotel}
             highlightFields={highlightFields}
             onHighlightConsumed={() => setHighlightFields([])}
           />
@@ -3648,6 +3649,7 @@ function LogDataTabs({
   onSaved,
   sorted,
   rooms,
+  hotel,
   highlightFields = [],
   onHighlightConsumed,
 }: {
@@ -3656,6 +3658,7 @@ function LogDataTabs({
   onSaved: () => void;
   sorted: MonthlyEntry[];
   rooms: number;
+  hotel: Hotel;
   highlightFields?: HighlightedField[];
   onHighlightConsumed?: () => void;
 }) {
@@ -3754,7 +3757,7 @@ function LogDataTabs({
           <h2 className="text-lg font-semibold">Past data</h2>
           <span className="text-xs text-muted-foreground">{sorted.length} entries</span>
         </div>
-        <PastDataSection sorted={sorted} rooms={rooms} />
+        <PastDataSection sorted={sorted} rooms={rooms} hotel={hotel} />
       </div>
     </div>
   );
@@ -3762,9 +3765,62 @@ function LogDataTabs({
 
 /* ---------- Past data section ---------- */
 
-function PastDataSection({ sorted, rooms }: { sorted: MonthlyEntry[]; rooms: number }) {
-  const reversed = React.useMemo(() => [...sorted].reverse(), [sorted]);
+type MetricKey = "electricity_kwh" | "gas_kwh" | "water_m3" | "waste_kg" | "occupied_room_nights";
+
+const PAST_DATA_METRICS: { key: MetricKey; label: string; unit: string }[] = [
+  { key: "electricity_kwh", label: "Electricity", unit: "kWh" },
+  { key: "gas_kwh", label: "Gas", unit: "kWh" },
+  { key: "water_m3", label: "Water", unit: "m³" },
+  { key: "waste_kg", label: "Waste", unit: "kg" },
+  { key: "occupied_room_nights", label: "Room-nights", unit: "nights" },
+];
+
+interface PastDataRow {
+  metricLabel: string;
+  unit: string;
+  value: number | null;
+  startDate: string; // ISO yyyy-mm-dd
+  endDate: string;   // ISO yyyy-mm-dd
+  inputDate: string | null;
+  year: number;
+  month: number;
+}
+
+function formatIsoDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function PastDataSection({
+  sorted,
+  rooms,
+  hotel,
+}: {
+  sorted: MonthlyEntry[];
+  rooms: number;
+  hotel: Hotel;
+}) {
   const [yearFilter, setYearFilter] = React.useState<"all" | number>("all");
+  const [ownerName, setOwnerName] = React.useState<string>("—");
+
+  // Fetch data owner (display name) from user_profiles for the current demo profile.
+  React.useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const { data } = await supabase
+        .from("user_profiles")
+        .select("display_name, email")
+        .limit(1)
+        .maybeSingle();
+      if (cancelled) return;
+      const name = data?.display_name || data?.email || "—";
+      setOwnerName(name);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const years = React.useMemo(() => {
     const set = new Set<number>();
@@ -3772,10 +3828,34 @@ function PastDataSection({ sorted, rooms }: { sorted: MonthlyEntry[]; rooms: num
     return Array.from(set).sort((a, b) => b - a);
   }, [sorted]);
 
-  const filtered = React.useMemo(
-    () => (yearFilter === "all" ? reversed : reversed.filter((e) => e.year === yearFilter)),
-    [reversed, yearFilter],
-  );
+  // Build one row per metric per month (newest first).
+  const rows = React.useMemo<PastDataRow[]>(() => {
+    const reversed = [...sorted].reverse();
+    const filtered =
+      yearFilter === "all" ? reversed : reversed.filter((e) => e.year === yearFilter);
+    const out: PastDataRow[] = [];
+    for (const e of filtered) {
+      const yyyy = e.year;
+      const mm = String(e.month).padStart(2, "0");
+      const lastDay = new Date(yyyy, e.month, 0).getDate();
+      const startDate = `${yyyy}-${mm}-01`;
+      const endDate = `${yyyy}-${mm}-${String(lastDay).padStart(2, "0")}`;
+      for (const m of PAST_DATA_METRICS) {
+        const v = e[m.key] as number | null | undefined;
+        out.push({
+          metricLabel: m.label,
+          unit: m.unit,
+          value: v ?? null,
+          startDate,
+          endDate,
+          inputDate: e.created_at ?? null,
+          year: e.year,
+          month: e.month,
+        });
+      }
+    }
+    return out;
+  }, [sorted, yearFilter]);
 
   if (sorted.length === 0) {
     return (
@@ -3791,13 +3871,15 @@ function PastDataSection({ sorted, rooms }: { sorted: MonthlyEntry[]; rooms: num
     );
   }
 
+  const monthsShown = new Set(rows.map((r) => `${r.year}-${r.month}`)).size;
+
   return (
     <Card className="rounded-2xl border-border/70 p-5">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-sm font-semibold">All logged months</h3>
+          <h3 className="text-sm font-semibold">All logged metrics</h3>
           <p className="text-xs text-muted-foreground">
-            {filtered.length} of {sorted.length} entries
+            {rows.length} rows • {monthsShown} {monthsShown === 1 ? "month" : "months"}
             {rooms ? ` • ${rooms} rooms` : ""}
           </p>
         </div>
@@ -3824,41 +3906,40 @@ function PastDataSection({ sorted, rooms }: { sorted: MonthlyEntry[]; rooms: num
         <table className="w-full text-xs">
           <thead className="text-left text-[10px] uppercase tracking-wider text-muted-foreground">
             <tr>
-              <th className="py-2 pr-3 font-medium">Period</th>
-              <th className="py-2 pr-3 text-right font-medium">Electricity (kWh)</th>
-              <th className="py-2 pr-3 text-right font-medium">Gas (kWh)</th>
-              <th className="py-2 pr-3 text-right font-medium">Water (m³)</th>
-              <th className="py-2 pr-3 text-right font-medium">Waste (kg)</th>
-              <th className="py-2 pr-3 text-right font-medium">Room-nights</th>
-              <th className="py-2 text-right font-medium">CO₂e (kg)</th>
+              <th className="py-2 pr-3 font-medium">Metric</th>
+              <th className="py-2 pr-3 font-medium">Start date</th>
+              <th className="py-2 pr-3 font-medium">End date</th>
+              <th className="py-2 pr-3 font-medium">Unit</th>
+              <th className="py-2 pr-3 text-right font-medium">Value</th>
+              <th className="py-2 pr-3 font-medium">Data owner</th>
+              <th className="py-2 pr-3 font-medium">Site</th>
+              <th className="py-2 font-medium">Input date</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map((e) => (
-              <tr key={`${e.year}-${e.month}`} className="border-t border-border">
-                <td className="py-2 pr-3 font-medium">
-                  {MONTH_SHORT[e.month - 1]} {e.year}
-                </td>
-                <td className="num py-2 pr-3 text-right">
-                  {e.electricity_kwh != null ? formatNumber(e.electricity_kwh) : "—"}
-                </td>
-                <td className="num py-2 pr-3 text-right">
-                  {e.gas_kwh != null ? formatNumber(e.gas_kwh) : "—"}
-                </td>
-                <td className="num py-2 pr-3 text-right">
-                  {e.water_m3 != null ? formatNumber(e.water_m3) : "—"}
-                </td>
-                <td className="num py-2 pr-3 text-right">
-                  {e.waste_kg != null ? formatNumber(e.waste_kg) : "—"}
-                </td>
-                <td className="num py-2 pr-3 text-right">
-                  {e.occupied_room_nights != null ? formatNumber(e.occupied_room_nights) : "—"}
-                </td>
-                <td className="num py-2 text-right font-semibold">
-                  {formatNumber(calculateCO2e(e))}
-                </td>
-              </tr>
-            ))}
+            {rows.map((r, i) => {
+              const isNewMonth =
+                i === 0 || rows[i - 1].year !== r.year || rows[i - 1].month !== r.month;
+              return (
+                <tr
+                  key={`${r.year}-${r.month}-${r.metricLabel}`}
+                  className={`border-t ${isNewMonth ? "border-border" : "border-border/40"}`}
+                >
+                  <td className="py-2 pr-3 font-medium">{r.metricLabel}</td>
+                  <td className="py-2 pr-3 text-muted-foreground">{formatIsoDate(r.startDate)}</td>
+                  <td className="py-2 pr-3 text-muted-foreground">{formatIsoDate(r.endDate)}</td>
+                  <td className="py-2 pr-3 text-muted-foreground">{r.unit}</td>
+                  <td className="num py-2 pr-3 text-right">
+                    {r.value != null ? formatNumber(r.value) : "—"}
+                  </td>
+                  <td className="py-2 pr-3 text-muted-foreground">{ownerName}</td>
+                  <td className="py-2 pr-3 text-muted-foreground">{hotel.name}</td>
+                  <td className="py-2 text-muted-foreground">
+                    {r.inputDate ? formatIsoDate(r.inputDate) : "—"}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
