@@ -3681,7 +3681,7 @@ function LogDataTabs({
     { key: "sera", label: "Sera guided", desc: "AI walks you through, reads your bills", icon: Sparkles, badge: "New" },
     { key: "manual", label: "Manual entry", desc: "Type values from your bills", icon: Pencil },
     { key: "survey", label: "Guided survey", desc: "Step-by-step questions", icon: ClipboardList },
-    { key: "import", label: "Import CSV", desc: "Bulk upload past months", icon: Upload },
+    { key: "import", label: "Guided invoice upload", desc: "Snap a bill, save to a month", icon: FileSpreadsheet },
   ];
 
   return (
