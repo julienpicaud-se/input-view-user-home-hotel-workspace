@@ -1708,7 +1708,7 @@ function MonthlyChangeSummary({
               <PopoverContent
                 align="start"
                 side="bottom"
-                className="w-[22rem] rounded-2xl border-border/70 p-4 text-xs leading-relaxed"
+                className="w-[min(22rem,calc(100vw-2rem))] rounded-2xl border-border/70 p-4 text-xs leading-relaxed"
               >
                 <div className="mb-2 flex items-center gap-1.5">
                   <Info className="h-3.5 w-3.5 text-muted-foreground" />
@@ -2662,7 +2662,7 @@ function TodosCard({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
                 transition={{ duration: 0.18 }}
-                className={`group flex flex-wrap items-center gap-4 rounded-2xl border border-border/70 p-4 transition hover:bg-card/80 ${toneStyles}`}
+                className={`group flex flex-col gap-3 rounded-2xl border border-border/70 p-4 transition hover:bg-card/80 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4 ${toneStyles}`}
               >
                 <div className="flex shrink-0 items-center gap-3">
                   <Checkbox
@@ -2708,8 +2708,8 @@ function TodosCard({
                   onClick={todo.onClick}
                   className={
                     done
-                      ? "shrink-0"
-                      : "shrink-0 rounded-full border border-foreground/20 bg-foreground text-background shadow-sm hover:bg-foreground/90"
+                      ? "w-full shrink-0 sm:w-auto"
+                      : "w-full shrink-0 rounded-full border border-foreground/20 bg-foreground text-background shadow-sm hover:bg-foreground/90 sm:w-auto"
                   }
                   disabled={done}
                 >

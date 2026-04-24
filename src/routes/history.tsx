@@ -292,7 +292,7 @@ function HistoryPage() {
 
       <Card className="overflow-hidden rounded-2xl border-border/70 p-0">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[820px] text-sm">
             <thead className="bg-muted/50 text-left text-xs uppercase tracking-wider text-muted-foreground">
               <tr>
                 <th className="px-4 py-3 font-medium">Period</th>
