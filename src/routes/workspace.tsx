@@ -651,6 +651,18 @@ function HomePage() {
             );
           })()}
 
+          <OverviewPerformanceSummary
+            hotel={hotel}
+            entries={entries}
+            score={computeScore(latest)}
+            scoreDelta={
+              computeScore(latest) !== null && computeScore(prev) !== null
+                ? (computeScore(latest) as number) - (computeScore(prev) as number)
+                : null
+            }
+            cohortSize={benchmarkCohortSize}
+          />
+
           <TodosCard
             latest={latest}
             sorted={sorted}
