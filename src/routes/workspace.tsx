@@ -4437,6 +4437,11 @@ const SURVEY_STEPS: SurveyStep[] = [
       { label: "Hotel + heated pool & laundry", value: "≈ 60,000 kWh / month" },
     ],
     tip: "Leave at 0 if your property is fully electric.",
+    conversions: [
+      { from: "1 m³ natural gas", to: "kWh", factor: "× 10.55" },
+      { from: "1 therm", to: "kWh", factor: "× 29.3" },
+      { from: "1 MWh", to: "kWh", factor: "× 1,000" },
+    ],
     icon: Flame,
     color: "var(--chart-1)",
   },
