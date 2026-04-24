@@ -340,7 +340,7 @@ export function VoiceLogCard({ entries: _entries, onSaved }: VoiceLogCardProps) 
     } finally {
       setExtracting(false);
     }
-  }, [extract, finalText, interimText, listening, stopListening]);
+  }, [extract, finalText, interimText, listening, stopListening, detectedLang]);
 
   const handleSave = React.useCallback(async () => {
     const selected = drafts.filter((d) => d.selected);
