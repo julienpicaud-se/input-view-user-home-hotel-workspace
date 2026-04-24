@@ -43,6 +43,11 @@ import {
   Mic,
   Plane,
   X,
+  Lightbulb,
+  Plus,
+  Recycle,
+  Leaf,
+  CalendarCheck,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -114,8 +119,10 @@ import {
   generateInsights,
   sendAssistantMessage,
   explainChart,
+  generateAiTodos,
   type Insight,
   type ChartExplanation,
+  type AiTodo,
 } from "@/server/assistant.functions";
 import { BenchmarksPanel } from "@/components/benchmarks-panel";
 import { OverviewPerformanceSummary } from "@/components/overview-performance-summary";
@@ -503,16 +510,25 @@ function HomePage() {
           />
 
           <TodosCard
+            hotel={hotel}
             latest={latest}
+            prev={prev}
+            lastYearSame={lastYearSame}
             sorted={sorted}
             isCurrentLogged={!!isCurrentLogged}
             worstUtility={worstUtility}
             missingFields={missingFields}
+            cohortSize={benchmarkCohortSize}
+            filters={benchmarkFilters}
             onGoToLog={(fields) => {
               if (fields && fields.length) setHighlightFields(fields);
               setActiveTab("log");
             }}
             onGoToAnalyze={() => setActiveTab("analyze")}
+            onAskSera={(prompt) => {
+              toast.success("Sera is on it");
+              void navigate({ to: "/assistant", search: { prompt } });
+            }}
           />
 
         </TabsContent>
@@ -1397,8 +1413,16 @@ interface TodoItem {
 
 const PRIORITY_STORAGE_KEY = "verdance:todo-priorities:v1";
 const COMPLETION_STORAGE_KEY = "verdance:todo-completion:v1";
+const AI_TODOS_STORAGE_KEY = "verdance:ai-todos:v1";
 
 const DEFAULT_PRIORITY_ORDER: TodoCategory[] = ["data", "compliance", "cost", "waste"];
+
+const AI_CATEGORY_ICON: Record<TodoCategory, React.ComponentType<React.SVGProps<SVGSVGElement>>> = {
+  cost: Bolt,
+  compliance: ClipboardList,
+  waste: Recycle,
+  data: BarChart3,
+};
 
 const CATEGORY_META: Record<
   TodoCategory,
@@ -1936,21 +1960,33 @@ function MonthlyChangeSummary({
 }
 
 function TodosCard({
+  hotel,
   latest,
+  prev,
+  lastYearSame,
   sorted,
   isCurrentLogged,
   worstUtility,
   missingFields,
+  cohortSize,
+  filters,
   onGoToLog,
   onGoToAnalyze,
+  onAskSera,
 }: {
+  hotel: Hotel | null;
   latest: MonthlyEntry | undefined;
+  prev: MonthlyEntry | undefined;
+  lastYearSame: MonthlyEntry | undefined;
   sorted: MonthlyEntry[];
   isCurrentLogged: boolean;
   worstUtility: { key: HighlightedField; label: string; rank: number } | null;
   missingFields: HighlightedField[];
+  cohortSize: number;
+  filters: { sizeBand: string; region: string; starRating: number };
   onGoToLog: (highlight?: HighlightedField[]) => void;
   onGoToAnalyze: () => void;
+  onAskSera: (prompt: string) => void;
 }) {
   const today = new Date();
   const monthLabel = MONTH_NAMES[today.getMonth()];
@@ -2106,6 +2142,137 @@ function TodosCard({
       });
     }
 
+    // Recycled %: encourage uplift if low or missing
+    if (latest) {
+      const rec = latest.recycled_pct;
+      if (rec === null || rec === undefined) {
+        items.push({
+          id: "recycled-missing",
+          title: `Add ${prevMonthLabel} recycled %`,
+          description: "Recycled rate is missing — add it so waste benchmarks reflect your real performance.",
+          cta: "Open form",
+          icon: Recycle,
+          tone: "important",
+          category: "waste",
+          onClick: () => onGoToLog(["waste_kg"]),
+        });
+      } else if (rec < 35) {
+        items.push({
+          id: "recycled-low",
+          title: "Lift recycled rate above 35%",
+          description: `Only ${rec.toFixed(0)}% of waste was recycled — quick wins on glass and cardboard separation can move the needle.`,
+          cta: "Ask Sera",
+          icon: Recycle,
+          tone: "important",
+          category: "waste",
+          onClick: () =>
+            onAskSera(
+              `My recycled rate last month was ${rec.toFixed(1)}%. Suggest 3 concrete actions to lift it above 35% this month.`,
+            ),
+        });
+      }
+    }
+
+    // Renewable %: nudge if low
+    if (latest && latest.renewable_pct !== null && latest.renewable_pct !== undefined && latest.renewable_pct < 25) {
+      items.push({
+        id: "renewable-low",
+        title: "Increase renewable share",
+        description: `Only ${latest.renewable_pct.toFixed(0)}% of electricity was renewable. A green tariff switch is usually a 1-week task.`,
+        cta: "Ask Sera",
+        icon: Leaf,
+        tone: "routine",
+        category: "cost",
+        onClick: () =>
+          onAskSera(
+            `My renewable electricity share is ${latest.renewable_pct?.toFixed(1)}%. What are the fastest ways to lift it this quarter?`,
+          ),
+      });
+    }
+
+    // YoY drift on a key utility (only if not already flagged as worst)
+    if (latest && lastYearSame) {
+      const checks: Array<{ key: HighlightedField; label: string; ratio: number; icon: React.ComponentType<React.SVGProps<SVGSVGElement>>; cat: TodoCategory }> = [];
+      const occL = latest.occupied_room_nights ?? 0;
+      const occLY = lastYearSame.occupied_room_nights ?? 0;
+      if (occL > 0 && occLY > 0) {
+        const utils: Array<{ key: HighlightedField; label: string; field: keyof MonthlyEntry; icon: React.ComponentType<React.SVGProps<SVGSVGElement>>; cat: TodoCategory }> = [
+          { key: "electricity_kwh", label: "electricity", field: "electricity_kwh", icon: Bolt, cat: "cost" },
+          { key: "gas_kwh", label: "gas", field: "gas_kwh", icon: Flame, cat: "cost" },
+          { key: "water_m3", label: "water", field: "water_m3", icon: Droplets, cat: "cost" },
+        ];
+        for (const u of utils) {
+          if (worstUtility?.key === u.key) continue;
+          const cur = latest[u.field] as number | null | undefined;
+          const ly = lastYearSame[u.field] as number | null | undefined;
+          if (cur != null && ly != null && ly > 0) {
+            const curIntensity = cur / occL;
+            const lyIntensity = ly / occLY;
+            const ratio = (curIntensity - lyIntensity) / lyIntensity;
+            checks.push({ key: u.key, label: u.label, ratio, icon: u.icon, cat: u.cat });
+          }
+        }
+        const drifted = checks.filter((c) => c.ratio > 0.08).sort((a, b) => b.ratio - a.ratio)[0];
+        if (drifted) {
+          items.push({
+            id: `yoy-${drifted.key}`,
+            title: `Investigate ${drifted.label} YoY drift`,
+            description: `${drifted.label.charAt(0).toUpperCase() + drifted.label.slice(1)} intensity is ${(drifted.ratio * 100).toFixed(0)}% above the same month last year — worth a closer look.`,
+            cta: "Open analysis",
+            icon: drifted.icon,
+            tone: "important",
+            category: drifted.cat,
+            onClick: onGoToAnalyze,
+          });
+        }
+      }
+    }
+
+    // Notes hygiene
+    if (latest && (!latest.notes || latest.notes.trim().length < 8)) {
+      items.push({
+        id: "log-notes",
+        title: `Add a note for ${prevMonthLabel}`,
+        description: "A short context note (events, weather, renovations) helps explain anomalies later.",
+        cta: "Open Input form",
+        icon: Pencil,
+        tone: "routine",
+        category: "compliance",
+        onClick: () => onGoToLog(),
+      });
+    }
+
+    // Monthly close ritual: end of month
+    if (today.getDate() >= 25) {
+      items.push({
+        id: "month-close",
+        title: `Plan ${monthLabel} month-close`,
+        description: "Block 30 minutes this week to gather invoices and meter readings before the new month starts.",
+        cta: "Open Input form",
+        icon: CalendarCheck,
+        tone: "routine",
+        category: "compliance",
+        onClick: () => onGoToLog(),
+      });
+    }
+
+    // Best-in-class gap (top utility where you're already strong → push to top 10%)
+    if (worstUtility && worstUtility.rank <= 50 && sorted.length >= 6) {
+      items.push({
+        id: "best-in-class-push",
+        title: "Push your best utility into top 10%",
+        description: "You're already mid-pack or better — Sera can outline the last-mile actions to reach the top decile.",
+        cta: "Ask Sera",
+        icon: Trophy,
+        tone: "routine",
+        category: "cost",
+        onClick: () =>
+          onAskSera(
+            `Looking at my latest month, what 3 actions would push my best-performing utility into the top 10% of similar Mediterranean hotels?`,
+          ),
+      });
+    }
+
     if (items.length === 0) {
       items.push({
         id: "all-good",
@@ -2128,10 +2295,99 @@ function TodosCard({
     worstUtility,
     sorted.length,
     latest,
+    lastYearSame,
     onGoToLog,
     onGoToAnalyze,
+    onAskSera,
     today,
   ]);
+
+  // AI-suggested to-dos (persisted per period)
+  const [aiPending, setAiPending] = React.useState(false);
+  const [aiTodos, setAiTodos] = React.useState<AiTodo[]>([]);
+  const [acceptedAiTodos, setAcceptedAiTodos] = React.useState<Record<string, AiTodo[]>>({});
+
+  React.useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(AI_TODOS_STORAGE_KEY);
+      if (raw) setAcceptedAiTodos(JSON.parse(raw));
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const persistAccepted = React.useCallback((next: Record<string, AiTodo[]>) => {
+    setAcceptedAiTodos(next);
+    try {
+      window.localStorage.setItem(AI_TODOS_STORAGE_KEY, JSON.stringify(next));
+    } catch {
+      // ignore quota
+    }
+  }, []);
+
+  const acceptedForPeriod = acceptedAiTodos[periodKey] ?? [];
+
+  const generateAiTodosFn = useServerFn(generateAiTodos);
+
+  async function suggestAiTodos() {
+    if (aiPending) return;
+    setAiPending(true);
+    try {
+      const res = await generateAiTodosFn({
+        data: { hotelId: getActiveHotelId() },
+      });
+      if (res.ok) {
+        // Filter out already-accepted ones (case-insensitive title match)
+        const acceptedTitles = new Set(
+          acceptedForPeriod.map((t) => t.title.trim().toLowerCase()),
+        );
+        const fresh = res.todos.filter(
+          (t) => !acceptedTitles.has(t.title.trim().toLowerCase()),
+        );
+        setAiTodos(fresh);
+        if (fresh.length === 0) {
+          toast.info("Sera couldn't find anything new — your list is already strong.");
+        }
+      } else {
+        toast.error(res.error);
+      }
+    } catch {
+      toast.error("Couldn't reach Sera. Please try again.");
+    } finally {
+      setAiPending(false);
+    }
+  }
+
+  function acceptAiTodo(todo: AiTodo) {
+    const next = {
+      ...acceptedAiTodos,
+      [periodKey]: [...acceptedForPeriod, todo],
+    };
+    persistAccepted(next);
+    setAiTodos((prev) => prev.filter((t) => t.title !== todo.title));
+    toast.success("Added to your list");
+  }
+
+  function dismissAiTodo(todo: AiTodo) {
+    setAiTodos((prev) => prev.filter((t) => t.title !== todo.title));
+  }
+
+  // Convert accepted AI todos into TodoItems for the main list
+  const aiAcceptedItems = React.useMemo<TodoItem[]>(() => {
+    return acceptedForPeriod.map((t, i) => {
+      const Icon = AI_CATEGORY_ICON[t.category] ?? Sparkles;
+      return {
+        id: `ai-${periodKey}-${i}-${t.title.slice(0, 12)}`,
+        title: t.title,
+        description: t.description,
+        cta: "Ask Sera",
+        icon: Icon,
+        tone: t.tone,
+        category: t.category,
+        onClick: () => onAskSera(t.askSeraPrompt),
+      };
+    });
+  }, [acceptedForPeriod, onAskSera, periodKey]);
 
   // Sort by priority order (urgent always first within its category bucket)
   const sortedTodos = React.useMemo<TodoItem[]>(() => {
@@ -2140,7 +2396,7 @@ function TodosCard({
       const idx = priorityOrder.indexOf(c);
       return idx === -1 ? 99 : idx;
     };
-    return [...baseTodos]
+    return [...baseTodos, ...aiAcceptedItems]
       .sort((a, b) => {
         // Always show urgent first regardless of priority preference
         if (a.tone === "urgent" && b.tone !== "urgent") return -1;
@@ -2149,7 +2405,7 @@ function TodosCard({
         if (c !== 0) return c;
         return toneRank[a.tone] - toneRank[b.tone];
       })
-      .slice(0, 5);
+      .slice(0, 8);
   }, [baseTodos, priorityOrder]);
 
   const totalCount = sortedTodos.length;
@@ -2259,6 +2515,122 @@ function TodosCard({
             </PopoverContent>
           </Popover>
         </div>
+      </div>
+
+      {/* AI suggestions section */}
+      <div className="mb-4 rounded-2xl border border-primary/25 bg-gradient-to-br from-primary/5 via-primary/[0.03] to-transparent p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-secondary text-primary-foreground shadow-md">
+              <Sparkles className="h-4 w-4" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-serif text-base font-semibold">AI suggestions</h3>
+                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
+                  Sera
+                </span>
+              </div>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {hotel?.name
+                  ? `Personalised to-dos for ${hotel.name} based on this month's data and your peer position.`
+                  : "Personalised to-dos based on this month's data and your peer position."}
+                {cohortSize ? ` Cohort: ${cohortSize} similar hotels.` : ""}
+              </p>
+            </div>
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => void suggestAiTodos()}
+            disabled={aiPending}
+            className="rounded-full border border-foreground/20 bg-foreground text-background shadow-sm hover:bg-foreground/90 disabled:opacity-70"
+          >
+            {aiPending ? (
+              <>
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                Sera is thinking…
+              </>
+            ) : (
+              <>
+                <Wand2 className="mr-1.5 h-3.5 w-3.5" />
+                {aiTodos.length > 0 || acceptedForPeriod.length > 0
+                  ? "Suggest more"
+                  : "Suggest with AI"}
+              </>
+            )}
+          </Button>
+        </div>
+
+        {aiTodos.length > 0 && (
+          <ul className="mt-4 grid grid-cols-1 gap-2.5 md:grid-cols-2">
+            {aiTodos.map((t, i) => {
+              const Icon = AI_CATEGORY_ICON[t.category] ?? Sparkles;
+              return (
+                <li
+                  key={`ai-suggestion-${i}-${t.title}`}
+                  className="flex flex-col gap-2.5 rounded-xl border border-border/70 bg-card/80 p-3"
+                >
+                  <div className="flex items-start gap-2.5">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <h4 className="text-sm font-semibold leading-snug">
+                          {t.title}
+                        </h4>
+                        <span className="rounded-full border border-border bg-card px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                          {CATEGORY_META[t.category].label}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground">{t.description}</p>
+                      <div className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                        <Lightbulb className="h-3 w-3" />
+                        {t.expectedImpact}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => dismissAiTodo(t)}
+                      className="text-muted-foreground hover:text-foreground"
+                      aria-label="Dismiss suggestion"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 border-t border-border/50 pt-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => acceptAiTodo(t)}
+                      className="h-7 rounded-full border border-foreground/20 bg-foreground px-3 text-xs text-background shadow-sm hover:bg-foreground/90"
+                    >
+                      <Plus className="mr-1 h-3 w-3" />
+                      Add to my list
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => onAskSera(t.askSeraPrompt)}
+                      className="h-7 rounded-full px-3 text-xs"
+                    >
+                      <MessageCircle className="mr-1 h-3 w-3" />
+                      Ask Sera
+                    </Button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+
+        {aiTodos.length === 0 && acceptedForPeriod.length === 0 && !aiPending && (
+          <p className="mt-3 text-xs text-muted-foreground">
+            Tap <span className="font-medium text-foreground">Suggest with AI</span> for 3–4 specific actions tailored to this month, with expected impact and a one-click way to ask Sera for details.
+          </p>
+        )}
       </div>
 
       <ul className="space-y-3">
