@@ -702,6 +702,8 @@ export interface SmartEntry {
   value: number;
   original_unit: string | null;
   note: string | null;
+  confidence?: "high" | "medium" | "low";
+  confidence_reason?: string | null;
 }
 
 export interface SmartExtraction {
@@ -729,7 +731,7 @@ export const extractSmartInput = createServerFn({ method: "POST" })
     const refYear = data.currentYear ?? new Date().getFullYear();
 
     const systemPrompt = `You are Sera, an expert at parsing free-form sustainability data from hotel managers.
-The user pastes ANYTHING: emails, spreadsheet rows, screenshots, a quick "April elec 12,400 kWh, water 230 m3", or a forwarded utility summary covering several months.
+The user pastes ANYTHING: emails, spreadsheet rows, screenshots, a quick "April elec 12,400 kWh, water 230 m3", a forwarded utility summary covering several months, or a voice transcript with spelled-out numbers like "twelve thousand four hundred".
 
 Extract every (month, metric, value) triple you can find. Reference year is ${refYear} when not specified.
 
@@ -739,6 +741,12 @@ Conversion rules (always normalise to canonical units):
 - water_m3: cubic metres. litres ÷ 1000. US gal × 0.003785. ft³ × 0.02832.
 - waste_kg: kilograms. tonnes × 1000. lb × 0.4536.
 - occupied_room_nights: integer count.
+
+For EACH extracted entry, also report a per-field confidence:
+- "high": value, unit and month are all unambiguous in the source.
+- "medium": you had to convert units, infer the year, parse spelled-out numbers, or the phrasing left small ambiguity.
+- "low": the metric, month or value was unclear, you guessed, or the number is suspicious (extreme outlier, missing unit, possible mishearing in a voice transcript).
+Always include a brief confidence_reason (max 80 chars) when confidence is medium or low — explain WHY in one short phrase the user can act on (e.g. "no unit stated, assumed kWh", "spelled-out number, possible mishearing", "year inferred").
 
 Return ONLY valid JSON via the tool call. Months are 1-12. Skip values you cannot confidently identify and add a warning instead.`;
 
@@ -765,8 +773,17 @@ Return ONLY valid JSON via the tool call. Months are 1-12. Skip values you canno
                     value: { type: "number", minimum: 0 },
                     original_unit: { type: "string" },
                     note: { type: "string" },
+                    confidence: {
+                      type: "string",
+                      enum: ["high", "medium", "low"],
+                      description: "Per-entry confidence in the extracted value, unit and month.",
+                    },
+                    confidence_reason: {
+                      type: "string",
+                      description: "Short explanation when confidence is medium or low.",
+                    },
                   },
-                  required: ["year", "month", "metric", "value"],
+                  required: ["year", "month", "metric", "value", "confidence"],
                   additionalProperties: false,
                 },
               },
@@ -842,6 +859,9 @@ Return ONLY valid JSON via the tool call. Months are 1-12. Skip values you canno
           if (!Number.isFinite(year) || year < 2000 || year > 2100) return null;
           if (!Number.isFinite(month) || month < 1 || month > 12) return null;
           if (!Number.isFinite(value) || value < 0) return null;
+          const rawConf = (e as SmartEntry).confidence;
+          const entryConfidence: "high" | "medium" | "low" =
+            rawConf === "high" || rawConf === "medium" || rawConf === "low" ? rawConf : "medium";
           return {
             year,
             month,
@@ -849,6 +869,10 @@ Return ONLY valid JSON via the tool call. Months are 1-12. Skip values you canno
             value,
             original_unit: (e as SmartEntry).original_unit ? String((e as SmartEntry).original_unit).slice(0, 24) : null,
             note: (e as SmartEntry).note ? String((e as SmartEntry).note).slice(0, 200) : null,
+            confidence: entryConfidence,
+            confidence_reason: (e as SmartEntry).confidence_reason
+              ? String((e as SmartEntry).confidence_reason).slice(0, 120)
+              : null,
           } as SmartEntry;
         })
         .filter((x): x is SmartEntry => x !== null)
