@@ -438,19 +438,22 @@ export function AutopilotLogCard({ entries, onSaved }: AutopilotLogCardProps) {
       .eq("year", target.year)
       .eq("month", target.month)
       .maybeSingle();
-    const payload: Record<string, unknown> = {
+    const captured_map = new Map<SmartMetric, number>();
+    for (const r of captured) {
+      if (r.value !== null) captured_map.set(r.metric, r.value);
+    }
+    const payload = {
       hotel_id: hotelId,
       year: target.year,
       month: target.month,
-      electricity_kwh: existing?.electricity_kwh ?? null,
-      gas_kwh: existing?.gas_kwh ?? null,
-      water_m3: existing?.water_m3 ?? null,
-      waste_kg: existing?.waste_kg ?? null,
-      occupied_room_nights: existing?.occupied_room_nights ?? null,
+      electricity_kwh:
+        captured_map.get("electricity_kwh") ?? existing?.electricity_kwh ?? null,
+      gas_kwh: captured_map.get("gas_kwh") ?? existing?.gas_kwh ?? null,
+      water_m3: captured_map.get("water_m3") ?? existing?.water_m3 ?? null,
+      waste_kg: captured_map.get("waste_kg") ?? existing?.waste_kg ?? null,
+      occupied_room_nights:
+        captured_map.get("occupied_room_nights") ?? existing?.occupied_room_nights ?? null,
     };
-    for (const r of captured) {
-      payload[METRIC_META[r.metric].column] = r.value;
-    }
     const { error } = existing
       ? await supabase.from("monthly_entries").update(payload).eq("id", existing.id)
       : await supabase.from("monthly_entries").insert(payload);
