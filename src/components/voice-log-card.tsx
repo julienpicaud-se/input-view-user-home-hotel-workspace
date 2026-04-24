@@ -416,7 +416,7 @@ export function VoiceLogCard({ entries: _entries, onSaved }: VoiceLogCardProps) 
             </div>
             <h3 className="font-serif text-xl font-semibold">Just talk to Sera</h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              Press the mic and read your numbers out loud in <span className="font-medium">English or French</span> — Sera detects the language automatically, transcribes, normalises units and turns it into clean monthly rows.
+              Pick your language, press the mic and read your numbers out loud in <span className="font-medium">English or French</span> — Sera transcribes, normalises units and turns it into clean monthly rows.
             </p>
           </div>
           {(finalText || drafts.length > 0) && (
@@ -437,10 +437,39 @@ export function VoiceLogCard({ entries: _entries, onSaved }: VoiceLogCardProps) 
 
         {/* Mic + waveform */}
         <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-border bg-muted/30 px-4 py-8">
+          {/* Language picker — sits above the mic so the choice is obvious */}
+          <div
+            role="tablist"
+            aria-label="Voice input language"
+            className="inline-flex items-center gap-1 rounded-full border border-border bg-background/60 p-1"
+          >
+            {LANGS.map((l) => {
+              const active = activeLang === l.code;
+              return (
+                <button
+                  key={l.code}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  disabled={extracting || saving}
+                  onClick={() => switchLang(l.code)}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition ${
+                    active
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  } disabled:cursor-not-allowed disabled:opacity-50`}
+                >
+                  <span className="text-sm leading-none">{l.flag}</span>
+                  {l.label}
+                </button>
+              );
+            })}
+          </div>
+
           <button
             type="button"
             disabled={supported === false || extracting || saving}
-            onClick={listening ? stopListening : startListening}
+            onClick={() => (listening ? stopListening() : startListening(activeLang))}
             className={`group relative flex h-24 w-24 items-center justify-center rounded-full transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/30 ${
               listening
                 ? "bg-gradient-to-br from-primary to-secondary text-primary-foreground shadow-[0_8px_30px_-8px_var(--chart-3)]"
@@ -484,7 +513,7 @@ export function VoiceLogCard({ entries: _entries, onSaved }: VoiceLogCardProps) 
           <div className="text-center text-xs text-muted-foreground">
             {listening ? (
               <span className="inline-flex items-center gap-2">
-                <AudioLines className="h-3.5 w-3.5 text-primary" /> Listening… tap again to stop.
+                <AudioLines className="h-3.5 w-3.5 text-primary" /> Listening in {langMeta.label}… tap again to stop.
               </span>
             ) : supported === false ? (
               <span className="inline-flex items-center gap-2">
