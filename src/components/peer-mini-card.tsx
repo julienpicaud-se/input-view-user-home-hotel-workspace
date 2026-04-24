@@ -106,6 +106,7 @@ export function PeerMiniCard({
         <span className="num font-serif text-lg font-semibold">
           {formatNumber(intensity, 2)}
         </span>
+        <span className="text-xs text-muted-foreground">{kpi.unit}</span>
         <span className={`text-xs font-medium ${better ? "text-success" : "text-destructive"}`}>
           {formatPct(vsMedianPct)} vs median
         </span>
