@@ -117,6 +117,10 @@ export function PeerTrendComparison({
   entries: MonthlyEntry[];
   cohortSize: number;
 }) {
+  const send = useServerFn(sendAssistantMessage);
+  const [aiPending, setAiPending] = React.useState(false);
+  const [aiAnswer, setAiAnswer] = React.useState<string | null>(null);
+
   const filters = {
     sizeBand: hotel.size_band,
     region: hotel.region,
