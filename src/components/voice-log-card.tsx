@@ -521,7 +521,7 @@ export function VoiceLogCard({ entries: _entries, onSaved }: VoiceLogCardProps) 
           </div>
         </div>
 
-        {/* Live transcript */}
+        {/* Live transcript with detected language badge */}
         <AnimatePresence>
           {(liveText || listening) && (
             <motion.div
@@ -530,8 +530,31 @@ export function VoiceLogCard({ entries: _entries, onSaved }: VoiceLogCardProps) 
               exit={{ opacity: 0 }}
               className="rounded-2xl border border-border bg-background/60 px-4 py-3"
             >
-              <div className="mb-1 text-[10px] uppercase tracking-wider text-muted-foreground">
-                Live transcript
+              <div className="mb-1.5 flex items-center justify-between gap-2">
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  Live transcript
+                </div>
+                <AnimatePresence mode="wait">
+                  {detectedLang ? (
+                    <motion.span
+                      key={detectedLang}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary"
+                      title={`Auto-detected from ${LANGS.map((l) => l.label).join(" / ")}`}
+                    >
+                      <Languages className="h-3 w-3" />
+                      <span className="text-sm leading-none">{langMeta.flag}</span>
+                      {langMeta.label} detected
+                    </motion.span>
+                  ) : listening ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                      <Languages className="h-3 w-3 animate-pulse" />
+                      Detecting language…
+                    </span>
+                  ) : null}
+                </AnimatePresence>
               </div>
               <p className="text-sm leading-relaxed">
                 <span>{finalText}</span>{" "}
@@ -540,6 +563,22 @@ export function VoiceLogCard({ entries: _entries, onSaved }: VoiceLogCardProps) 
                   <span className="text-muted-foreground italic">Waiting for your voice…</span>
                 )}
               </p>
+              {/* Show the runner-up lane subtly so the user can see both candidates */}
+              {listening &&
+                (() => {
+                  const otherCode: LangCode = winnerLang === "en" ? "fr" : "en";
+                  const other = laneTexts[otherCode];
+                  const otherMeta = LANGS.find((l) => l.code === otherCode)!;
+                  const otherText = (other.final + " " + other.interim).trim();
+                  if (!otherText || other.score === 0) return null;
+                  return (
+                    <p className="mt-2 border-t border-border/60 pt-2 text-[11px] text-muted-foreground/80">
+                      <span className="mr-1">{otherMeta.flag}</span>
+                      <span className="opacity-70">{otherMeta.label} candidate:</span>{" "}
+                      <span className="italic">{otherText.slice(0, 140)}</span>
+                    </p>
+                  );
+                })()}
             </motion.div>
           )}
         </AnimatePresence>
