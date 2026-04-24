@@ -1952,21 +1952,33 @@ function MonthlyChangeSummary({
 }
 
 function TodosCard({
+  hotel,
   latest,
+  prev,
+  lastYearSame,
   sorted,
   isCurrentLogged,
   worstUtility,
   missingFields,
+  cohortSize,
+  filters,
   onGoToLog,
   onGoToAnalyze,
+  onAskSera,
 }: {
+  hotel: Hotel | null;
   latest: MonthlyEntry | undefined;
+  prev: MonthlyEntry | undefined;
+  lastYearSame: MonthlyEntry | undefined;
   sorted: MonthlyEntry[];
   isCurrentLogged: boolean;
   worstUtility: { key: HighlightedField; label: string; rank: number } | null;
   missingFields: HighlightedField[];
+  cohortSize: number;
+  filters: { sizeBand: string; region: string; starRating: number };
   onGoToLog: (highlight?: HighlightedField[]) => void;
   onGoToAnalyze: () => void;
+  onAskSera: (prompt: string) => void;
 }) {
   const today = new Date();
   const monthLabel = MONTH_NAMES[today.getMonth()];
