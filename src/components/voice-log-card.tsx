@@ -119,8 +119,14 @@ export function VoiceLogCard({ entries: _entries, onSaved }: VoiceLogCardProps) 
   const extract = useServerFn(extractSmartInput);
   const [supported, setSupported] = React.useState<boolean | null>(null);
   const [listening, setListening] = React.useState(false);
-  const [finalText, setFinalText] = React.useState("");
-  const [interimText, setInterimText] = React.useState("");
+  // Mirrored copies of each lane's transcript for live rendering.
+  const [laneTexts, setLaneTexts] = React.useState<
+    Record<LangCode, { final: string; interim: string; score: number }>
+  >({
+    en: { final: "", interim: "", score: 0 },
+    fr: { final: "", interim: "", score: 0 },
+  });
+  const [detectedLang, setDetectedLang] = React.useState<LangCode | null>(null);
   const [extracting, setExtracting] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [drafts, setDrafts] = React.useState<DraftRow[]>([]);
@@ -128,7 +134,7 @@ export function VoiceLogCard({ entries: _entries, onSaved }: VoiceLogCardProps) 
   const [warnings, setWarnings] = React.useState<string[]>([]);
   const [confidence, setConfidence] = React.useState<"high" | "medium" | "low" | null>(null);
   const [level, setLevel] = React.useState(0);
-  const recognitionRef = React.useRef<SpeechRecognitionLike | null>(null);
+  const lanesRef = React.useRef<RecognizerLane[]>([]);
 
   React.useEffect(() => {
     setSupported(getSpeechRecognitionCtor() !== null);
@@ -149,79 +155,149 @@ export function VoiceLogCard({ entries: _entries, onSaved }: VoiceLogCardProps) 
     return () => window.clearTimeout(raf);
   }, [listening]);
 
+  // Pick the lane with the highest accumulated score; fall back to whichever has text.
+  const pickWinner = React.useCallback((lanes: RecognizerLane[]): LangCode | null => {
+    const scored = lanes.filter((l) => l.score > 0 || l.finalText.trim());
+    if (scored.length === 0) return null;
+    return scored.reduce((best, cur) =>
+      cur.score > best.score ||
+      (cur.score === best.score && cur.finalText.length > best.finalText.length)
+        ? cur
+        : best,
+    ).code;
+  }, []);
+
+  const stopAllLanes = React.useCallback(() => {
+    for (const l of lanesRef.current) {
+      try {
+        l.rec.stop();
+      } catch {
+        // ignore
+      }
+    }
+  }, []);
+
   const startListening = React.useCallback(() => {
     const Ctor = getSpeechRecognitionCtor();
     if (!Ctor) {
       toast.error("Voice input isn't supported in this browser. Try Chrome, Edge or Safari.");
       return;
     }
-    try {
+    // Reset everything before a new session
+    setLaneTexts({ en: { final: "", interim: "", score: 0 }, fr: { final: "", interim: "", score: 0 } });
+    setDetectedLang(null);
+    setDrafts([]);
+    setSummary("");
+    setWarnings([]);
+    setConfidence(null);
+
+    let micErrorShown = false;
+    const lanes: RecognizerLane[] = LANGS.map(({ code, bcp47 }) => {
       const rec = new Ctor();
-      rec.lang = navigator.language || "en-US";
+      rec.lang = bcp47;
       rec.continuous = true;
       rec.interimResults = true;
+      const lane: RecognizerLane = { code, rec, finalText: "", interimText: "", score: 0 };
       rec.onresult = (e) => {
         let interim = "";
         let finalChunk = "";
+        let addedScore = 0;
         for (let i = e.resultIndex; i < e.results.length; i++) {
           const r = e.results[i];
-          const txt = r[0].transcript;
-          if (r.isFinal) finalChunk += txt;
-          else interim += txt;
+          const alt = r[0];
+          const txt = alt.transcript;
+          if (r.isFinal) {
+            finalChunk += txt;
+            // Score = confidence × wordCount. If confidence missing (Safari),
+            // assume 0.6 so we still get a comparable signal.
+            const conf = typeof alt.confidence === "number" && alt.confidence > 0 ? alt.confidence : 0.6;
+            const wc = txt.trim().split(/\s+/).filter(Boolean).length;
+            addedScore += conf * wc;
+          } else {
+            interim += txt;
+          }
         }
         if (finalChunk) {
-          setFinalText((prev) => (prev ? prev + " " : "") + finalChunk.trim());
-          setInterimText("");
+          lane.finalText = (lane.finalText ? lane.finalText + " " : "") + finalChunk.trim();
+          lane.interimText = "";
+          lane.score += addedScore;
         } else {
-          setInterimText(interim);
+          lane.interimText = interim;
         }
+        // Push into React state
+        setLaneTexts((prev) => ({
+          ...prev,
+          [lane.code]: { final: lane.finalText, interim: lane.interimText, score: lane.score },
+        }));
+        setDetectedLang(pickWinner(lanesRef.current));
       };
       rec.onend = () => {
-        setListening(false);
-        setInterimText("");
+        // If user manually stopped or all lanes ended, ensure listening flips off.
+        const stillRunning = lanesRef.current.some((other) => other !== lane && other.rec === other.rec);
+        if (!stillRunning) {
+          setListening(false);
+        }
       };
       rec.onerror = (ev) => {
-        console.warn("speech error", ev);
+        // 'no-speech' / 'aborted' fire often when one lane disagrees — stay silent.
         if (ev.error === "not-allowed" || ev.error === "service-not-allowed") {
-          toast.error("Microphone access was blocked.");
-        } else if (ev.error && ev.error !== "no-speech" && ev.error !== "aborted") {
-          toast.error("Voice recognition stopped.");
+          if (!micErrorShown) {
+            toast.error("Microphone access was blocked.");
+            micErrorShown = true;
+          }
+          stopAllLanes();
+          setListening(false);
+        } else if (ev.error === "language-not-supported") {
+          // Browser can't run this language — drop the lane silently.
+          console.warn(`Web Speech: ${lane.code} not supported in this browser`);
+        } else if (ev.error && ev.error !== "no-speech" && ev.error !== "aborted" && ev.error !== "audio-capture") {
+          console.warn("speech lane error", lane.code, ev.error);
         }
-        setListening(false);
       };
-      recognitionRef.current = rec;
-      setFinalText("");
-      setInterimText("");
-      setDrafts([]);
-      setSummary("");
-      setWarnings([]);
-      setConfidence(null);
-      rec.start();
-      setListening(true);
-    } catch (e) {
-      console.error(e);
-      toast.error("Couldn't start the microphone.");
+      return lane;
+    });
+
+    lanesRef.current = lanes;
+    let started = 0;
+    for (const l of lanes) {
+      try {
+        l.rec.start();
+        started++;
+      } catch (e) {
+        console.warn("Couldn't start lane", l.code, e);
+      }
     }
-  }, []);
+    if (started === 0) {
+      toast.error("Couldn't start the microphone.");
+      return;
+    }
+    setListening(true);
+  }, [pickWinner, stopAllLanes]);
 
   const stopListening = React.useCallback(() => {
-    try {
-      recognitionRef.current?.stop();
-    } catch {
-      // ignore
-    }
+    stopAllLanes();
     setListening(false);
-  }, []);
+  }, [stopAllLanes]);
 
   React.useEffect(() => {
     return () => {
-      try {
-        recognitionRef.current?.abort();
-      } catch {
-        // ignore
+      for (const l of lanesRef.current) {
+        try {
+          l.rec.abort();
+        } catch {
+          // ignore
+        }
       }
     };
   }, []);
+
+  // Derived: the transcript we treat as authoritative (winning lane, or whichever has content).
+  const winnerLang: LangCode = detectedLang ?? "en";
+  const winnerLane = laneTexts[winnerLang];
+  const finalText = winnerLane.final;
+  const interimText = winnerLane.interim;
+  const langMeta = LANGS.find((l) => l.code === winnerLang)!;
+
 
   const handleExtract = React.useCallback(async () => {
     const text = (finalText + " " + interimText).trim();
