@@ -4493,6 +4493,12 @@ const SURVEY_STEPS: SurveyStep[] = [
       { label: "Resort with F&B outlets", value: "≈ 7,500 kg / month" },
     ],
     tip: "1 m³ of mixed waste ≈ 100 kg. 1 standard 240 L bin ≈ 25 kg.",
+    conversions: [
+      { from: "1 tonne", to: "kg", factor: "× 1,000" },
+      { from: "1 lb", to: "kg", factor: "× 0.4536" },
+      { from: "1 m³ mixed waste", to: "kg", factor: "≈ × 100" },
+      { from: "1 × 240 L bin", to: "kg", factor: "≈ × 25" },
+    ],
     icon: Trash2,
     color: "var(--chart-5)",
   },
