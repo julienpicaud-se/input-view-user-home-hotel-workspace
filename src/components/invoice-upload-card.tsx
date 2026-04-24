@@ -226,8 +226,8 @@ export function InvoiceUploadCard({ entries, onSaved }: InvoiceUploadCardProps) 
             Upload a bill, Sera fills the rest
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Drop one utility invoice — Sera reads the consumption, you confirm
-            the period and we save it to that month.
+            Drop one utility invoice — Sera reads the consumption and the
+            billing period, then saves it to the right month.
           </p>
         </div>
       </div>
