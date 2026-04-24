@@ -3729,9 +3729,6 @@ function LogDataTabs({
         </div>
 
         <div className="lg:col-span-3">
-          {method === "sera" && (
-            <SeraGuidedLog entries={entries} rooms={rooms} onSaved={onSaved} />
-          )}
           {method === "manual" && (
             <QuickLogCard
               entries={entries}
