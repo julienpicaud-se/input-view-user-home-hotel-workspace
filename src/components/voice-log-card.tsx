@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
+  AlertTriangle,
   AudioLines,
   Bolt,
   CheckCircle2,
@@ -11,6 +12,7 @@ import {
   Loader2,
   Mic,
   MicOff,
+  ShieldCheck,
   Sparkles,
   Square,
   Trash2,
@@ -62,7 +64,7 @@ const PROMPTS = [
   "April: electricity twelve point four megawatt-hours, waste one point two tonnes.",
 ];
 
-type DraftRow = SmartEntry & { id: string; selected: boolean };
+type DraftRow = SmartEntry & { id: string; selected: boolean; reviewed: boolean };
 
 // Minimal typing for the Web Speech API (vendor-prefixed in most browsers).
 type SpeechRecognitionResultLike = {
@@ -227,6 +229,8 @@ export function VoiceLogCard({ entries: _entries, onSaved }: VoiceLogCardProps) 
         ...e,
         id: `${e.year}-${e.month}-${e.metric}-${i}`,
         selected: true,
+        // Rows Sera flagged as medium/low must be explicitly confirmed before save.
+        reviewed: (e.confidence ?? "medium") === "high",
       }));
       setDrafts(rows);
       setSummary(res.extraction.summary);
