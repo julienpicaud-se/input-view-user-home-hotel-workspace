@@ -393,8 +393,8 @@ export function VoiceLogCard({ entries: _entries, onSaved }: VoiceLogCardProps) 
     if (saved > 0) toast.success(`Saved ${saved} month${saved === 1 ? "" : "s"} from your voice note.`);
     if (failed > 0) toast.error(`${failed} month${failed === 1 ? "" : "s"} failed to save.`);
     setDrafts([]);
-    setFinalText("");
-    setInterimText("");
+    setLaneTexts({ en: { final: "", interim: "", score: 0 }, fr: { final: "", interim: "", score: 0 } });
+    setDetectedLang(null);
     setSummary("");
     setWarnings([]);
     setConfidence(null);
@@ -403,13 +403,22 @@ export function VoiceLogCard({ entries: _entries, onSaved }: VoiceLogCardProps) 
 
   const reset = React.useCallback(() => {
     if (listening) stopListening();
-    setFinalText("");
-    setInterimText("");
+    setLaneTexts({ en: { final: "", interim: "", score: 0 }, fr: { final: "", interim: "", score: 0 } });
+    setDetectedLang(null);
     setDrafts([]);
     setSummary("");
     setWarnings([]);
     setConfidence(null);
   }, [listening, stopListening]);
+
+  // Seed an example transcript (manual try-out) — defaults to English lane.
+  const seedExample = React.useCallback((text: string, lang: LangCode) => {
+    setLaneTexts((prev) => ({
+      ...prev,
+      [lang]: { final: text, interim: "", score: text.split(/\s+/).length },
+    }));
+    setDetectedLang(lang);
+  }, []);
 
   const updateDraft = (id: string, patch: Partial<DraftRow>) => {
     setDrafts((prev) => prev.map((d) => (d.id === id ? { ...d, ...patch } : d)));
