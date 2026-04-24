@@ -3750,6 +3750,9 @@ function LogDataTabs({
           {method === "import" && (
             <InvoiceUploadCard entries={entries} onSaved={onSaved} />
           )}
+          {method === "smart" && (
+            <SmartPasteCard entries={entries} onSaved={onSaved} />
+          )}
         </div>
       </div>
 
