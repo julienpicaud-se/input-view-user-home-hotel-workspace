@@ -2517,6 +2517,122 @@ function TodosCard({
         </div>
       </div>
 
+      {/* AI suggestions section */}
+      <div className="mb-4 rounded-2xl border border-primary/25 bg-gradient-to-br from-primary/5 via-primary/[0.03] to-transparent p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-secondary text-primary-foreground shadow-md">
+              <Sparkles className="h-4 w-4" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-serif text-base font-semibold">AI suggestions</h3>
+                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
+                  Sera
+                </span>
+              </div>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {hotel?.name
+                  ? `Personalised to-dos for ${hotel.name} based on this month's data and your peer position.`
+                  : "Personalised to-dos based on this month's data and your peer position."}
+                {cohortSize ? ` Cohort: ${cohortSize} similar hotels.` : ""}
+              </p>
+            </div>
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => void suggestAiTodos()}
+            disabled={aiPending}
+            className="rounded-full border border-foreground/20 bg-foreground text-background shadow-sm hover:bg-foreground/90 disabled:opacity-70"
+          >
+            {aiPending ? (
+              <>
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                Sera is thinking…
+              </>
+            ) : (
+              <>
+                <Wand2 className="mr-1.5 h-3.5 w-3.5" />
+                {aiTodos.length > 0 || acceptedForPeriod.length > 0
+                  ? "Suggest more"
+                  : "Suggest with AI"}
+              </>
+            )}
+          </Button>
+        </div>
+
+        {aiTodos.length > 0 && (
+          <ul className="mt-4 grid grid-cols-1 gap-2.5 md:grid-cols-2">
+            {aiTodos.map((t, i) => {
+              const Icon = AI_CATEGORY_ICON[t.category] ?? Sparkles;
+              return (
+                <li
+                  key={`ai-suggestion-${i}-${t.title}`}
+                  className="flex flex-col gap-2.5 rounded-xl border border-border/70 bg-card/80 p-3"
+                >
+                  <div className="flex items-start gap-2.5">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <h4 className="text-sm font-semibold leading-snug">
+                          {t.title}
+                        </h4>
+                        <span className="rounded-full border border-border bg-card px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                          {CATEGORY_META[t.category].label}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground">{t.description}</p>
+                      <div className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                        <Lightbulb className="h-3 w-3" />
+                        {t.expectedImpact}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => dismissAiTodo(t)}
+                      className="text-muted-foreground hover:text-foreground"
+                      aria-label="Dismiss suggestion"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 border-t border-border/50 pt-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => acceptAiTodo(t)}
+                      className="h-7 rounded-full border border-foreground/20 bg-foreground px-3 text-xs text-background shadow-sm hover:bg-foreground/90"
+                    >
+                      <Plus className="mr-1 h-3 w-3" />
+                      Add to my list
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => onAskSera(t.askSeraPrompt)}
+                      className="h-7 rounded-full px-3 text-xs"
+                    >
+                      <MessageCircle className="mr-1 h-3 w-3" />
+                      Ask Sera
+                    </Button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+
+        {aiTodos.length === 0 && acceptedForPeriod.length === 0 && !aiPending && (
+          <p className="mt-3 text-xs text-muted-foreground">
+            Tap <span className="font-medium text-foreground">Suggest with AI</span> for 3–4 specific actions tailored to this month, with expected impact and a one-click way to ask Sera for details.
+          </p>
+        )}
+      </div>
+
       <ul className="space-y-3">
         <AnimatePresence initial={false}>
           {sortedTodos.map((todo) => {
