@@ -923,7 +923,7 @@ function ChartCard({
               e.stopPropagation();
               onExplain(id);
             }}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border/70 bg-background/60 px-3 py-1.5 text-xs font-medium text-muted-foreground transition hover:border-primary/40 hover:bg-primary/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-foreground/20 bg-foreground px-3 py-1.5 text-xs font-medium text-background shadow-sm transition hover:bg-foreground/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-label={`How to read ${title}`}
           >
             <BookOpen className="h-3.5 w-3.5" />
