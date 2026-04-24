@@ -253,7 +253,7 @@ export function VoiceLogCard({ entries: _entries, onSaved }: VoiceLogCardProps) 
       toast.error("Select at least one row to save.");
       return;
     }
-    const unreviewed = selected.filter((d) => (d.confidence ?? "medium") !== "high" && !d.reviewed);
+    const unreviewed = selected.filter((d) => (d.confidence ?? "high") !== "high" && !d.reviewed);
     if (unreviewed.length > 0) {
       toast.error(
         `Confirm ${unreviewed.length} flagged field${unreviewed.length === 1 ? "" : "s"} before saving.`,
@@ -713,7 +713,7 @@ export function VoiceLogCard({ entries: _entries, onSaved }: VoiceLogCardProps) 
               {(() => {
                 const selectedRows = drafts.filter((d) => d.selected);
                 const pendingReview = selectedRows.filter(
-                  (d) => (d.confidence ?? "medium") !== "high" && !d.reviewed,
+                  (d) => (d.confidence ?? "high") !== "high" && !d.reviewed,
                 ).length;
                 const saveDisabled = saving || selectedRows.length === 0 || pendingReview > 0;
                 return (
