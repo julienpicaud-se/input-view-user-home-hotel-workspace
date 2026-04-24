@@ -88,6 +88,8 @@ export function BenchmarksPanel({ showHeader = true }: { showHeader?: boolean })
 
       <BenchmarksAiSummary hotel={hotel} entries={entries} cohortSize={cohortSize} />
 
+      <PeerTrendComparison hotel={hotel} entries={entries} cohortSize={cohortSize} />
+
       <Card className="mb-8 rounded-3xl border-border/70 p-6">
         <div className="mb-1 flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
