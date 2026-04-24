@@ -4601,20 +4601,105 @@ function SurveyLogCard({
           transition={{ duration: 0.2 }}
           className="mt-6"
         >
-          <div className="flex items-center gap-3">
+          <div className="flex items-start gap-3">
             <div
-              className="flex h-12 w-12 items-center justify-center rounded-2xl"
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl"
               style={{ backgroundColor: `color-mix(in oklab, ${current.color} 15%, transparent)` }}
             >
               <Icon className="h-6 w-6" style={{ color: current.color }} />
             </div>
-            <div>
-              <div className="font-serif text-lg font-semibold">{current.question}</div>
-              <div className="text-xs text-muted-foreground">{current.helper}</div>
+            <div className="flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span
+                  className="rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider"
+                  style={{
+                    backgroundColor: `color-mix(in oklab, ${current.color} 15%, transparent)`,
+                    color: current.color,
+                  }}
+                >
+                  {current.metricType}
+                </span>
+                <span className="rounded-full border border-border px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+                  {current.scope}
+                </span>
+              </div>
+              <div className="mt-2 font-serif text-lg font-semibold leading-snug">
+                {current.question}
+              </div>
+              <div className="mt-1 text-xs text-muted-foreground">{current.helper}</div>
             </div>
           </div>
 
-          <div className="mt-5 flex items-center gap-3 rounded-xl border border-border bg-background px-4 py-3">
+          <div className="mt-4 grid gap-3 rounded-2xl border border-border/70 bg-background/50 p-4 sm:grid-cols-2">
+            <div>
+              <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                Billing period
+              </div>
+              <div className="mt-1 text-sm font-medium">
+                {(() => {
+                  const last = new Date(initial.y, initial.m, 0).getDate();
+                  const mm = String(initial.m).padStart(2, "0");
+                  return `${initial.y}-${mm}-01 → ${initial.y}-${mm}-${String(last).padStart(2, "0")}`;
+                })()}
+              </div>
+              <div className="mt-0.5 text-[11px] text-muted-foreground">
+                {MONTH_NAMES[initial.m - 1]} {initial.y} · full month
+              </div>
+            </div>
+            <div>
+              <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                Where to find it
+              </div>
+              <div className="mt-1 text-xs leading-relaxed text-foreground/80">
+                {current.source}
+              </div>
+            </div>
+          </div>
+
+          {current.subTypes && (
+            <div className="mt-3 rounded-2xl border border-dashed border-border/70 p-3">
+              <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                Include all waste streams
+              </div>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {current.subTypes.map((s) => (
+                  <span
+                    key={s}
+                    className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-foreground/80"
+                  >
+                    {s}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="mt-4">
+            <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+              Typical values for reference
+            </div>
+            <div className="mt-2 grid gap-1.5">
+              {current.examples.map((ex) => (
+                <button
+                  key={ex.label}
+                  type="button"
+                  onClick={() => {
+                    const match = ex.value.match(/[\d,]+(?:\.\d+)?/);
+                    if (match) {
+                      const num = match[0].replace(/,/g, "");
+                      setForm((s) => ({ ...s, [current.key]: num }));
+                    }
+                  }}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-background/40 px-3 py-2 text-left text-xs transition hover:border-primary/50 hover:bg-primary/5"
+                >
+                  <span className="text-muted-foreground">{ex.label}</span>
+                  <span className="font-medium text-foreground">{ex.value}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-4 flex items-center gap-3 rounded-xl border border-border bg-background px-4 py-3">
             <Input
               autoFocus
               type="number"
@@ -4623,11 +4708,17 @@ function SurveyLogCard({
               onChange={(e) =>
                 setForm((s) => ({ ...s, [current.key]: e.target.value }))
               }
-              placeholder="Enter a number"
+              placeholder="Enter your value"
               className="num h-10 flex-1 border-0 bg-transparent text-right text-2xl font-semibold focus-visible:ring-0"
             />
-            <span className="text-sm text-muted-foreground">{current.unit}</span>
+            <span className="text-sm text-muted-foreground">{current.unitLabel}</span>
           </div>
+
+          {current.tip && (
+            <div className="mt-2 text-[11px] italic text-muted-foreground">
+              💡 {current.tip}
+            </div>
+          )}
         </motion.div>
       </AnimatePresence>
 
