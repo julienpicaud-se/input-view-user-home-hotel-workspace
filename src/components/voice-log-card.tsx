@@ -58,10 +58,10 @@ const METRIC_META: Record<
   occupied_room_nights: { label: "Occupied room-nights", unit: "nights", icon: Users, color: "var(--chart-4)" },
 };
 
-const PROMPTS = [
-  "Last month we used about twelve thousand four hundred kilowatt-hours of electricity and two hundred thirty cubic metres of water.",
-  "In March, gas was one thousand eight hundred kWh and we had two thousand one hundred fifty room-nights.",
-  "April: electricity twelve point four megawatt-hours, waste one point two tonnes.",
+const PROMPTS: { text: string; lang: "en" | "fr" }[] = [
+  { text: "Last month we used about twelve thousand four hundred kilowatt-hours of electricity and two hundred thirty cubic metres of water.", lang: "en" },
+  { text: "In March, gas was one thousand eight hundred kWh and we had two thousand one hundred fifty room-nights.", lang: "en" },
+  { text: "En avril : électricité douze mille quatre cents kilowattheures, eau deux cent trente mètres cubes, déchets une virgule deux tonnes.", lang: "fr" },
 ];
 
 type DraftRow = SmartEntry & { id: string; selected: boolean; reviewed: boolean };
@@ -573,16 +573,19 @@ export function VoiceLogCard({ entries: _entries, onSaved }: VoiceLogCardProps) 
           <div className="space-y-2">
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Some examples</div>
             <div className="flex flex-wrap gap-2">
-              {PROMPTS.map((p, i) => (
-                <button
-                  key={i}
-                  onClick={() => setFinalText(p)}
-                  disabled={listening}
-                  className="rounded-full border border-border bg-muted/40 px-3 py-1 text-xs text-muted-foreground transition hover:border-primary/40 hover:bg-primary/5 hover:text-foreground disabled:opacity-50"
-                >
-                  "{p.slice(0, 64)}…"
-                </button>
-              ))}
+              {PROMPTS.map((p, i) => {
+                const meta = LANGS.find((l) => l.code === p.lang)!;
+                return (
+                  <button
+                    key={i}
+                    onClick={() => seedExample(p.text, p.lang)}
+                    disabled={listening}
+                    className="rounded-full border border-border bg-muted/40 px-3 py-1 text-xs text-muted-foreground transition hover:border-primary/40 hover:bg-primary/5 hover:text-foreground disabled:opacity-50"
+                  >
+                    <span className="mr-1">{meta.flag}</span>"{p.text.slice(0, 60)}…"
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
