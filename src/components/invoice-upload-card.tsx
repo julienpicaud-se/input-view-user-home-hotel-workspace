@@ -232,7 +232,7 @@ export function InvoiceUploadCard({ entries, onSaved }: InvoiceUploadCardProps) 
         </div>
       </div>
 
-      {(!extracted || !extracted.detectedPeriod || showPeriodEdit) && (
+      {((extracted && !extracted.detectedPeriod) || showPeriodEdit) && (
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
             <Label className="mb-2 text-[11px] uppercase tracking-wider text-muted-foreground">
