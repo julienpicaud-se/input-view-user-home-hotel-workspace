@@ -67,9 +67,10 @@ const PROMPTS = [
 type DraftRow = SmartEntry & { id: string; selected: boolean; reviewed: boolean };
 
 // Minimal typing for the Web Speech API (vendor-prefixed in most browsers).
+type SpeechRecognitionAlternativeLike = { transcript: string; confidence?: number };
 type SpeechRecognitionResultLike = {
   isFinal: boolean;
-  0: { transcript: string };
+  0: SpeechRecognitionAlternativeLike;
 };
 type SpeechRecognitionEventLike = {
   resultIndex: number;
@@ -96,6 +97,22 @@ function getSpeechRecognitionCtor():
     webkitSpeechRecognition?: new () => SpeechRecognitionLike;
   };
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
+}
+
+// Bilingual auto-detect: we run two recognizers in parallel (en + fr) and pick
+// the lane with the strongest score = Σ(confidence × wordCount) on FINAL results.
+type LangCode = "en" | "fr";
+const LANGS: { code: LangCode; bcp47: string; flag: string; label: string }[] = [
+  { code: "en", bcp47: "en-US", flag: "🇬🇧", label: "English" },
+  { code: "fr", bcp47: "fr-FR", flag: "🇫🇷", label: "Français" },
+];
+
+interface RecognizerLane {
+  code: LangCode;
+  rec: SpeechRecognitionLike;
+  finalText: string;
+  interimText: string;
+  score: number;
 }
 
 export function VoiceLogCard({ entries: _entries, onSaved }: VoiceLogCardProps) {
