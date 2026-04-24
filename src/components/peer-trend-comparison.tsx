@@ -238,7 +238,49 @@ export function PeerTrendComparison({
     return `${d.label} ${yoursWord} ${formatPct(d.yoursDeltaPct)} versus peers ${peersWord} ${formatPct(d.peersDeltaPct)} — a ${gapMag} pp shortfall.`;
   }
 
+  async function explainBiggestGap() {
+    if (!worstDriver || aiPending) return;
+    setAiPending(true);
+    setAiAnswer(null);
+    try {
+      const driverLines = deltas
+        .filter((d) => d.gapPct !== null)
+        .map(
+          (d) =>
+            `- ${d.label}: you ${formatPct(d.yoursDeltaPct!)} vs peers ${formatPct(d.peersDeltaPct!)} (gap ${formatPct(d.gapPct!)})`,
+        )
+        .join("\n");
+
+      const prompt = `My biggest peer-benchmark gap from ${prevMonthLabel} to ${currMonthLabel} is **${worstDriver.label}**: my intensity moved ${formatPct(worstDriver.yoursDeltaPct!)} while the median of ${cohortSize} similar Mediterranean hotels of ${hotel.size_band} rooms moved ${formatPct(worstDriver.peersDeltaPct!)} — a ${Math.abs(worstDriver.gapPct!).toFixed(1)} pp shortfall.
+
+Full month-over-month picture:
+${driverLines}
+
+Please:
+1. Explain in 2–3 plain-language sentences what likely caused this ${worstDriver.label.toLowerCase()} gap (consider seasonality, occupancy, equipment, operational habits — and reference the other utilities above when useful).
+2. Suggest **2–3 concrete actions** I can take next month to close the gap. Use a short bullet list and prioritise by impact and ease. Include rough expected savings in % or absolute units when reasonable. Skip generic advice.`;
+
+      const res = await send({
+        data: {
+          message: prompt,
+          hotelId: getActiveHotelId(),
+          history: [],
+        },
+      });
+      if (res.ok) {
+        setAiAnswer(res.content);
+      } else {
+        toast.error(res.error);
+      }
+    } catch {
+      toast.error("Couldn't reach Sera. Please try again.");
+    } finally {
+      setAiPending(false);
+    }
+  }
+
   return (
+
     <Card className="mb-6 rounded-3xl border-border/70 bg-card/60 p-6 backdrop-blur-sm">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
