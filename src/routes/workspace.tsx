@@ -510,16 +510,25 @@ function HomePage() {
           />
 
           <TodosCard
+            hotel={hotel}
             latest={latest}
+            prev={prev}
+            lastYearSame={lastYearSame}
             sorted={sorted}
             isCurrentLogged={!!isCurrentLogged}
             worstUtility={worstUtility}
             missingFields={missingFields}
+            cohortSize={benchmarkCohortSize}
+            filters={benchmarkFilters}
             onGoToLog={(fields) => {
               if (fields && fields.length) setHighlightFields(fields);
               setActiveTab("log");
             }}
             onGoToAnalyze={() => setActiveTab("analyze")}
+            onAskSera={(prompt) => {
+              toast.success("Sera is on it");
+              void navigate({ to: "/assistant", search: { prompt } });
+            }}
           />
 
         </TabsContent>
