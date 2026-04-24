@@ -719,6 +719,7 @@ export const extractSmartInput = createServerFn({ method: "POST" })
       text: z.string().min(2).max(8000).optional(),
       imageDataUrl: z.string().min(20).max(15_000_000).optional(),
       currentYear: z.number().int().min(2000).max(2100).optional(),
+      sourceLanguage: z.enum(["en", "fr"]).optional(),
     }),
   )
   .handler(async ({ data }): Promise<{ ok: true; extraction: SmartExtraction } | { ok: false; error: string }> => {
@@ -729,10 +730,16 @@ export const extractSmartInput = createServerFn({ method: "POST" })
     }
 
     const refYear = data.currentYear ?? new Date().getFullYear();
+    const langHint =
+      data.sourceLanguage === "fr"
+        ? `\nThe input is in FRENCH. French month names (janvier..décembre), French units (mètres cubes, kilowattheures, tonnes, déchets, nuitées) and French spelled-out numbers ("douze mille quatre cents" = 12 400, "deux virgule trois" = 2.3) are common. The decimal separator is the comma. Treat "k" or "K" after a number as ×1000.`
+        : data.sourceLanguage === "en"
+          ? `\nThe input is in ENGLISH. Decimal separator is a dot.`
+          : "";
 
     const systemPrompt = `You are Sera, an expert at parsing free-form sustainability data from hotel managers.
-The user pastes ANYTHING: emails, spreadsheet rows, screenshots, a quick "April elec 12,400 kWh, water 230 m3", a forwarded utility summary covering several months, or a voice transcript with spelled-out numbers like "twelve thousand four hundred".
-
+The user pastes ANYTHING: emails, spreadsheet rows, screenshots, a quick "April elec 12,400 kWh, water 230 m3", a forwarded utility summary covering several months, or a voice transcript with spelled-out numbers like "twelve thousand four hundred" / "douze mille quatre cents".
+${langHint}
 Extract every (month, metric, value) triple you can find. Reference year is ${refYear} when not specified.
 
 Conversion rules (always normalise to canonical units):
@@ -740,7 +747,7 @@ Conversion rules (always normalise to canonical units):
 - gas_kwh: kWh. m³ of natural gas × 10.55. therm × 29.3. MWh × 1000.
 - water_m3: cubic metres. litres ÷ 1000. US gal × 0.003785. ft³ × 0.02832.
 - waste_kg: kilograms. tonnes × 1000. lb × 0.4536.
-- occupied_room_nights: integer count.
+- occupied_room_nights: integer count (French: "nuitées").
 
 For EACH extracted entry, also report a per-field confidence:
 - "high": value, unit and month are all unambiguous in the source.
@@ -748,7 +755,7 @@ For EACH extracted entry, also report a per-field confidence:
 - "low": the metric, month or value was unclear, you guessed, or the number is suspicious (extreme outlier, missing unit, possible mishearing in a voice transcript).
 Always include a brief confidence_reason (max 80 chars) when confidence is medium or low — explain WHY in one short phrase the user can act on (e.g. "no unit stated, assumed kWh", "spelled-out number, possible mishearing", "year inferred").
 
-Return ONLY valid JSON via the tool call. Months are 1-12. Skip values you cannot confidently identify and add a warning instead.`;
+Return ONLY valid JSON via the tool call. Months are 1-12. Always reply in English regardless of input language. Skip values you cannot confidently identify and add a warning instead.`;
 
     const tools = [
       {
