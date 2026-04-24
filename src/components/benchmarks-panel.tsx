@@ -12,7 +12,7 @@ import {
 import { Bolt, Droplets, Flame, Trash2, Trophy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveHotelId, type Hotel, type MonthlyEntry } from "@/lib/hotel";
-import { MONTH_SHORT, formatNumber } from "@/lib/format";
+import { MONTH_SHORT, MONTH_NAMES, formatNumber } from "@/lib/format";
 import {
   getPeerCohortSize,
   getPeerRank,
