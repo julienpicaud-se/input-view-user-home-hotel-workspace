@@ -17,10 +17,10 @@ export interface PeerMiniKpi {
 }
 
 export const PEER_MINI_KPIS: PeerMiniKpi[] = [
-  { key: "electricity_kwh", label: "Electricity", icon: Bolt, color: "var(--chart-3)", utility: "electricity" },
-  { key: "gas_kwh", label: "Gas", icon: Flame, color: "var(--chart-1)", utility: "gas" },
-  { key: "water_m3", label: "Water", icon: Droplets, color: "var(--chart-2)", utility: "water" },
-  { key: "waste_kg", label: "Waste", icon: Trash2, color: "var(--chart-5)", utility: "waste" },
+  { key: "electricity_kwh", label: "Electricity", icon: Bolt, color: "var(--chart-3)", utility: "electricity", unit: "kWh/rn" },
+  { key: "gas_kwh", label: "Gas", icon: Flame, color: "var(--chart-1)", utility: "gas", unit: "kWh/rn" },
+  { key: "water_m3", label: "Water", icon: Droplets, color: "var(--chart-2)", utility: "water", unit: "m³/rn" },
+  { key: "waste_kg", label: "Waste", icon: Trash2, color: "var(--chart-5)", utility: "waste", unit: "kg/rn" },
 ];
 
 export function PeerMiniCard({
