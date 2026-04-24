@@ -43,6 +43,11 @@ import {
   Mic,
   Plane,
   X,
+  Lightbulb,
+  Plus,
+  Recycle,
+  Leaf,
+  CalendarCheck,
 } from "lucide-react";
 import {
   ResponsiveContainer,
