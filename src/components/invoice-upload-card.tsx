@@ -4,11 +4,13 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
   Bolt,
+  CalendarDays,
   CheckCircle2,
   Droplets,
   FileText,
   Flame,
   Loader2,
+  Pencil,
   Sparkles,
   Trash2,
   Upload,
@@ -79,8 +81,10 @@ export function InvoiceUploadCard({ entries, onSaved }: InvoiceUploadCardProps) 
     notes: string | null;
     fileName: string;
     detectedUtility: BillUtility | null;
+    detectedPeriod: boolean; // true if month/year were auto-derived from the bill
   } | null>(null);
   const [manualValue, setManualValue] = React.useState<string>("");
+  const [showPeriodEdit, setShowPeriodEdit] = React.useState<boolean>(false);
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const meta = UTILITIES.find((u) => u.key === utility)!;
@@ -100,6 +104,7 @@ export function InvoiceUploadCard({ entries, onSaved }: InvoiceUploadCardProps) 
   function reset() {
     setExtracted(null);
     setManualValue("");
+    setShowPeriodEdit(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
@@ -126,7 +131,21 @@ export function InvoiceUploadCard({ entries, onSaved }: InvoiceUploadCardProps) 
       // If the AI detected a different utility, gently switch and tell the user
       if (ext.utility && ext.utility !== utility) {
         setUtility(ext.utility);
-        toast.info(`This looks like a ${ext.utility} bill — switched for you.`);
+      }
+      // Try to derive month/year from period_end (preferred) or period_start
+      let detectedPeriod = false;
+      const periodIso = ext.period_end ?? ext.period_start;
+      if (periodIso) {
+        const m = /^(\d{4})-(\d{2})-\d{2}$/.exec(periodIso);
+        if (m) {
+          const y = Number(m[1]);
+          const mo = Number(m[2]);
+          if (y >= 2000 && y <= 2100 && mo >= 1 && mo <= 12) {
+            setYear(y);
+            setMonth(mo);
+            detectedPeriod = true;
+          }
+        }
       }
       setExtracted({
         value: ext.value,
@@ -134,8 +153,10 @@ export function InvoiceUploadCard({ entries, onSaved }: InvoiceUploadCardProps) 
         notes: ext.notes,
         fileName: file.name,
         detectedUtility: ext.utility,
+        detectedPeriod,
       });
       setManualValue("");
+      setShowPeriodEdit(false);
     } catch (e) {
       console.error(e);
       toast.error("Couldn't process that file.");
@@ -205,65 +226,67 @@ export function InvoiceUploadCard({ entries, onSaved }: InvoiceUploadCardProps) 
             Upload a bill, Sera fills the rest
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Drop one utility invoice — Sera reads the consumption, you confirm
-            the period and we save it to that month.
+            Drop one utility invoice — Sera reads the consumption and the
+            billing period, then saves it to the right month.
           </p>
         </div>
       </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div>
-          <Label className="mb-2 text-[11px] uppercase tracking-wider text-muted-foreground">
-            Utility
-          </Label>
-          <Select value={utility} onValueChange={(v) => { setUtility(v as BillUtility); reset(); }}>
-            <SelectTrigger className="h-11 rounded-xl">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {UTILITIES.map((u) => (
-                <SelectItem key={u.key} value={u.key}>
-                  {u.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      {(!extracted || !extracted.detectedPeriod || showPeriodEdit) && (
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div>
+            <Label className="mb-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+              Utility
+            </Label>
+            <Select value={utility} onValueChange={(v) => { setUtility(v as BillUtility); reset(); }}>
+              <SelectTrigger className="h-11 rounded-xl">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {UTILITIES.map((u) => (
+                  <SelectItem key={u.key} value={u.key}>
+                    {u.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="mb-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+              Month
+            </Label>
+            <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
+              <SelectTrigger className="h-11 rounded-xl">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {MONTH_NAMES.map((name, i) => (
+                  <SelectItem key={i + 1} value={String(i + 1)}>
+                    {name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="mb-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+              Year
+            </Label>
+            <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
+              <SelectTrigger className="h-11 rounded-xl">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {years.map((y) => (
+                  <SelectItem key={y} value={String(y)}>
+                    {y}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-        <div>
-          <Label className="mb-2 text-[11px] uppercase tracking-wider text-muted-foreground">
-            Month
-          </Label>
-          <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
-            <SelectTrigger className="h-11 rounded-xl">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {MONTH_NAMES.map((name, i) => (
-                <SelectItem key={i + 1} value={String(i + 1)}>
-                  {name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label className="mb-2 text-[11px] uppercase tracking-wider text-muted-foreground">
-            Year
-          </Label>
-          <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
-            <SelectTrigger className="h-11 rounded-xl">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {years.map((y) => (
-                <SelectItem key={y} value={String(y)}>
-                  {y}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      )}
 
       {/* Upload zone */}
       <div
@@ -403,7 +426,7 @@ export function InvoiceUploadCard({ entries, onSaved }: InvoiceUploadCardProps) 
           >
             <div className="flex items-start gap-3">
               <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-              <div className="text-sm leading-relaxed">
+              <div className="flex-1 text-sm leading-relaxed">
                 Saving{" "}
                 <span className="font-semibold text-foreground">
                   {finalValue.toLocaleString()} {meta.unit}
@@ -414,6 +437,22 @@ export function InvoiceUploadCard({ entries, onSaved }: InvoiceUploadCardProps) 
                   {MONTH_NAMES[month - 1]} {year}
                 </span>
                 . Other utilities for that month stay untouched.
+                {extracted?.detectedPeriod && !showPeriodEdit && (
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-success/30 bg-success/10 px-2.5 py-1 text-[11px] font-medium text-success">
+                      <CalendarDays className="h-3 w-3" />
+                      Detected {meta.label.toLowerCase()} · {MONTH_NAMES[month - 1]} {year}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowPeriodEdit(true)}
+                      className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition hover:border-primary/40 hover:text-foreground"
+                    >
+                      <Pencil className="h-3 w-3" />
+                      Edit
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </motion.div>
