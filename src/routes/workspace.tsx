@@ -4414,6 +4414,10 @@ const SURVEY_STEPS: SurveyStep[] = [
       { label: "Resort · 250 rooms + spa", value: "≈ 240,000 kWh / month" },
     ],
     tip: "If your bill shows MWh, multiply by 1,000.",
+    conversions: [
+      { from: "1 MWh", to: "kWh", factor: "× 1,000" },
+      { from: "1 GWh", to: "kWh", factor: "× 1,000,000" },
+    ],
     icon: Bolt,
     color: "var(--chart-3)",
   },
