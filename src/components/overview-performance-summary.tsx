@@ -5,6 +5,7 @@ import {
   Bolt,
   Droplets,
   Flame,
+  Loader2,
   Minus,
   Sparkles,
   Trash2,
@@ -12,11 +13,16 @@ import {
   TrendingUp,
   Trophy,
 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { MONTH_NAMES, formatNumber } from "@/lib/format";
 import { getPeerRank, getPeerStats, type Utility } from "@/lib/peer-benchmarks";
-import type { Hotel, MonthlyEntry } from "@/lib/hotel";
+import { getActiveHotelId, type Hotel, type MonthlyEntry } from "@/lib/hotel";
+import { sendAssistantMessage } from "@/server/assistant.functions";
 
 interface UtilityDef {
   key: Utility;
