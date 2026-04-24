@@ -76,6 +76,7 @@ import {
 } from "@/lib/peer-benchmarks";
 import { PageContainer } from "@/components/page-shell";
 import { SeraGuidedLog } from "@/components/sera-guided-log";
+import { InvoiceUploadCard } from "@/components/invoice-upload-card";
 
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -3680,7 +3681,7 @@ function LogDataTabs({
     { key: "sera", label: "Sera guided", desc: "AI walks you through, reads your bills", icon: Sparkles, badge: "New" },
     { key: "manual", label: "Manual entry", desc: "Type values from your bills", icon: Pencil },
     { key: "survey", label: "Guided survey", desc: "Step-by-step questions", icon: ClipboardList },
-    { key: "import", label: "Import CSV", desc: "Bulk upload past months", icon: Upload },
+    { key: "import", label: "Guided invoice upload", desc: "Snap a bill, save to a month", icon: FileSpreadsheet },
   ];
 
   return (
@@ -3746,7 +3747,9 @@ function LogDataTabs({
           {method === "survey" && (
             <SurveyLogCard entries={entries} onSaved={onSaved} />
           )}
-          {method === "import" && <ImportLogCard onSaved={onSaved} />}
+          {method === "import" && (
+            <InvoiceUploadCard entries={entries} onSaved={onSaved} />
+          )}
         </div>
       </div>
 
