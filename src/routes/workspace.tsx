@@ -40,6 +40,7 @@ import {
   Lock,
   Unlock,
   MessageCircle,
+  Mic,
   X,
 } from "lucide-react";
 import {
@@ -3664,8 +3665,8 @@ function LogDataTabs({
   highlightFields?: HighlightedField[];
   onHighlightConsumed?: () => void;
 }) {
-  const [method, setMethod] = React.useState<"manual" | "survey" | "import" | "smart">(
-    "smart",
+  const [method, setMethod] = React.useState<"manual" | "survey" | "import" | "smart" | "voice">(
+    "voice",
   );
 
   // When highlighted fields arrive, force-switch to manual entry so user sees them.
