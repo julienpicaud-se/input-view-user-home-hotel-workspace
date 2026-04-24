@@ -3747,7 +3747,9 @@ function LogDataTabs({
           {method === "survey" && (
             <SurveyLogCard entries={entries} onSaved={onSaved} />
           )}
-          {method === "import" && <ImportLogCard onSaved={onSaved} />}
+          {method === "import" && (
+            <InvoiceUploadCard entries={entries} onSaved={onSaved} />
+          )}
         </div>
       </div>
 
