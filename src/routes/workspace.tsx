@@ -76,6 +76,7 @@ import {
 } from "@/lib/peer-benchmarks";
 import { PageContainer } from "@/components/page-shell";
 import { InvoiceUploadCard } from "@/components/invoice-upload-card";
+import { SmartPasteCard } from "@/components/smart-paste-card";
 
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
