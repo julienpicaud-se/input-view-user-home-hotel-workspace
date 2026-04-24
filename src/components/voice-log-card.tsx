@@ -442,8 +442,7 @@ export function VoiceLogCard({ entries: _entries, onSaved }: VoiceLogCardProps) 
             </div>
             <h3 className="font-serif text-xl font-semibold">Just talk to Sera</h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              Press the mic and read your numbers out loud — even messy, with units mixed.
-              Sera transcribes, normalises and turns it into clean monthly rows.
+              Press the mic and read your numbers out loud in <span className="font-medium">English or French</span> — Sera detects the language automatically, transcribes, normalises units and turns it into clean monthly rows.
             </p>
           </div>
           {(finalText || drafts.length > 0) && (
