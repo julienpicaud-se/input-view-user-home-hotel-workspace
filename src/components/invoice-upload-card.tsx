@@ -426,7 +426,7 @@ export function InvoiceUploadCard({ entries, onSaved }: InvoiceUploadCardProps) 
           >
             <div className="flex items-start gap-3">
               <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-              <div className="text-sm leading-relaxed">
+              <div className="flex-1 text-sm leading-relaxed">
                 Saving{" "}
                 <span className="font-semibold text-foreground">
                   {finalValue.toLocaleString()} {meta.unit}
@@ -437,6 +437,22 @@ export function InvoiceUploadCard({ entries, onSaved }: InvoiceUploadCardProps) 
                   {MONTH_NAMES[month - 1]} {year}
                 </span>
                 . Other utilities for that month stay untouched.
+                {extracted?.detectedPeriod && !showPeriodEdit && (
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-success/30 bg-success/10 px-2.5 py-1 text-[11px] font-medium text-success">
+                      <CalendarDays className="h-3 w-3" />
+                      Detected {meta.label.toLowerCase()} · {MONTH_NAMES[month - 1]} {year}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowPeriodEdit(true)}
+                      className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition hover:border-primary/40 hover:text-foreground"
+                    >
+                      <Pencil className="h-3 w-3" />
+                      Edit
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </motion.div>
