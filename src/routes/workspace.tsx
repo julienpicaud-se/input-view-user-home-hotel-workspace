@@ -75,7 +75,6 @@ import {
   type Utility,
 } from "@/lib/peer-benchmarks";
 import { PageContainer } from "@/components/page-shell";
-import { SeraGuidedLog } from "@/components/sera-guided-log";
 import { InvoiceUploadCard } from "@/components/invoice-upload-card";
 
 import { Card } from "@/components/ui/card";
@@ -3660,8 +3659,8 @@ function LogDataTabs({
   highlightFields?: HighlightedField[];
   onHighlightConsumed?: () => void;
 }) {
-  const [method, setMethod] = React.useState<"sera" | "manual" | "survey" | "import">(
-    "sera",
+  const [method, setMethod] = React.useState<"manual" | "survey" | "import">(
+    "import",
   );
 
   // When highlighted fields arrive, force-switch to manual entry so user sees them.
@@ -3672,16 +3671,15 @@ function LogDataTabs({
   }, [highlightFields, method]);
 
   const METHODS: {
-    key: "sera" | "manual" | "survey" | "import";
+    key: "manual" | "survey" | "import";
     label: string;
     desc: string;
     icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
     badge?: string;
   }[] = [
-    { key: "sera", label: "Sera guided", desc: "AI walks you through, reads your bills", icon: Sparkles, badge: "New" },
+    { key: "import", label: "Guided invoice upload", desc: "Snap a bill, Sera reads and saves it", icon: FileSpreadsheet, badge: "New" },
     { key: "manual", label: "Manual entry", desc: "Type values from your bills", icon: Pencil },
     { key: "survey", label: "Guided survey", desc: "Step-by-step questions", icon: ClipboardList },
-    { key: "import", label: "Guided invoice upload", desc: "Snap a bill, save to a month", icon: FileSpreadsheet },
   ];
 
   return (
@@ -3731,9 +3729,6 @@ function LogDataTabs({
         </div>
 
         <div className="lg:col-span-3">
-          {method === "sera" && (
-            <SeraGuidedLog entries={entries} rooms={rooms} onSaved={onSaved} />
-          )}
           {method === "manual" && (
             <QuickLogCard
               entries={entries}
