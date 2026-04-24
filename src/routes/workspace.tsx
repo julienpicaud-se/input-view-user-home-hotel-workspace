@@ -2181,9 +2181,8 @@ function TodosCard({
           <Popover open={settingsOpen} onOpenChange={setSettingsOpen}>
             <PopoverTrigger asChild>
               <Button
-                variant="outline"
                 size="sm"
-                className="h-8 gap-1.5"
+                className="h-8 gap-1.5 rounded-full border border-foreground/20 bg-foreground text-background shadow-sm hover:bg-foreground/90"
                 aria-label="Priority settings"
               >
                 <Settings2 className="h-3.5 w-3.5" />
@@ -2333,9 +2332,13 @@ function TodosCard({
                 </div>
                 <Button
                   size="sm"
-                  variant={done ? "ghost" : todo.tone === "urgent" ? "default" : "outline"}
+                  variant={done ? "ghost" : undefined}
                   onClick={todo.onClick}
-                  className="shrink-0"
+                  className={
+                    done
+                      ? "shrink-0"
+                      : "shrink-0 rounded-full border border-foreground/20 bg-foreground text-background shadow-sm hover:bg-foreground/90"
+                  }
                   disabled={done}
                 >
                   {done ? "Completed" : todo.cta}

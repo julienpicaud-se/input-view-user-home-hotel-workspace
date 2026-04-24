@@ -433,7 +433,7 @@ Please:
           size="sm"
           onClick={() => void explainScoreDrivers()}
           disabled={aiPending}
-          className="rounded-full bg-gradient-to-r from-primary to-secondary text-primary-foreground shadow-sm hover:opacity-95"
+          className="rounded-full border border-foreground/20 bg-foreground text-background shadow-sm hover:bg-foreground/90 disabled:opacity-70"
         >
           {aiPending ? (
             <>
