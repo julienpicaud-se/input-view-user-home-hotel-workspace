@@ -75,7 +75,6 @@ import {
   type Utility,
 } from "@/lib/peer-benchmarks";
 import { PageContainer } from "@/components/page-shell";
-import { SeraGuidedLog } from "@/components/sera-guided-log";
 import { InvoiceUploadCard } from "@/components/invoice-upload-card";
 
 import { Card } from "@/components/ui/card";
