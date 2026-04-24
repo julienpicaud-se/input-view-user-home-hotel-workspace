@@ -1413,8 +1413,16 @@ interface TodoItem {
 
 const PRIORITY_STORAGE_KEY = "verdance:todo-priorities:v1";
 const COMPLETION_STORAGE_KEY = "verdance:todo-completion:v1";
+const AI_TODOS_STORAGE_KEY = "verdance:ai-todos:v1";
 
 const DEFAULT_PRIORITY_ORDER: TodoCategory[] = ["data", "compliance", "cost", "waste"];
+
+const AI_CATEGORY_ICON: Record<TodoCategory, React.ComponentType<React.SVGProps<SVGSVGElement>>> = {
+  cost: Bolt,
+  compliance: ClipboardList,
+  waste: Recycle,
+  data: BarChart3,
+};
 
 const CATEGORY_META: Record<
   TodoCategory,
