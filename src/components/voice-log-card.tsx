@@ -230,7 +230,7 @@ export function VoiceLogCard({ entries: _entries, onSaved }: VoiceLogCardProps) 
         id: `${e.year}-${e.month}-${e.metric}-${i}`,
         selected: true,
         // Rows Sera flagged as medium/low must be explicitly confirmed before save.
-        reviewed: (e.confidence ?? "medium") === "high",
+        reviewed: (e.confidence ?? "high") === "high",
       }));
       setDrafts(rows);
       setSummary(res.extraction.summary);
@@ -253,7 +253,7 @@ export function VoiceLogCard({ entries: _entries, onSaved }: VoiceLogCardProps) 
       toast.error("Select at least one row to save.");
       return;
     }
-    const unreviewed = selected.filter((d) => (d.confidence ?? "medium") !== "high" && !d.reviewed);
+    const unreviewed = selected.filter((d) => (d.confidence ?? "high") !== "high" && !d.reviewed);
     if (unreviewed.length > 0) {
       toast.error(
         `Confirm ${unreviewed.length} flagged field${unreviewed.length === 1 ? "" : "s"} before saving.`,
@@ -525,7 +525,7 @@ export function VoiceLogCard({ entries: _entries, onSaved }: VoiceLogCardProps) 
               {/* Confirmation checklist — surfaces low-confidence rows up front */}
               {(() => {
                 const flagged = drafts.filter(
-                  (d) => d.selected && (d.confidence ?? "medium") !== "high",
+                  (d) => d.selected && (d.confidence ?? "high") !== "high",
                 );
                 const pending = flagged.filter((d) => !d.reviewed);
                 if (flagged.length === 0) return null;
@@ -554,7 +554,7 @@ export function VoiceLogCard({ entries: _entries, onSaved }: VoiceLogCardProps) 
                           onClick={() =>
                             setDrafts((prev) =>
                               prev.map((d) =>
-                                (d.confidence ?? "medium") !== "high" && d.selected
+                                (d.confidence ?? "high") !== "high" && d.selected
                                   ? { ...d, reviewed: true }
                                   : d,
                               ),
@@ -607,7 +607,7 @@ export function VoiceLogCard({ entries: _entries, onSaved }: VoiceLogCardProps) 
                 {drafts.map((d) => {
                   const meta = METRIC_META[d.metric];
                   const Icon = meta.icon;
-                  const conf = d.confidence ?? "medium";
+                  const conf = d.confidence ?? "high";
                   const flagged = conf !== "high";
                   const needsReview = flagged && d.selected && !d.reviewed;
                   return (
@@ -713,7 +713,7 @@ export function VoiceLogCard({ entries: _entries, onSaved }: VoiceLogCardProps) 
               {(() => {
                 const selectedRows = drafts.filter((d) => d.selected);
                 const pendingReview = selectedRows.filter(
-                  (d) => (d.confidence ?? "medium") !== "high" && !d.reviewed,
+                  (d) => (d.confidence ?? "high") !== "high" && !d.reviewed,
                 ).length;
                 const saveDisabled = saving || selectedRows.length === 0 || pendingReview > 0;
                 return (
