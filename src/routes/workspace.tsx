@@ -668,6 +668,7 @@ function HomePage() {
             onSaved={() => void reload()}
             sorted={sorted}
             rooms={hotel.rooms}
+            hotel={hotel}
             highlightFields={highlightFields}
             onHighlightConsumed={() => setHighlightFields([])}
           />
