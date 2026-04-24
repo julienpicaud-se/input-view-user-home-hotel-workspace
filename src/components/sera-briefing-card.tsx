@@ -354,11 +354,11 @@ export function SeraBriefingCard({
                       className={`flex ${t.role === "user" ? "justify-end" : "justify-start"}`}
                     >
                       <div
-                        className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed ${
+                        className={
                           t.role === "user"
-                            ? "bg-primary text-primary-foreground"
-                            : "border border-border/60 bg-card text-foreground"
-                        }`}
+                            ? "max-w-[85%] rounded-full border border-border/60 bg-background/60 px-2.5 py-1 text-xs text-foreground"
+                            : "max-w-[85%] rounded-2xl border border-border/60 bg-card px-3 py-2 text-sm leading-relaxed text-foreground"
+                        }
                       >
                         {t.role === "user" || searchQuery.trim() ? (
                           <div className="whitespace-pre-wrap">{highlight(t.content)}</div>
