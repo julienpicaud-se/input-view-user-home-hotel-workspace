@@ -3649,6 +3649,7 @@ function LogDataTabs({
   onSaved,
   sorted,
   rooms,
+  hotel,
   highlightFields = [],
   onHighlightConsumed,
 }: {
@@ -3657,6 +3658,7 @@ function LogDataTabs({
   onSaved: () => void;
   sorted: MonthlyEntry[];
   rooms: number;
+  hotel: Hotel;
   highlightFields?: HighlightedField[];
   onHighlightConsumed?: () => void;
 }) {
