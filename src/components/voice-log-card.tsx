@@ -563,7 +563,7 @@ export function VoiceLogCard({ entries: _entries, onSaved }: VoiceLogCardProps) 
           </Button>
           {!liveText && (
             <span className="text-xs text-muted-foreground">
-              Try: <span className="italic">"{PROMPTS[0]}"</span>
+              Try: <span className="italic">"{PROMPTS[0].text}"</span>
             </span>
           )}
         </div>
