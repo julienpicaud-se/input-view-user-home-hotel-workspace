@@ -3681,7 +3681,7 @@ function LogDataTabs({
     icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
     badge?: string;
   }[] = [
-    { key: "smart", label: "Smart paste (AI)", desc: "Paste an email, a sentence, or a screenshot — Sera turns it into clean rows", icon: Sparkles, badge: "New" },
+    { key: "smart", label: "Smart data input", desc: "Paste an email, a sentence, or a screenshot — Sera turns it into clean rows", icon: Sparkles, badge: "New" },
     { key: "import", label: "Guided invoice upload", desc: "Snap a bill, Sera reads and saves it", icon: FileSpreadsheet },
     { key: "manual", label: "Manual entry", desc: "Type values from your bills", icon: Pencil },
     { key: "survey", label: "Guided survey", desc: "Step-by-step questions", icon: ClipboardList },
