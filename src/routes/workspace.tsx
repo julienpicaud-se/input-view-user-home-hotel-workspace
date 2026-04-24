@@ -4373,9 +4373,17 @@ function QuickLogCard({
 
 interface SurveyStep {
   key: keyof typeof BLANK_FORM;
+  metricType: string;
+  category: string;
+  scope: string;
   question: string;
   helper: string;
   unit: string;
+  unitLabel: string;
+  source: string;
+  examples: { label: string; value: string }[];
+  subTypes?: string[];
+  tip?: string;
   icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   color: string;
 }
@@ -4391,41 +4399,104 @@ const BLANK_FORM = {
 const SURVEY_STEPS: SurveyStep[] = [
   {
     key: "electricity_kwh",
-    question: "How much electricity did you use?",
-    helper: "Find this on your power bill, in kWh.",
+    metricType: "Energy · Electricity",
+    category: "Purchased grid electricity",
+    scope: "GHG Scope 2",
+    question: "How much electricity did the property consume?",
+    helper: "Sum every electricity meter (main building, annexes, EV chargers).",
     unit: "kWh",
+    unitLabel: "kilowatt-hours",
+    source: "Find it on your utility invoice under “Total energy used” or “Consumption (kWh)”.",
+    examples: [
+      { label: "Boutique hotel · 40 rooms", value: "≈ 28,000 kWh / month" },
+      { label: "Mid-size hotel · 120 rooms", value: "≈ 95,000 kWh / month" },
+      { label: "Resort · 250 rooms + spa", value: "≈ 240,000 kWh / month" },
+    ],
+    tip: "If your bill shows MWh, multiply by 1,000.",
     icon: Bolt,
     color: "var(--chart-3)",
   },
   {
     key: "gas_kwh",
-    question: "How much gas did you use?",
-    helper: "Look for kWh or convert m³ × 10.55.",
+    metricType: "Energy · Natural gas",
+    category: "On-site fuel combustion",
+    scope: "GHG Scope 1",
+    question: "How much natural gas was burned on-site?",
+    helper: "Boilers, kitchens, laundry, pool heating — combine all gas meters.",
     unit: "kWh",
+    unitLabel: "kilowatt-hours",
+    source: "Most invoices show kWh directly. If shown in m³, multiply by 10.55. If in therms, multiply by 29.3.",
+    examples: [
+      { label: "No on-site gas (all-electric)", value: "0 kWh" },
+      { label: "Hotel with gas boiler", value: "≈ 18,000 kWh / month" },
+      { label: "Hotel + heated pool & laundry", value: "≈ 60,000 kWh / month" },
+    ],
+    tip: "Leave at 0 if your property is fully electric.",
     icon: Flame,
     color: "var(--chart-1)",
   },
   {
     key: "water_m3",
-    question: "How much water did you consume?",
-    helper: "Cubic metres (m³) from your water bill.",
+    metricType: "Water · Potable",
+    category: "Municipal water withdrawal",
+    scope: "Resource use",
+    question: "How much water did the property withdraw?",
+    helper: "Cubic metres from your water utility bill (1 m³ = 1,000 litres).",
     unit: "m³",
+    unitLabel: "cubic metres",
+    source: "Look for “Consommation” / “Volume facturé” on the water invoice.",
+    examples: [
+      { label: "City hotel · 80 rooms", value: "≈ 420 m³ / month" },
+      { label: "Hotel with spa & pool", value: "≈ 950 m³ / month" },
+      { label: "Resort · 250 rooms + irrigation", value: "≈ 2,400 m³ / month" },
+    ],
+    tip: "If your bill is in litres, divide by 1,000.",
     icon: Droplets,
     color: "var(--chart-2)",
   },
   {
     key: "waste_kg",
-    question: "How much waste did you produce?",
-    helper: "Total kilograms collected this month.",
+    metricType: "Waste · All streams",
+    category: "Operational waste generated",
+    scope: "Scope 3 · Category 5",
+    question: "How much waste was collected this month?",
+    helper: "Add up every waste stream the hauler picked up — in kilograms.",
     unit: "kg",
+    unitLabel: "kilograms",
+    source: "Use your waste collection invoices or hauler manifests (weight tickets).",
+    subTypes: [
+      "Mixed / general waste",
+      "Food & organic waste",
+      "Paper & cardboard",
+      "Glass",
+      "Plastic & metal packaging",
+      "Hazardous (batteries, oils, e-waste)",
+    ],
+    examples: [
+      { label: "Boutique hotel · 40 rooms", value: "≈ 850 kg / month" },
+      { label: "Mid-size hotel · 120 rooms", value: "≈ 3,100 kg / month" },
+      { label: "Resort with F&B outlets", value: "≈ 7,500 kg / month" },
+    ],
+    tip: "1 m³ of mixed waste ≈ 100 kg. 1 standard 240 L bin ≈ 25 kg.",
     icon: Trash2,
     color: "var(--chart-5)",
   },
   {
     key: "occupied_room_nights",
-    question: "How many occupied room-nights?",
-    helper: "Rooms × nights occupied. Used to normalise.",
+    metricType: "Activity · Occupancy",
+    category: "Normalisation denominator",
+    scope: "Operational metric",
+    question: "How many occupied room-nights this month?",
+    helper: "One room sold for one night = 1 room-night. Used to compare against peers.",
     unit: "rn",
+    unitLabel: "room-nights",
+    source: "Pull from your PMS occupancy report (e.g. Opera, Mews, Cloudbeds).",
+    examples: [
+      { label: "80 rooms · 65% occupancy · 30 days", value: "≈ 1,560 room-nights" },
+      { label: "120 rooms · 75% occupancy · 31 days", value: "≈ 2,790 room-nights" },
+      { label: "250 rooms · 80% occupancy · 30 days", value: "≈ 6,000 room-nights" },
+    ],
+    tip: "Formula: rooms × occupancy % × nights in the month.",
     icon: ClipboardList,
     color: "var(--champagne)",
   },
@@ -4530,20 +4601,105 @@ function SurveyLogCard({
           transition={{ duration: 0.2 }}
           className="mt-6"
         >
-          <div className="flex items-center gap-3">
+          <div className="flex items-start gap-3">
             <div
-              className="flex h-12 w-12 items-center justify-center rounded-2xl"
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl"
               style={{ backgroundColor: `color-mix(in oklab, ${current.color} 15%, transparent)` }}
             >
               <Icon className="h-6 w-6" style={{ color: current.color }} />
             </div>
-            <div>
-              <div className="font-serif text-lg font-semibold">{current.question}</div>
-              <div className="text-xs text-muted-foreground">{current.helper}</div>
+            <div className="flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span
+                  className="rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider"
+                  style={{
+                    backgroundColor: `color-mix(in oklab, ${current.color} 15%, transparent)`,
+                    color: current.color,
+                  }}
+                >
+                  {current.metricType}
+                </span>
+                <span className="rounded-full border border-border px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+                  {current.scope}
+                </span>
+              </div>
+              <div className="mt-2 font-serif text-lg font-semibold leading-snug">
+                {current.question}
+              </div>
+              <div className="mt-1 text-xs text-muted-foreground">{current.helper}</div>
             </div>
           </div>
 
-          <div className="mt-5 flex items-center gap-3 rounded-xl border border-border bg-background px-4 py-3">
+          <div className="mt-4 grid gap-3 rounded-2xl border border-border/70 bg-background/50 p-4 sm:grid-cols-2">
+            <div>
+              <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                Billing period
+              </div>
+              <div className="mt-1 text-sm font-medium">
+                {(() => {
+                  const last = new Date(initial.y, initial.m, 0).getDate();
+                  const mm = String(initial.m).padStart(2, "0");
+                  return `${initial.y}-${mm}-01 → ${initial.y}-${mm}-${String(last).padStart(2, "0")}`;
+                })()}
+              </div>
+              <div className="mt-0.5 text-[11px] text-muted-foreground">
+                {MONTH_NAMES[initial.m - 1]} {initial.y} · full month
+              </div>
+            </div>
+            <div>
+              <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                Where to find it
+              </div>
+              <div className="mt-1 text-xs leading-relaxed text-foreground/80">
+                {current.source}
+              </div>
+            </div>
+          </div>
+
+          {current.subTypes && (
+            <div className="mt-3 rounded-2xl border border-dashed border-border/70 p-3">
+              <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                Include all waste streams
+              </div>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {current.subTypes.map((s) => (
+                  <span
+                    key={s}
+                    className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-foreground/80"
+                  >
+                    {s}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="mt-4">
+            <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+              Typical values for reference
+            </div>
+            <div className="mt-2 grid gap-1.5">
+              {current.examples.map((ex) => (
+                <button
+                  key={ex.label}
+                  type="button"
+                  onClick={() => {
+                    const match = ex.value.match(/[\d,]+(?:\.\d+)?/);
+                    if (match) {
+                      const num = match[0].replace(/,/g, "");
+                      setForm((s) => ({ ...s, [current.key]: num }));
+                    }
+                  }}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-background/40 px-3 py-2 text-left text-xs transition hover:border-primary/50 hover:bg-primary/5"
+                >
+                  <span className="text-muted-foreground">{ex.label}</span>
+                  <span className="font-medium text-foreground">{ex.value}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-4 flex items-center gap-3 rounded-xl border border-border bg-background px-4 py-3">
             <Input
               autoFocus
               type="number"
@@ -4552,11 +4708,17 @@ function SurveyLogCard({
               onChange={(e) =>
                 setForm((s) => ({ ...s, [current.key]: e.target.value }))
               }
-              placeholder="Enter a number"
+              placeholder="Enter your value"
               className="num h-10 flex-1 border-0 bg-transparent text-right text-2xl font-semibold focus-visible:ring-0"
             />
-            <span className="text-sm text-muted-foreground">{current.unit}</span>
+            <span className="text-sm text-muted-foreground">{current.unitLabel}</span>
           </div>
+
+          {current.tip && (
+            <div className="mt-2 text-[11px] italic text-muted-foreground">
+              💡 {current.tip}
+            </div>
+          )}
         </motion.div>
       </AnimatePresence>
 
