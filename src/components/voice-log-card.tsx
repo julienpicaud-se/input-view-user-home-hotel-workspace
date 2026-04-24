@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   Droplets,
   Flame,
+  Languages,
   Loader2,
   Mic,
   MicOff,
