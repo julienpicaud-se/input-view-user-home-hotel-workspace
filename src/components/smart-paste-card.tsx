@@ -248,7 +248,7 @@ export function SmartPasteCard({ entries: _entries, onSaved }: SmartPasteCardPro
         <div className="flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs uppercase tracking-wider text-muted-foreground">
-              Smart paste
+              Smart data input
             </span>
             <span className="rounded-full bg-gradient-to-r from-primary to-secondary px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-primary-foreground">
               AI · New
