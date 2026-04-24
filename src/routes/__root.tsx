@@ -93,7 +93,7 @@ function MobileTopBar() {
     <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border/60 bg-background/85 px-5 py-4 backdrop-blur-md md:hidden">
       <Link to="/" className="flex items-center gap-2.5">
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-          <span className="font-serif text-lg font-semibold">V</span>
+          <span className="font-serif text-lg font-semibold">A</span>
         </div>
         <div className="leading-tight">
           <div className="font-serif text-lg">RA+</div>

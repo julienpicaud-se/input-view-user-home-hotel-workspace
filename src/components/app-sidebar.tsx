@@ -60,7 +60,7 @@ export function AppSidebar() {
         {!collapsed && (
           <Link to="/" className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <span className="font-serif text-lg font-semibold">V</span>
+              <span className="font-serif text-lg font-semibold">A</span>
             </div>
             <div className="leading-tight">
               <div className="font-serif text-base">RA+</div>
@@ -72,7 +72,7 @@ export function AppSidebar() {
         )}
         {collapsed && (
           <Link to="/" className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <span className="font-serif text-lg font-semibold">V</span>
+            <span className="font-serif text-lg font-semibold">A</span>
           </Link>
         )}
         {!collapsed && (
