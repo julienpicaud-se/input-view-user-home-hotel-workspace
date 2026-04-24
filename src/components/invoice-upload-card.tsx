@@ -104,6 +104,7 @@ export function InvoiceUploadCard({ entries, onSaved }: InvoiceUploadCardProps) 
   function reset() {
     setExtracted(null);
     setManualValue("");
+    setShowPeriodEdit(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
@@ -130,7 +131,21 @@ export function InvoiceUploadCard({ entries, onSaved }: InvoiceUploadCardProps) 
       // If the AI detected a different utility, gently switch and tell the user
       if (ext.utility && ext.utility !== utility) {
         setUtility(ext.utility);
-        toast.info(`This looks like a ${ext.utility} bill — switched for you.`);
+      }
+      // Try to derive month/year from period_end (preferred) or period_start
+      let detectedPeriod = false;
+      const periodIso = ext.period_end ?? ext.period_start;
+      if (periodIso) {
+        const m = /^(\d{4})-(\d{2})-\d{2}$/.exec(periodIso);
+        if (m) {
+          const y = Number(m[1]);
+          const mo = Number(m[2]);
+          if (y >= 2000 && y <= 2100 && mo >= 1 && mo <= 12) {
+            setYear(y);
+            setMonth(mo);
+            detectedPeriod = true;
+          }
+        }
       }
       setExtracted({
         value: ext.value,
@@ -138,8 +153,10 @@ export function InvoiceUploadCard({ entries, onSaved }: InvoiceUploadCardProps) 
         notes: ext.notes,
         fileName: file.name,
         detectedUtility: ext.utility,
+        detectedPeriod,
       });
       setManualValue("");
+      setShowPeriodEdit(false);
     } catch (e) {
       console.error(e);
       toast.error("Couldn't process that file.");
