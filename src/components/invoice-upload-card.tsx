@@ -162,21 +162,21 @@ export function InvoiceUploadCard({ entries, onSaved }: InvoiceUploadCardProps) 
       .eq("month", month)
       .maybeSingle();
 
-    const payload = {
-      hotel_id: hotelId,
-      year,
-      month,
-      [targetField]: finalValue,
-    } as Record<string, unknown>;
+    const updates: Partial<MonthlyEntry> = { [targetField]: finalValue };
 
     let error;
     if (existing) {
       ({ error } = await supabase
         .from("monthly_entries")
-        .update({ [targetField]: finalValue })
+        .update(updates)
         .eq("id", (existing as MonthlyEntry).id));
     } else {
-      ({ error } = await supabase.from("monthly_entries").insert(payload as never));
+      ({ error } = await supabase.from("monthly_entries").insert({
+        hotel_id: hotelId,
+        year,
+        month,
+        ...updates,
+      }));
     }
 
     setSaving(false);
