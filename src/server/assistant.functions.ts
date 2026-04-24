@@ -691,3 +691,184 @@ If you cannot read the bill or it's not a utility bill, set every field to null 
     }
   });
 
+/* -------------------- Smart paste — multi-metric, multi-month extractor -------------------- */
+
+export type SmartMetric = "electricity_kwh" | "gas_kwh" | "water_m3" | "waste_kg" | "occupied_room_nights";
+
+export interface SmartEntry {
+  year: number;
+  month: number; // 1-12
+  metric: SmartMetric;
+  value: number;
+  original_unit: string | null;
+  note: string | null;
+}
+
+export interface SmartExtraction {
+  entries: SmartEntry[];
+  summary: string;
+  confidence: "high" | "medium" | "low";
+  warnings: string[];
+}
+
+export const extractSmartInput = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      text: z.string().min(2).max(8000).optional(),
+      imageDataUrl: z.string().min(20).max(15_000_000).optional(),
+      currentYear: z.number().int().min(2000).max(2100).optional(),
+    }),
+  )
+  .handler(async ({ data }): Promise<{ ok: true; extraction: SmartExtraction } | { ok: false; error: string }> => {
+    const apiKey = process.env.LOVABLE_API_KEY;
+    if (!apiKey) return { ok: false as const, error: "AI not configured." };
+    if (!data.text && !data.imageDataUrl) {
+      return { ok: false as const, error: "Paste some text or attach a screenshot." };
+    }
+
+    const refYear = data.currentYear ?? new Date().getFullYear();
+
+    const systemPrompt = `You are Sera, an expert at parsing free-form sustainability data from hotel managers.
+The user pastes ANYTHING: emails, spreadsheet rows, screenshots, a quick "April elec 12,400 kWh, water 230 m3", or a forwarded utility summary covering several months.
+
+Extract every (month, metric, value) triple you can find. Reference year is ${refYear} when not specified.
+
+Conversion rules (always normalise to canonical units):
+- electricity_kwh: kWh. MWh × 1000, GWh × 1_000_000.
+- gas_kwh: kWh. m³ of natural gas × 10.55. therm × 29.3. MWh × 1000.
+- water_m3: cubic metres. litres ÷ 1000. US gal × 0.003785. ft³ × 0.02832.
+- waste_kg: kilograms. tonnes × 1000. lb × 0.4536.
+- occupied_room_nights: integer count.
+
+Return ONLY valid JSON via the tool call. Months are 1-12. Skip values you cannot confidently identify and add a warning instead.`;
+
+    const tools = [
+      {
+        type: "function",
+        function: {
+          name: "save_extracted_metrics",
+          description: "Return all extracted metric entries.",
+          parameters: {
+            type: "object",
+            properties: {
+              entries: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    year: { type: "integer", minimum: 2000, maximum: 2100 },
+                    month: { type: "integer", minimum: 1, maximum: 12 },
+                    metric: {
+                      type: "string",
+                      enum: ["electricity_kwh", "gas_kwh", "water_m3", "waste_kg", "occupied_room_nights"],
+                    },
+                    value: { type: "number", minimum: 0 },
+                    original_unit: { type: "string" },
+                    note: { type: "string" },
+                  },
+                  required: ["year", "month", "metric", "value"],
+                  additionalProperties: false,
+                },
+              },
+              summary: { type: "string", description: "1 short friendly sentence on what was found." },
+              confidence: { type: "string", enum: ["high", "medium", "low"] },
+              warnings: {
+                type: "array",
+                items: { type: "string" },
+                description: "Anything ambiguous, skipped, or that needs the user's review.",
+              },
+            },
+            required: ["entries", "summary", "confidence", "warnings"],
+            additionalProperties: false,
+          },
+        },
+      },
+    ];
+
+    const userContent: Array<{ type: "text"; text: string } | { type: "image_url"; image_url: { url: string } }> = [];
+    if (data.text) userContent.push({ type: "text", text: data.text });
+    if (data.imageDataUrl) {
+      userContent.push({ type: "text", text: "Also extract anything visible in this screenshot:" });
+      userContent.push({ type: "image_url", image_url: { url: data.imageDataUrl } });
+    }
+
+    let res: Response;
+    try {
+      res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userContent },
+          ],
+          tools,
+          tool_choice: { type: "function", function: { name: "save_extracted_metrics" } },
+        }),
+      });
+    } catch (e) {
+      console.error("extractSmartInput fetch failed:", e);
+      return { ok: false as const, error: "Could not reach the AI service." };
+    }
+
+    if (res.status === 429) return { ok: false as const, error: "Rate limit hit. Try again in a moment." };
+    if (res.status === 402) return { ok: false as const, error: "AI credits exhausted." };
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      console.error("extractSmartInput error:", res.status, text);
+      return { ok: false as const, error: "The AI couldn't parse that input." };
+    }
+
+    const json = (await res.json()) as {
+      choices?: { message?: { tool_calls?: { function?: { arguments?: string } }[] } }[];
+    };
+    const argStr = json.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments ?? "";
+
+    try {
+      const parsed = JSON.parse(argStr) as Partial<SmartExtraction>;
+      const rawEntries = Array.isArray(parsed.entries) ? parsed.entries : [];
+      const entries: SmartEntry[] = rawEntries
+        .map((e) => {
+          const year = Number((e as SmartEntry).year);
+          const month = Number((e as SmartEntry).month);
+          const value = Number((e as SmartEntry).value);
+          const metric = (e as SmartEntry).metric;
+          const validMetric = ["electricity_kwh", "gas_kwh", "water_m3", "waste_kg", "occupied_room_nights"].includes(metric);
+          if (!validMetric) return null;
+          if (!Number.isFinite(year) || year < 2000 || year > 2100) return null;
+          if (!Number.isFinite(month) || month < 1 || month > 12) return null;
+          if (!Number.isFinite(value) || value < 0) return null;
+          return {
+            year,
+            month,
+            metric,
+            value,
+            original_unit: (e as SmartEntry).original_unit ? String((e as SmartEntry).original_unit).slice(0, 24) : null,
+            note: (e as SmartEntry).note ? String((e as SmartEntry).note).slice(0, 200) : null,
+          } as SmartEntry;
+        })
+        .filter((x): x is SmartEntry => x !== null)
+        .slice(0, 60);
+
+      const confidence: "high" | "medium" | "low" =
+        parsed.confidence === "high" || parsed.confidence === "medium" ? parsed.confidence : "low";
+
+      return {
+        ok: true as const,
+        extraction: {
+          entries,
+          summary: parsed.summary ? String(parsed.summary).slice(0, 240) : "Here's what Sera found.",
+          confidence,
+          warnings: Array.isArray(parsed.warnings) ? parsed.warnings.map((w) => String(w).slice(0, 200)).slice(0, 6) : [],
+        },
+      };
+    } catch (e) {
+      console.error("extractSmartInput parse failed:", e, argStr);
+      return { ok: false as const, error: "Couldn't parse the AI response — try rephrasing." };
+    }
+  });
+
