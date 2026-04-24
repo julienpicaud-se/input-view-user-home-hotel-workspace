@@ -6,7 +6,8 @@ import {
   type Utility,
 } from "@/lib/peer-benchmarks";
 import type { MonthlyEntry } from "@/lib/hotel";
-import { formatNumber, formatPct } from "@/lib/format";
+import { formatNumber, formatPct, MONTH_NAMES } from "@/lib/format";
+import { ChartExplainButton } from "@/components/chart-explain-button";
 
 export interface PeerMiniKpi {
   key: "electricity_kwh" | "gas_kwh" | "water_m3" | "waste_kg";
@@ -110,6 +111,24 @@ export function PeerMiniCard({
         <span className={`text-xs font-medium ${better ? "text-success" : "text-destructive"}`}>
           {formatPct(vsMedianPct)} vs median
         </span>
+      </div>
+
+      <div className="mt-3 border-t border-border/60 pt-3">
+        <ChartExplainButton
+          size="xs"
+          answerTitle={`Sera on ${kpi.label.toLowerCase()}`}
+          prompt={`Explain my **${kpi.label}** peer-comparison position in plain language for ${MONTH_NAMES[latest.month - 1]} ${latest.year}.
+
+My intensity: ${formatNumber(intensity, 2)} ${kpi.unit}.
+Peer cohort: ${cohortSize} similar Mediterranean hotels.
+Peer percentiles for this month: P10 (best 10%) ${formatNumber(stats.p10, 2)}, P25 ${formatNumber(stats.p25, 2)}, median ${formatNumber(stats.median, 2)}, P75 ${formatNumber(stats.p75, 2)}, P90 (worst 10%) ${formatNumber(stats.p90, 2)} ${kpi.unit}.
+My rank: #${rankPosition} of ${cohortSize} (percentile ${Math.round(rank)}). I am ${formatPct(vsMedianPct)} vs the median (${better ? "better" : "worse"}).
+
+Please respond with:
+1. **What this means** — 1–2 plain-language sentences on where I sit vs peers and whether it is good or worrying.
+2. **Likely drivers** — 2–3 bullets on what typically drives ${kpi.label.toLowerCase()} performance for hotels of this size and climate (call out the most likely cause given my position).
+3. **2–3 quick wins** — concrete actions, each with rough expected savings in % or absolute units. Skip generic advice.`}
+        />
       </div>
     </div>
   );

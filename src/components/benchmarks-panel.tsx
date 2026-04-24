@@ -12,7 +12,7 @@ import {
 import { Bolt, Droplets, Flame, Trash2, Trophy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveHotelId, type Hotel, type MonthlyEntry } from "@/lib/hotel";
-import { MONTH_SHORT, formatNumber } from "@/lib/format";
+import { MONTH_SHORT, MONTH_NAMES, formatNumber } from "@/lib/format";
 import {
   getPeerCohortSize,
   getPeerRank,
@@ -25,6 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { PeerMiniCard, PEER_MINI_KPIS } from "@/components/peer-mini-card";
 import { BenchmarksAiSummary } from "@/components/benchmarks-ai-summary";
 import { PeerTrendComparison } from "@/components/peer-trend-comparison";
+import { ChartExplainButton } from "@/components/chart-explain-button";
 
 const UTILITIES: {
   key: Utility;
@@ -258,6 +259,37 @@ function BenchmarkCard({
             <span className="text-muted-foreground">— what the top 10% achieve</span>
           </div>
         </div>
+
+        {recent.length > 0 && latestStats && latest?.yours != null && (
+          <div className="col-span-2 mt-1 border-t border-border/60 pt-3">
+            <ChartExplainButton
+              answerTitle={`Sera on ${utility.label.toLowerCase()}`}
+              prompt={(() => {
+                const last = recent[recent.length - 1];
+                const trendLines = recent
+                  .map((e, i) => {
+                    const d = data[i];
+                    return `- ${MONTH_NAMES[e.month - 1]} ${e.year}: you ${d.yours !== null ? formatNumber(d.yours, 2) : "—"}, peer median ${formatNumber(d.median, 2)} ${utility.unit}`;
+                  })
+                  .join("\n");
+                return `Explain my **${utility.label}** intensity chart vs ${cohortSize} similar Mediterranean hotels.
+
+Latest month (${MONTH_NAMES[last.month - 1]} ${last.year}):
+- My intensity: ${formatNumber(latest.yours, 2)} ${utility.unit}
+- Peer percentiles: P10 (best 10%) ${formatNumber(latestStats.p10, 2)}, P25 ${formatNumber(latestStats.p25, 2)}, median ${formatNumber(latestStats.median, 2)}, P75 ${formatNumber(latestStats.p75, 2)}, P90 (worst 10%) ${formatNumber(latestStats.p90, 2)} ${utility.unit}
+- My rank: #${rankPosition} of ${cohortSize}
+
+Last 12 months trend (you vs peer median):
+${trendLines}
+
+Please respond with:
+1. **What this chart shows** — 1 short sentence on shape vs peers (closing gap, drifting away, seasonal, etc.).
+2. **Likely drivers** — 2–3 bullets, calling out months where my line diverges most from the peer median and what typically explains that for ${utility.label.toLowerCase()}.
+3. **2–3 quick wins** — concrete actions for next month with rough expected savings in % or absolute units. Skip generic advice.`;
+              })()}
+            />
+          </div>
+        )}
       </div>
     </Card>
   );
