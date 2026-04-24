@@ -232,59 +232,61 @@ export function InvoiceUploadCard({ entries, onSaved }: InvoiceUploadCardProps) 
         </div>
       </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div>
-          <Label className="mb-2 text-[11px] uppercase tracking-wider text-muted-foreground">
-            Utility
-          </Label>
-          <Select value={utility} onValueChange={(v) => { setUtility(v as BillUtility); reset(); }}>
-            <SelectTrigger className="h-11 rounded-xl">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {UTILITIES.map((u) => (
-                <SelectItem key={u.key} value={u.key}>
-                  {u.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      {(!extracted || !extracted.detectedPeriod || showPeriodEdit) && (
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div>
+            <Label className="mb-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+              Utility
+            </Label>
+            <Select value={utility} onValueChange={(v) => { setUtility(v as BillUtility); reset(); }}>
+              <SelectTrigger className="h-11 rounded-xl">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {UTILITIES.map((u) => (
+                  <SelectItem key={u.key} value={u.key}>
+                    {u.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="mb-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+              Month
+            </Label>
+            <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
+              <SelectTrigger className="h-11 rounded-xl">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {MONTH_NAMES.map((name, i) => (
+                  <SelectItem key={i + 1} value={String(i + 1)}>
+                    {name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="mb-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+              Year
+            </Label>
+            <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
+              <SelectTrigger className="h-11 rounded-xl">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {years.map((y) => (
+                  <SelectItem key={y} value={String(y)}>
+                    {y}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-        <div>
-          <Label className="mb-2 text-[11px] uppercase tracking-wider text-muted-foreground">
-            Month
-          </Label>
-          <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
-            <SelectTrigger className="h-11 rounded-xl">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {MONTH_NAMES.map((name, i) => (
-                <SelectItem key={i + 1} value={String(i + 1)}>
-                  {name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label className="mb-2 text-[11px] uppercase tracking-wider text-muted-foreground">
-            Year
-          </Label>
-          <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
-            <SelectTrigger className="h-11 rounded-xl">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {years.map((y) => (
-                <SelectItem key={y} value={String(y)}>
-                  {y}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      )}
 
       {/* Upload zone */}
       <div
