@@ -41,6 +41,7 @@ import {
   Unlock,
   MessageCircle,
   Mic,
+  Plane,
   X,
 } from "lucide-react";
 import {
