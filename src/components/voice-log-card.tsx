@@ -253,6 +253,13 @@ export function VoiceLogCard({ entries: _entries, onSaved }: VoiceLogCardProps) 
       toast.error("Select at least one row to save.");
       return;
     }
+    const unreviewed = selected.filter((d) => (d.confidence ?? "medium") !== "high" && !d.reviewed);
+    if (unreviewed.length > 0) {
+      toast.error(
+        `Confirm ${unreviewed.length} flagged field${unreviewed.length === 1 ? "" : "s"} before saving.`,
+      );
+      return;
+    }
     setSaving(true);
     const hotelId = getActiveHotelId();
     type Bucket = Partial<Record<SmartMetric, number>>;
