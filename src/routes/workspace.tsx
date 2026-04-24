@@ -3906,13 +3906,13 @@ function PastDataSection({
         <table className="w-full text-xs">
           <thead className="text-left text-[10px] uppercase tracking-wider text-muted-foreground">
             <tr>
+              <th className="py-2 pr-3 font-medium">Site</th>
               <th className="py-2 pr-3 font-medium">Metric</th>
+              <th className="py-2 pr-3 text-right font-medium">Value</th>
+              <th className="py-2 pr-3 font-medium">Unit</th>
               <th className="py-2 pr-3 font-medium">Start date</th>
               <th className="py-2 pr-3 font-medium">End date</th>
-              <th className="py-2 pr-3 font-medium">Unit</th>
-              <th className="py-2 pr-3 text-right font-medium">Value</th>
-              <th className="py-2 pr-3 font-medium">Data owner</th>
-              <th className="py-2 pr-3 font-medium">Site</th>
+              <th className="py-2 pr-3 font-medium">Owner</th>
               <th className="py-2 font-medium">Input date</th>
             </tr>
           </thead>
