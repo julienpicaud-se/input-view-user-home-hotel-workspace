@@ -24,6 +24,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PeerMiniCard, PEER_MINI_KPIS } from "@/components/peer-mini-card";
 import { BenchmarksAiSummary } from "@/components/benchmarks-ai-summary";
+import { PeerTrendComparison } from "@/components/peer-trend-comparison";
 
 const UTILITIES: {
   key: Utility;
@@ -86,6 +87,8 @@ export function BenchmarksPanel({ showHeader = true }: { showHeader?: boolean })
       )}
 
       <BenchmarksAiSummary hotel={hotel} entries={entries} cohortSize={cohortSize} />
+
+      <PeerTrendComparison hotel={hotel} entries={entries} cohortSize={cohortSize} />
 
       <Card className="mb-8 rounded-3xl border-border/70 p-6">
         <div className="mb-1 flex items-start justify-between gap-3">
