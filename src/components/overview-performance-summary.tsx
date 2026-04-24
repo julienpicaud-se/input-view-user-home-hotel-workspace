@@ -195,6 +195,69 @@ export function OverviewPerformanceSummary({
   const occPrev = prev?.occupied_room_nights ?? null;
   const occMomPct = pctChange(occPrev, occThis);
 
+  // AI: explain score drivers + quickest wins
+  const send = useServerFn(sendAssistantMessage);
+  const [aiPending, setAiPending] = React.useState(false);
+  const [aiAnswer, setAiAnswer] = React.useState<string | null>(null);
+
+  async function explainScoreDrivers() {
+    if (aiPending) return;
+    setAiPending(true);
+    setAiAnswer(null);
+    try {
+      const utilityLines = rows
+        .map((r) => {
+          const valStr =
+            r.value !== null ? `${formatNumber(r.value, 2)} ${r.unit}` : "—";
+          const mom = r.momPct !== null ? formatPct(r.momPct) : "—";
+          const yoy = r.yoyPct !== null ? formatPct(r.yoyPct) : "—";
+          const rank =
+            r.position !== null
+              ? `#${r.position} of ${cohortSize} (percentile ${Math.round(r.rank ?? 0)})`
+              : "no peer data";
+          return `- ${r.label}: ${valStr} — MoM ${mom}, YoY ${yoy}, peer rank ${rank}`;
+        })
+        .join("\n");
+
+      const scoreLine =
+        scoreDisplay !== null
+          ? `${scoreDisplay}/100${
+              scoreDelta !== null
+                ? ` (${scoreDelta > 0 ? "+" : ""}${scoreDelta.toFixed(1)} vs last month)`
+                : ""
+            }`
+          : "not yet computed";
+
+      const prompt = `My sustainability score for ${monthLabel} at ${hotel.name} (${hotel.rooms} rooms, ${hotel.size_band} band, ${hotel.region}, ${hotel.star_rating}★) is **${scoreLine}**.
+
+Per-utility intensities (per occupied room-night) vs last month, last year, and ${cohortSize} similar Mediterranean hotels:
+${utilityLines}
+
+Occupancy this month: ${occThis !== null ? formatNumber(occThis, 0) : "—"} room-nights${occMomPct !== null ? ` (${formatPct(occMomPct)} MoM)` : ""}.
+
+Please:
+1. In 2–3 plain-language sentences, explain what is **driving my score up or down** this month — call out which utilities helped and which hurt, and reference the peer ranks and trends above.
+2. Then list **2–3 quickest wins for next month** as a short bullet list, prioritised by impact and ease. For each, name the utility, the concrete action, and a rough expected improvement (% or absolute). Skip generic advice.`;
+
+      const res = await send({
+        data: {
+          message: prompt,
+          hotelId: getActiveHotelId(),
+          history: [],
+        },
+      });
+      if (res.ok) {
+        setAiAnswer(res.content);
+      } else {
+        toast.error(res.error);
+      }
+    } catch {
+      toast.error("Couldn't reach Sera. Please try again.");
+    } finally {
+      setAiPending(false);
+    }
+  }
+
   return (
     <Card className="rounded-3xl border-border/70 bg-card/60 p-6 backdrop-blur-sm">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
