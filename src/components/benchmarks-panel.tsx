@@ -24,6 +24,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PeerMiniCard, PEER_MINI_KPIS } from "@/components/peer-mini-card";
 import { BenchmarksAiSummary } from "@/components/benchmarks-ai-summary";
+import { PeerTrendComparison } from "@/components/peer-trend-comparison";
 
 const UTILITIES: {
   key: Utility;
