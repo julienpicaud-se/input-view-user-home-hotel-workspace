@@ -366,7 +366,7 @@ export function SmartPasteCard({ entries: _entries, onSaved }: SmartPasteCardPro
           {/* Inline examples */}
           <div className="rounded-xl border border-dashed border-border/60 bg-muted/20 p-3">
             <div className="mb-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-              Try one of these
+              Some examples
             </div>
             <div className="flex flex-wrap gap-1.5">
               {EXAMPLES.map((ex, i) => (
