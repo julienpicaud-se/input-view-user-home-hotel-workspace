@@ -3663,8 +3663,8 @@ function LogDataTabs({
   highlightFields?: HighlightedField[];
   onHighlightConsumed?: () => void;
 }) {
-  const [method, setMethod] = React.useState<"manual" | "survey" | "import">(
-    "import",
+  const [method, setMethod] = React.useState<"manual" | "survey" | "import" | "smart">(
+    "smart",
   );
 
   // When highlighted fields arrive, force-switch to manual entry so user sees them.
@@ -3675,13 +3675,14 @@ function LogDataTabs({
   }, [highlightFields, method]);
 
   const METHODS: {
-    key: "manual" | "survey" | "import";
+    key: "manual" | "survey" | "import" | "smart";
     label: string;
     desc: string;
     icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
     badge?: string;
   }[] = [
-    { key: "import", label: "Guided invoice upload", desc: "Snap a bill, Sera reads and saves it", icon: FileSpreadsheet, badge: "New" },
+    { key: "smart", label: "Smart paste (AI)", desc: "Paste an email, a sentence, or a screenshot — Sera turns it into clean rows", icon: Sparkles, badge: "New" },
+    { key: "import", label: "Guided invoice upload", desc: "Snap a bill, Sera reads and saves it", icon: FileSpreadsheet },
     { key: "manual", label: "Manual entry", desc: "Type values from your bills", icon: Pencil },
     { key: "survey", label: "Guided survey", desc: "Step-by-step questions", icon: ClipboardList },
   ];
