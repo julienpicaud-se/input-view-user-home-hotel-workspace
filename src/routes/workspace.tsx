@@ -40,6 +40,7 @@ import {
   Lock,
   Unlock,
   MessageCircle,
+  Mic,
   X,
 } from "lucide-react";
 import {
@@ -77,6 +78,7 @@ import {
 import { PageContainer } from "@/components/page-shell";
 import { InvoiceUploadCard } from "@/components/invoice-upload-card";
 import { SmartPasteCard } from "@/components/smart-paste-card";
+import { VoiceLogCard } from "@/components/voice-log-card";
 
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -3663,8 +3665,8 @@ function LogDataTabs({
   highlightFields?: HighlightedField[];
   onHighlightConsumed?: () => void;
 }) {
-  const [method, setMethod] = React.useState<"manual" | "survey" | "import" | "smart">(
-    "smart",
+  const [method, setMethod] = React.useState<"manual" | "survey" | "import" | "smart" | "voice">(
+    "voice",
   );
 
   // When highlighted fields arrive, force-switch to manual entry so user sees them.
@@ -3675,13 +3677,14 @@ function LogDataTabs({
   }, [highlightFields, method]);
 
   const METHODS: {
-    key: "manual" | "survey" | "import" | "smart";
+    key: "manual" | "survey" | "import" | "smart" | "voice";
     label: string;
     desc: string;
     icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
     badge?: string;
   }[] = [
-    { key: "smart", label: "Smart data input", desc: "Paste an email, a sentence, or a screenshot — Sera turns it into clean rows", icon: Sparkles, badge: "New" },
+    { key: "voice", label: "Voice journal", desc: "Just talk — Sera transcribes, normalises units and turns your sentence into rows", icon: Mic, badge: "New" },
+    { key: "smart", label: "Smart data input", desc: "Paste an email, a sentence, or a screenshot — Sera turns it into clean rows", icon: Sparkles },
     { key: "import", label: "Guided invoice upload", desc: "Snap a bill, Sera reads and saves it", icon: FileSpreadsheet },
     { key: "manual", label: "Manual entry", desc: "Type values from your bills", icon: Pencil },
     { key: "survey", label: "Guided survey", desc: "Step-by-step questions", icon: ClipboardList },
@@ -3752,6 +3755,9 @@ function LogDataTabs({
           )}
           {method === "smart" && (
             <SmartPasteCard entries={entries} onSaved={onSaved} />
+          )}
+          {method === "voice" && (
+            <VoiceLogCard entries={entries} onSaved={onSaved} />
           )}
         </div>
       </div>

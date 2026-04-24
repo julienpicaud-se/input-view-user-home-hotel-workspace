@@ -1,0 +1,616 @@
+import * as React from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
+import {
+  AudioLines,
+  Bolt,
+  CheckCircle2,
+  Droplets,
+  Flame,
+  Loader2,
+  Mic,
+  MicOff,
+  Sparkles,
+  Square,
+  Trash2,
+  Users,
+  Wand2,
+  X,
+} from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+import { supabase } from "@/integrations/supabase/client";
+import { getActiveHotelId, type MonthlyEntry } from "@/lib/hotel";
+import { MONTH_NAMES } from "@/lib/format";
+import {
+  extractSmartInput,
+  type SmartEntry,
+  type SmartMetric,
+} from "@/server/assistant.functions";
+
+interface VoiceLogCardProps {
+  entries: MonthlyEntry[];
+  onSaved: () => void;
+}
+
+const METRIC_META: Record<
+  SmartMetric,
+  { label: string; unit: string; icon: React.ComponentType<React.SVGProps<SVGSVGElement>>; color: string }
+> = {
+  electricity_kwh: { label: "Electricity", unit: "kWh", icon: Bolt, color: "var(--chart-3)" },
+  gas_kwh: { label: "Gas", unit: "kWh", icon: Flame, color: "var(--chart-1)" },
+  water_m3: { label: "Water", unit: "m³", icon: Droplets, color: "var(--chart-2)" },
+  waste_kg: { label: "Waste", unit: "kg", icon: Trash2, color: "var(--chart-5)" },
+  occupied_room_nights: { label: "Occupied room-nights", unit: "nights", icon: Users, color: "var(--chart-4)" },
+};
+
+const PROMPTS = [
+  "Last month we used about twelve thousand four hundred kilowatt-hours of electricity and two hundred thirty cubic metres of water.",
+  "In March, gas was one thousand eight hundred kWh and we had two thousand one hundred fifty room-nights.",
+  "April: electricity twelve point four megawatt-hours, waste one point two tonnes.",
+];
+
+type DraftRow = SmartEntry & { id: string; selected: boolean };
+
+// Minimal typing for the Web Speech API (vendor-prefixed in most browsers).
+type SpeechRecognitionResultLike = {
+  isFinal: boolean;
+  0: { transcript: string };
+};
+type SpeechRecognitionEventLike = {
+  resultIndex: number;
+  results: ArrayLike<SpeechRecognitionResultLike>;
+};
+type SpeechRecognitionLike = {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  start: () => void;
+  stop: () => void;
+  abort: () => void;
+  onresult: ((e: SpeechRecognitionEventLike) => void) | null;
+  onend: (() => void) | null;
+  onerror: ((e: { error?: string }) => void) | null;
+};
+
+function getSpeechRecognitionCtor():
+  | (new () => SpeechRecognitionLike)
+  | null {
+  if (typeof window === "undefined") return null;
+  const w = window as unknown as {
+    SpeechRecognition?: new () => SpeechRecognitionLike;
+    webkitSpeechRecognition?: new () => SpeechRecognitionLike;
+  };
+  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
+}
+
+export function VoiceLogCard({ entries: _entries, onSaved }: VoiceLogCardProps) {
+  const extract = useServerFn(extractSmartInput);
+  const [supported, setSupported] = React.useState<boolean | null>(null);
+  const [listening, setListening] = React.useState(false);
+  const [finalText, setFinalText] = React.useState("");
+  const [interimText, setInterimText] = React.useState("");
+  const [extracting, setExtracting] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
+  const [drafts, setDrafts] = React.useState<DraftRow[]>([]);
+  const [summary, setSummary] = React.useState<string>("");
+  const [warnings, setWarnings] = React.useState<string[]>([]);
+  const [confidence, setConfidence] = React.useState<"high" | "medium" | "low" | null>(null);
+  const [level, setLevel] = React.useState(0);
+  const recognitionRef = React.useRef<SpeechRecognitionLike | null>(null);
+
+  React.useEffect(() => {
+    setSupported(getSpeechRecognitionCtor() !== null);
+  }, []);
+
+  // Soft pulsing waveform while listening (purely visual)
+  React.useEffect(() => {
+    if (!listening) {
+      setLevel(0);
+      return;
+    }
+    let raf = 0;
+    const tick = () => {
+      setLevel(0.35 + Math.random() * 0.65);
+      raf = window.setTimeout(tick, 120) as unknown as number;
+    };
+    tick();
+    return () => window.clearTimeout(raf);
+  }, [listening]);
+
+  const startListening = React.useCallback(() => {
+    const Ctor = getSpeechRecognitionCtor();
+    if (!Ctor) {
+      toast.error("Voice input isn't supported in this browser. Try Chrome, Edge or Safari.");
+      return;
+    }
+    try {
+      const rec = new Ctor();
+      rec.lang = navigator.language || "en-US";
+      rec.continuous = true;
+      rec.interimResults = true;
+      rec.onresult = (e) => {
+        let interim = "";
+        let finalChunk = "";
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          const r = e.results[i];
+          const txt = r[0].transcript;
+          if (r.isFinal) finalChunk += txt;
+          else interim += txt;
+        }
+        if (finalChunk) {
+          setFinalText((prev) => (prev ? prev + " " : "") + finalChunk.trim());
+          setInterimText("");
+        } else {
+          setInterimText(interim);
+        }
+      };
+      rec.onend = () => {
+        setListening(false);
+        setInterimText("");
+      };
+      rec.onerror = (ev) => {
+        console.warn("speech error", ev);
+        if (ev.error === "not-allowed" || ev.error === "service-not-allowed") {
+          toast.error("Microphone access was blocked.");
+        } else if (ev.error && ev.error !== "no-speech" && ev.error !== "aborted") {
+          toast.error("Voice recognition stopped.");
+        }
+        setListening(false);
+      };
+      recognitionRef.current = rec;
+      setFinalText("");
+      setInterimText("");
+      setDrafts([]);
+      setSummary("");
+      setWarnings([]);
+      setConfidence(null);
+      rec.start();
+      setListening(true);
+    } catch (e) {
+      console.error(e);
+      toast.error("Couldn't start the microphone.");
+    }
+  }, []);
+
+  const stopListening = React.useCallback(() => {
+    try {
+      recognitionRef.current?.stop();
+    } catch {
+      // ignore
+    }
+    setListening(false);
+  }, []);
+
+  React.useEffect(() => {
+    return () => {
+      try {
+        recognitionRef.current?.abort();
+      } catch {
+        // ignore
+      }
+    };
+  }, []);
+
+  const handleExtract = React.useCallback(async () => {
+    const text = (finalText + " " + interimText).trim();
+    if (!text) {
+      toast.error("Say something first — Sera needs words to work with.");
+      return;
+    }
+    if (listening) stopListening();
+    setExtracting(true);
+    try {
+      const res = await extract({
+        data: {
+          text,
+          currentYear: new Date().getFullYear(),
+        },
+      });
+      if (!res.ok) {
+        toast.error(res.error);
+        return;
+      }
+      const rows: DraftRow[] = res.extraction.entries.map((e, i) => ({
+        ...e,
+        id: `${e.year}-${e.month}-${e.metric}-${i}`,
+        selected: true,
+      }));
+      setDrafts(rows);
+      setSummary(res.extraction.summary);
+      setWarnings(res.extraction.warnings);
+      setConfidence(res.extraction.confidence);
+      if (rows.length === 0) {
+        toast("Sera didn't catch any numbers — try rephrasing with units.", { icon: "🎙️" });
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error("Couldn't process the voice note.");
+    } finally {
+      setExtracting(false);
+    }
+  }, [extract, finalText, interimText, listening, stopListening]);
+
+  const handleSave = React.useCallback(async () => {
+    const selected = drafts.filter((d) => d.selected);
+    if (selected.length === 0) {
+      toast.error("Select at least one row to save.");
+      return;
+    }
+    setSaving(true);
+    const hotelId = getActiveHotelId();
+    type Bucket = Partial<Record<SmartMetric, number>>;
+    const buckets = new Map<string, { year: number; month: number; vals: Bucket }>();
+    for (const r of selected) {
+      const key = `${r.year}-${r.month}`;
+      const b = buckets.get(key) ?? { year: r.year, month: r.month, vals: {} };
+      b.vals[r.metric] = r.value;
+      buckets.set(key, b);
+    }
+    let saved = 0;
+    let failed = 0;
+    for (const b of buckets.values()) {
+      const { data: existing } = await supabase
+        .from("monthly_entries")
+        .select("*")
+        .eq("hotel_id", hotelId)
+        .eq("year", b.year)
+        .eq("month", b.month)
+        .maybeSingle();
+      const payload = {
+        hotel_id: hotelId,
+        year: b.year,
+        month: b.month,
+        electricity_kwh: b.vals.electricity_kwh ?? existing?.electricity_kwh ?? null,
+        gas_kwh: b.vals.gas_kwh ?? existing?.gas_kwh ?? null,
+        water_m3: b.vals.water_m3 ?? existing?.water_m3 ?? null,
+        waste_kg: b.vals.waste_kg ?? existing?.waste_kg ?? null,
+        occupied_room_nights: b.vals.occupied_room_nights ?? existing?.occupied_room_nights ?? null,
+      };
+      const { error } = existing
+        ? await supabase.from("monthly_entries").update(payload).eq("id", existing.id)
+        : await supabase.from("monthly_entries").insert(payload);
+      if (error) failed++;
+      else saved++;
+    }
+    setSaving(false);
+    if (saved > 0) toast.success(`Saved ${saved} month${saved === 1 ? "" : "s"} from your voice note.`);
+    if (failed > 0) toast.error(`${failed} month${failed === 1 ? "" : "s"} failed to save.`);
+    setDrafts([]);
+    setFinalText("");
+    setInterimText("");
+    setSummary("");
+    setWarnings([]);
+    setConfidence(null);
+    onSaved();
+  }, [drafts, onSaved]);
+
+  const reset = React.useCallback(() => {
+    if (listening) stopListening();
+    setFinalText("");
+    setInterimText("");
+    setDrafts([]);
+    setSummary("");
+    setWarnings([]);
+    setConfidence(null);
+  }, [listening, stopListening]);
+
+  const updateDraft = (id: string, patch: Partial<DraftRow>) => {
+    setDrafts((prev) => prev.map((d) => (d.id === id ? { ...d, ...patch } : d)));
+  };
+  const removeDraft = (id: string) => {
+    setDrafts((prev) => prev.filter((d) => d.id !== id));
+  };
+
+  const liveText = (finalText + " " + interimText).trim();
+
+  return (
+    <Card className="overflow-hidden border-border bg-card">
+      {/* Header */}
+      <div className="border-b border-border bg-gradient-to-br from-primary/5 via-card to-secondary/5 px-6 py-5">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="mb-1 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
+              <Sparkles className="h-3 w-3" /> Voice journal
+            </div>
+            <h3 className="font-serif text-xl font-semibold">Just talk to Sera</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Press the mic and read your numbers out loud — even messy, with units mixed.
+              Sera transcribes, normalises and turns it into clean monthly rows.
+            </p>
+          </div>
+          {(finalText || drafts.length > 0) && (
+            <Button variant="ghost" size="sm" onClick={reset} className="text-muted-foreground">
+              <X className="mr-1 h-3.5 w-3.5" /> Clear
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-5 px-6 py-5">
+        {supported === false && (
+          <div className="rounded-xl border border-amber-500/40 bg-amber-500/5 px-4 py-3 text-xs text-amber-700 dark:text-amber-400">
+            Your browser doesn't support voice recognition. Try Chrome, Edge, or Safari — or use the
+            <span className="font-semibold"> Smart data input</span> method instead.
+          </div>
+        )}
+
+        {/* Mic + waveform */}
+        <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-border bg-muted/30 px-4 py-8">
+          <button
+            type="button"
+            disabled={supported === false || extracting || saving}
+            onClick={listening ? stopListening : startListening}
+            className={`group relative flex h-24 w-24 items-center justify-center rounded-full transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/30 ${
+              listening
+                ? "bg-gradient-to-br from-primary to-secondary text-primary-foreground shadow-[0_8px_30px_-8px_var(--chart-3)]"
+                : "bg-card border-2 border-primary/40 text-primary hover:border-primary hover:bg-primary/5"
+            } disabled:cursor-not-allowed disabled:opacity-50`}
+            aria-label={listening ? "Stop recording" : "Start recording"}
+          >
+            {listening ? <Square className="h-9 w-9 fill-current" /> : <Mic className="h-10 w-10" />}
+            {listening && (
+              <>
+                <motion.span
+                  className="absolute inset-0 rounded-full border-2 border-primary/40"
+                  animate={{ scale: [1, 1.4, 1.7], opacity: [0.6, 0.2, 0] }}
+                  transition={{ duration: 1.6, repeat: Infinity, ease: "easeOut" }}
+                />
+                <motion.span
+                  className="absolute inset-0 rounded-full border-2 border-primary/40"
+                  animate={{ scale: [1, 1.4, 1.7], opacity: [0.6, 0.2, 0] }}
+                  transition={{ duration: 1.6, repeat: Infinity, ease: "easeOut", delay: 0.6 }}
+                />
+              </>
+            )}
+          </button>
+
+          {/* Waveform bars */}
+          <div className="flex h-8 items-end gap-1">
+            {Array.from({ length: 24 }).map((_, i) => {
+              const base = listening ? 0.25 + Math.abs(Math.sin(i + level * 9)) * 0.75 * level : 0.15;
+              return (
+                <motion.span
+                  key={i}
+                  className="w-1 rounded-full bg-primary/70"
+                  animate={{ height: `${base * 100}%` }}
+                  transition={{ duration: 0.18, ease: "easeOut" }}
+                  style={{ minHeight: 4 }}
+                />
+              );
+            })}
+          </div>
+
+          <div className="text-center text-xs text-muted-foreground">
+            {listening ? (
+              <span className="inline-flex items-center gap-2">
+                <AudioLines className="h-3.5 w-3.5 text-primary" /> Listening… tap again to stop.
+              </span>
+            ) : supported === false ? (
+              <span className="inline-flex items-center gap-2">
+                <MicOff className="h-3.5 w-3.5" /> Voice input unavailable.
+              </span>
+            ) : (
+              <span>Tap the mic and speak naturally — Sera handles the rest.</span>
+            )}
+          </div>
+        </div>
+
+        {/* Live transcript */}
+        <AnimatePresence>
+          {(liveText || listening) && (
+            <motion.div
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="rounded-2xl border border-border bg-background/60 px-4 py-3"
+            >
+              <div className="mb-1 text-[10px] uppercase tracking-wider text-muted-foreground">
+                Live transcript
+              </div>
+              <p className="text-sm leading-relaxed">
+                <span>{finalText}</span>{" "}
+                <span className="text-muted-foreground italic">{interimText}</span>
+                {listening && !finalText && !interimText && (
+                  <span className="text-muted-foreground italic">Waiting for your voice…</span>
+                )}
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Action */}
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            onClick={handleExtract}
+            disabled={!liveText || extracting || saving}
+            className="bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:opacity-90"
+          >
+            {extracting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sera is listening back…
+              </>
+            ) : (
+              <>
+                <Wand2 className="mr-2 h-4 w-4" /> Turn into data
+              </>
+            )}
+          </Button>
+          {!liveText && (
+            <span className="text-xs text-muted-foreground">
+              Try: <span className="italic">"{PROMPTS[0]}"</span>
+            </span>
+          )}
+        </div>
+
+        {/* Sample prompts */}
+        {!liveText && drafts.length === 0 && (
+          <div className="space-y-2">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Some examples</div>
+            <div className="flex flex-wrap gap-2">
+              {PROMPTS.map((p, i) => (
+                <button
+                  key={i}
+                  onClick={() => setFinalText(p)}
+                  disabled={listening}
+                  className="rounded-full border border-border bg-muted/40 px-3 py-1 text-xs text-muted-foreground transition hover:border-primary/40 hover:bg-primary/5 hover:text-foreground disabled:opacity-50"
+                >
+                  "{p.slice(0, 64)}…"
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Drafts review */}
+        <AnimatePresence>
+          {drafts.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="space-y-3"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-semibold">What Sera heard</div>
+                  {summary && <div className="text-xs text-muted-foreground">{summary}</div>}
+                </div>
+                {confidence && (
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
+                      confidence === "high"
+                        ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                        : confidence === "medium"
+                          ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                          : "bg-rose-500/15 text-rose-600 dark:text-rose-400"
+                    }`}
+                  >
+                    {confidence} confidence
+                  </span>
+                )}
+              </div>
+
+              {warnings.length > 0 && (
+                <ul className="space-y-1 rounded-xl border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+                  {warnings.map((w, i) => (
+                    <li key={i}>• {w}</li>
+                  ))}
+                </ul>
+              )}
+
+              <div className="space-y-2">
+                {drafts.map((d) => {
+                  const meta = METRIC_META[d.metric];
+                  const Icon = meta.icon;
+                  return (
+                    <div
+                      key={d.id}
+                      className={`flex flex-wrap items-center gap-3 rounded-xl border px-3 py-2 transition ${
+                        d.selected
+                          ? "border-primary/40 bg-primary/5"
+                          : "border-border bg-muted/40 opacity-60"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={d.selected}
+                        onChange={(e) => updateDraft(d.id, { selected: e.target.checked })}
+                        className="h-4 w-4 accent-primary"
+                      />
+                      <div
+                        className="flex h-8 w-8 items-center justify-center rounded-lg"
+                        style={{ background: `color-mix(in oklab, ${meta.color} 15%, transparent)`, color: meta.color }}
+                      >
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-[7rem] text-sm font-medium">{meta.label}</div>
+                      <Select
+                        value={String(d.month)}
+                        onValueChange={(v) => updateDraft(d.id, { month: Number(v) })}
+                      >
+                        <SelectTrigger className="h-8 w-[110px] text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {MONTH_NAMES.map((m, i) => (
+                            <SelectItem key={i} value={String(i + 1)}>
+                              {m}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        type="number"
+                        value={d.year}
+                        onChange={(e) => updateDraft(d.id, { year: Number(e.target.value) })}
+                        className="h-8 w-[90px] text-xs"
+                      />
+                      <div className="ml-auto flex items-center gap-2">
+                        <Input
+                          type="number"
+                          value={d.value}
+                          onChange={(e) => updateDraft(d.id, { value: Number(e.target.value) })}
+                          className="h-8 w-[120px] text-right text-sm font-medium"
+                        />
+                        <Label className="text-xs text-muted-foreground">{meta.unit}</Label>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                          onClick={() => removeDraft(d.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                      {d.original_unit && (
+                        <div className="basis-full pl-9 text-[10px] text-muted-foreground">
+                          You said: <span className="italic">{d.original_unit}</span>
+                          {d.note ? ` · ${d.note}` : ""}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="flex items-center justify-end gap-2 border-t border-border pt-3">
+                <Button variant="ghost" onClick={reset} disabled={saving}>
+                  Discard
+                </Button>
+                <Button
+                  onClick={handleSave}
+                  disabled={saving || drafts.filter((d) => d.selected).length === 0}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                  {saving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving…
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="mr-2 h-4 w-4" /> Save {drafts.filter((d) => d.selected).length} row
+                      {drafts.filter((d) => d.selected).length === 1 ? "" : "s"}
+                    </>
+                  )}
+                </Button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </Card>
+  );
+}
