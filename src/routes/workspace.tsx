@@ -119,8 +119,10 @@ import {
   generateInsights,
   sendAssistantMessage,
   explainChart,
+  generateAiTodos,
   type Insight,
   type ChartExplanation,
+  type AiTodo,
 } from "@/server/assistant.functions";
 import { BenchmarksPanel } from "@/components/benchmarks-panel";
 import { OverviewPerformanceSummary } from "@/components/overview-performance-summary";
