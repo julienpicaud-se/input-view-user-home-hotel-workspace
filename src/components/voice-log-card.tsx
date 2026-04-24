@@ -313,6 +313,7 @@ export function VoiceLogCard({ entries: _entries, onSaved }: VoiceLogCardProps) 
         data: {
           text,
           currentYear: new Date().getFullYear(),
+          sourceLanguage: detectedLang ?? undefined,
         },
       });
       if (!res.ok) {
