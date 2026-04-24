@@ -79,6 +79,7 @@ import { PageContainer } from "@/components/page-shell";
 import { InvoiceUploadCard } from "@/components/invoice-upload-card";
 import { SmartPasteCard } from "@/components/smart-paste-card";
 import { VoiceLogCard } from "@/components/voice-log-card";
+import { AutopilotLogCard } from "@/components/autopilot-log-card";
 
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
