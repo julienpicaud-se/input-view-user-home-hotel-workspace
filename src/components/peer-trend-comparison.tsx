@@ -7,7 +7,7 @@ import {
   YAxis,
   Tooltip as ReTooltip,
   CartesianGrid,
-  Cell,
+  Legend,
   ReferenceLine,
 } from "recharts";
 import {
@@ -50,9 +50,9 @@ interface UtilityDelta {
   unit: string;
   color: string;
   icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
-  yoursDeltaPct: number | null;     // your MoM % change
-  peersDeltaPct: number | null;     // peer median MoM % change for same months
-  gapPct: number | null;            // yoursDeltaPct - peersDeltaPct
+  yoursDeltaPct: number | null;
+  peersDeltaPct: number | null;
+  gapPct: number | null;
   yoursPrev: number | null;
   yoursCurr: number | null;
   peersPrev: number | null;
@@ -73,6 +73,33 @@ function pctChange(prev: number | null, curr: number | null): number | null {
   return ((curr - prev) / prev) * 100;
 }
 
+// Clamp implausibly large month-over-month changes to keep visuals readable
+// while still flagging extreme outliers. Real-world hotel utility MoM swings
+// rarely exceed ±60% (apart from gas in shoulder seasons).
+function clampPct(n: number | null, max = 80): number | null {
+  if (n === null) return null;
+  if (n > max) return max;
+  if (n < -max) return -max;
+  return n;
+}
+
+function findConsecutiveMonths(
+  entries: MonthlyEntry[],
+): { previous: MonthlyEntry; latest: MonthlyEntry } | null {
+  if (entries.length < 2) return null;
+  // entries are pre-sorted ascending by year/month; walk from the end.
+  for (let i = entries.length - 1; i >= 1; i--) {
+    const curr = entries[i];
+    const prev = entries[i - 1];
+    const monthsApart =
+      (curr.year - prev.year) * 12 + (curr.month - prev.month);
+    if (monthsApart === 1) {
+      return { previous: prev, latest: curr };
+    }
+  }
+  return null;
+}
+
 export function PeerTrendComparison({
   hotel,
   entries,
@@ -88,11 +115,11 @@ export function PeerTrendComparison({
     starRating: hotel.star_rating,
   };
 
-  const latest = entries[entries.length - 1];
-  const previous = entries[entries.length - 2];
+  const pair = React.useMemo(() => findConsecutiveMonths(entries), [entries]);
 
   const deltas: UtilityDelta[] = React.useMemo(() => {
-    if (!latest || !previous) return [];
+    if (!pair) return [];
+    const { previous, latest } = pair;
 
     return UTILITIES.map((u) => {
       const yoursPrev = intensity(previous, u.entryKey);
@@ -122,9 +149,9 @@ export function PeerTrendComparison({
         peersCurr,
       };
     });
-  }, [latest, previous, filters]);
+  }, [pair, filters]);
 
-  if (!latest || !previous) {
+  if (!pair) {
     return (
       <Card className="mb-6 rounded-3xl border-border/70 p-6">
         <div className="mb-2 flex items-center gap-3">
@@ -134,7 +161,8 @@ export function PeerTrendComparison({
           <div>
             <h2 className="font-serif text-xl font-semibold">Month-to-month vs peers</h2>
             <p className="text-sm text-muted-foreground">
-              Log at least two consecutive months to unlock the trend comparison.
+              Log two consecutive months of utilities and occupancy to unlock the
+              trend comparison.
             </p>
           </div>
         </div>
@@ -142,25 +170,23 @@ export function PeerTrendComparison({
     );
   }
 
+  const { previous, latest } = pair;
   const monthLabel = `${MONTH_NAMES[latest.month - 1]} ${latest.year}`;
   const prevMonthLabel = `${MONTH_SHORT[previous.month - 1]} ${String(previous.year).slice(2)}`;
   const currMonthLabel = `${MONTH_SHORT[latest.month - 1]} ${String(latest.year).slice(2)}`;
 
-  // Chart-friendly data: gap (you - peers) per utility
+  // Chart-friendly data: side-by-side "you" vs "peers" MoM %
   const chartData = deltas
-    .filter((d) => d.gapPct !== null)
+    .filter((d) => d.yoursDeltaPct !== null && d.peersDeltaPct !== null)
     .map((d) => ({
       label: d.label,
-      gap: d.gapPct!,
-      yours: d.yoursDeltaPct!,
-      peers: d.peersDeltaPct!,
-      color: d.color,
+      yours: clampPct(d.yoursDeltaPct)!,
+      peers: clampPct(d.peersDeltaPct)!,
     }));
 
-  // Driver narrative
+  // Driver narrative — based on raw (unclamped) gap so flagged extremes are honest
   const valid = deltas.filter((d) => d.gapPct !== null);
   const sortedByGap = [...valid].sort((a, b) => (a.gapPct ?? 0) - (b.gapPct ?? 0));
-  // Most "improved relative to peers" = smallest gap (most negative). For consumption, lower delta is better.
   const bestDriver = sortedByGap[0] ?? null;
   const worstDriver = sortedByGap[sortedByGap.length - 1] ?? null;
 
@@ -227,11 +253,12 @@ export function PeerTrendComparison({
       <p className="mb-4 font-serif text-lg leading-snug text-foreground">{headline}</p>
 
       {chartData.length > 0 && (
-        <div className="mb-5 h-56 w-full">
+        <div className="mb-5 h-60 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={chartData}
               margin={{ top: 10, right: 16, left: 0, bottom: 10 }}
+              barCategoryGap="25%"
             >
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
               <XAxis
@@ -240,7 +267,7 @@ export function PeerTrendComparison({
               />
               <YAxis
                 tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
-                tickFormatter={(v: number) => `${v > 0 ? "+" : ""}${v.toFixed(0)} pp`}
+                tickFormatter={(v: number) => `${v > 0 ? "+" : ""}${v.toFixed(0)}%`}
               />
               <ReferenceLine y={0} stroke="var(--border)" />
               <ReTooltip
@@ -250,32 +277,28 @@ export function PeerTrendComparison({
                   borderRadius: 12,
                   fontSize: 12,
                 }}
-                formatter={(value: number, name: string, item) => {
-                  if (name === "gap") {
-                    const payload = item.payload as {
-                      yours: number;
-                      peers: number;
-                    };
-                    return [
-                      `${formatPct(value)} (you ${formatPct(payload.yours)} vs peers ${formatPct(payload.peers)})`,
-                      "Gap vs peers",
-                    ];
-                  }
-                  return [value, name];
+                formatter={(value: number, name: string) => {
+                  const label = name === "yours" ? "Your hotel" : "Peer median";
+                  return [formatPct(value), label];
                 }}
               />
-              <Bar dataKey="gap" radius={[8, 8, 0, 0]}>
-                {chartData.map((d, i) => (
-                  <Cell
-                    key={i}
-                    fill={
-                      d.gap < 0
-                        ? "color-mix(in oklab, var(--primary) 75%, transparent)"
-                        : "color-mix(in oklab, var(--destructive) 70%, transparent)"
-                    }
-                  />
-                ))}
-              </Bar>
+              <Legend
+                verticalAlign="top"
+                height={28}
+                iconType="circle"
+                wrapperStyle={{ fontSize: 11, color: "var(--muted-foreground)" }}
+                formatter={(v) => (v === "yours" ? "Your hotel" : "Peer median")}
+              />
+              <Bar
+                dataKey="yours"
+                fill="color-mix(in oklab, var(--primary) 80%, transparent)"
+                radius={[6, 6, 0, 0]}
+              />
+              <Bar
+                dataKey="peers"
+                fill="color-mix(in oklab, var(--muted-foreground) 35%, transparent)"
+                radius={[6, 6, 0, 0]}
+              />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -371,9 +394,9 @@ export function PeerTrendComparison({
             </li>
           </ul>
           <p className="mt-2 text-xs text-muted-foreground">
-            “Gap vs peers” = your month-over-month % change minus the peer median's
-            change. Negative is better — it means your consumption moved more
-            favourably than similar hotels.
+            Comparison uses your last two consecutive months ({prevMonthLabel} →{" "}
+            {currMonthLabel}). "Gap vs peers" = your % change minus the peer
+            median's % change. Negative is better.
           </p>
         </div>
       )}
