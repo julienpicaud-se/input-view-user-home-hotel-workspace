@@ -2134,6 +2134,137 @@ function TodosCard({
       });
     }
 
+    // Recycled %: encourage uplift if low or missing
+    if (latest) {
+      const rec = latest.recycled_pct;
+      if (rec === null || rec === undefined) {
+        items.push({
+          id: "recycled-missing",
+          title: `Add ${prevMonthLabel} recycled %`,
+          description: "Recycled rate is missing — add it so waste benchmarks reflect your real performance.",
+          cta: "Open form",
+          icon: Recycle,
+          tone: "important",
+          category: "waste",
+          onClick: () => onGoToLog(["waste_kg"]),
+        });
+      } else if (rec < 35) {
+        items.push({
+          id: "recycled-low",
+          title: "Lift recycled rate above 35%",
+          description: `Only ${rec.toFixed(0)}% of waste was recycled — quick wins on glass and cardboard separation can move the needle.`,
+          cta: "Ask Sera",
+          icon: Recycle,
+          tone: "important",
+          category: "waste",
+          onClick: () =>
+            onAskSera(
+              `My recycled rate last month was ${rec.toFixed(1)}%. Suggest 3 concrete actions to lift it above 35% this month.`,
+            ),
+        });
+      }
+    }
+
+    // Renewable %: nudge if low
+    if (latest && latest.renewable_pct !== null && latest.renewable_pct !== undefined && latest.renewable_pct < 25) {
+      items.push({
+        id: "renewable-low",
+        title: "Increase renewable share",
+        description: `Only ${latest.renewable_pct.toFixed(0)}% of electricity was renewable. A green tariff switch is usually a 1-week task.`,
+        cta: "Ask Sera",
+        icon: Leaf,
+        tone: "routine",
+        category: "cost",
+        onClick: () =>
+          onAskSera(
+            `My renewable electricity share is ${latest.renewable_pct?.toFixed(1)}%. What are the fastest ways to lift it this quarter?`,
+          ),
+      });
+    }
+
+    // YoY drift on a key utility (only if not already flagged as worst)
+    if (latest && lastYearSame) {
+      const checks: Array<{ key: HighlightedField; label: string; ratio: number; icon: React.ComponentType<React.SVGProps<SVGSVGElement>>; cat: TodoCategory }> = [];
+      const occL = latest.occupied_room_nights ?? 0;
+      const occLY = lastYearSame.occupied_room_nights ?? 0;
+      if (occL > 0 && occLY > 0) {
+        const utils: Array<{ key: HighlightedField; label: string; field: keyof MonthlyEntry; icon: React.ComponentType<React.SVGProps<SVGSVGElement>>; cat: TodoCategory }> = [
+          { key: "electricity_kwh", label: "electricity", field: "electricity_kwh", icon: Bolt, cat: "cost" },
+          { key: "gas_kwh", label: "gas", field: "gas_kwh", icon: Flame, cat: "cost" },
+          { key: "water_m3", label: "water", field: "water_m3", icon: Droplets, cat: "cost" },
+        ];
+        for (const u of utils) {
+          if (worstUtility?.key === u.key) continue;
+          const cur = latest[u.field] as number | null | undefined;
+          const ly = lastYearSame[u.field] as number | null | undefined;
+          if (cur != null && ly != null && ly > 0) {
+            const curIntensity = cur / occL;
+            const lyIntensity = ly / occLY;
+            const ratio = (curIntensity - lyIntensity) / lyIntensity;
+            checks.push({ key: u.key, label: u.label, ratio, icon: u.icon, cat: u.cat });
+          }
+        }
+        const drifted = checks.filter((c) => c.ratio > 0.08).sort((a, b) => b.ratio - a.ratio)[0];
+        if (drifted) {
+          items.push({
+            id: `yoy-${drifted.key}`,
+            title: `Investigate ${drifted.label} YoY drift`,
+            description: `${drifted.label.charAt(0).toUpperCase() + drifted.label.slice(1)} intensity is ${(drifted.ratio * 100).toFixed(0)}% above the same month last year — worth a closer look.`,
+            cta: "Open analysis",
+            icon: drifted.icon,
+            tone: "important",
+            category: drifted.cat,
+            onClick: onGoToAnalyze,
+          });
+        }
+      }
+    }
+
+    // Notes hygiene
+    if (latest && (!latest.notes || latest.notes.trim().length < 8)) {
+      items.push({
+        id: "log-notes",
+        title: `Add a note for ${prevMonthLabel}`,
+        description: "A short context note (events, weather, renovations) helps explain anomalies later.",
+        cta: "Open Input form",
+        icon: Pencil,
+        tone: "routine",
+        category: "compliance",
+        onClick: () => onGoToLog(),
+      });
+    }
+
+    // Monthly close ritual: end of month
+    if (today.getDate() >= 25) {
+      items.push({
+        id: "month-close",
+        title: `Plan ${monthLabel} month-close`,
+        description: "Block 30 minutes this week to gather invoices and meter readings before the new month starts.",
+        cta: "Open Input form",
+        icon: CalendarCheck,
+        tone: "routine",
+        category: "compliance",
+        onClick: () => onGoToLog(),
+      });
+    }
+
+    // Best-in-class gap (top utility where you're already strong → push to top 10%)
+    if (worstUtility && worstUtility.rank <= 50 && sorted.length >= 6) {
+      items.push({
+        id: "best-in-class-push",
+        title: "Push your best utility into top 10%",
+        description: "You're already mid-pack or better — Sera can outline the last-mile actions to reach the top decile.",
+        cta: "Ask Sera",
+        icon: Trophy,
+        tone: "routine",
+        category: "cost",
+        onClick: () =>
+          onAskSera(
+            `Looking at my latest month, what 3 actions would push my best-performing utility into the top 10% of similar Mediterranean hotels?`,
+          ),
+      });
+    }
+
     if (items.length === 0) {
       items.push({
         id: "all-good",
@@ -2156,10 +2287,99 @@ function TodosCard({
     worstUtility,
     sorted.length,
     latest,
+    lastYearSame,
     onGoToLog,
     onGoToAnalyze,
+    onAskSera,
     today,
   ]);
+
+  // AI-suggested to-dos (persisted per period)
+  const [aiPending, setAiPending] = React.useState(false);
+  const [aiTodos, setAiTodos] = React.useState<AiTodo[]>([]);
+  const [acceptedAiTodos, setAcceptedAiTodos] = React.useState<Record<string, AiTodo[]>>({});
+
+  React.useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(AI_TODOS_STORAGE_KEY);
+      if (raw) setAcceptedAiTodos(JSON.parse(raw));
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const persistAccepted = React.useCallback((next: Record<string, AiTodo[]>) => {
+    setAcceptedAiTodos(next);
+    try {
+      window.localStorage.setItem(AI_TODOS_STORAGE_KEY, JSON.stringify(next));
+    } catch {
+      // ignore quota
+    }
+  }, []);
+
+  const acceptedForPeriod = acceptedAiTodos[periodKey] ?? [];
+
+  const generateAiTodosFn = useServerFn(generateAiTodos);
+
+  async function suggestAiTodos() {
+    if (aiPending) return;
+    setAiPending(true);
+    try {
+      const res = await generateAiTodosFn({
+        data: { hotelId: getActiveHotelId() },
+      });
+      if (res.ok) {
+        // Filter out already-accepted ones (case-insensitive title match)
+        const acceptedTitles = new Set(
+          acceptedForPeriod.map((t) => t.title.trim().toLowerCase()),
+        );
+        const fresh = res.todos.filter(
+          (t) => !acceptedTitles.has(t.title.trim().toLowerCase()),
+        );
+        setAiTodos(fresh);
+        if (fresh.length === 0) {
+          toast.info("Sera couldn't find anything new — your list is already strong.");
+        }
+      } else {
+        toast.error(res.error);
+      }
+    } catch {
+      toast.error("Couldn't reach Sera. Please try again.");
+    } finally {
+      setAiPending(false);
+    }
+  }
+
+  function acceptAiTodo(todo: AiTodo) {
+    const next = {
+      ...acceptedAiTodos,
+      [periodKey]: [...acceptedForPeriod, todo],
+    };
+    persistAccepted(next);
+    setAiTodos((prev) => prev.filter((t) => t.title !== todo.title));
+    toast.success("Added to your list");
+  }
+
+  function dismissAiTodo(todo: AiTodo) {
+    setAiTodos((prev) => prev.filter((t) => t.title !== todo.title));
+  }
+
+  // Convert accepted AI todos into TodoItems for the main list
+  const aiAcceptedItems = React.useMemo<TodoItem[]>(() => {
+    return acceptedForPeriod.map((t, i) => {
+      const Icon = AI_CATEGORY_ICON[t.category] ?? Sparkles;
+      return {
+        id: `ai-${periodKey}-${i}-${t.title.slice(0, 12)}`,
+        title: t.title,
+        description: t.description,
+        cta: "Ask Sera",
+        icon: Icon,
+        tone: t.tone,
+        category: t.category,
+        onClick: () => onAskSera(t.askSeraPrompt),
+      };
+    });
+  }, [acceptedForPeriod, onAskSera, periodKey]);
 
   // Sort by priority order (urgent always first within its category bucket)
   const sortedTodos = React.useMemo<TodoItem[]>(() => {
@@ -2168,7 +2388,7 @@ function TodosCard({
       const idx = priorityOrder.indexOf(c);
       return idx === -1 ? 99 : idx;
     };
-    return [...baseTodos]
+    return [...baseTodos, ...aiAcceptedItems]
       .sort((a, b) => {
         // Always show urgent first regardless of priority preference
         if (a.tone === "urgent" && b.tone !== "urgent") return -1;
@@ -2177,7 +2397,7 @@ function TodosCard({
         if (c !== 0) return c;
         return toneRank[a.tone] - toneRank[b.tone];
       })
-      .slice(0, 5);
+      .slice(0, 8);
   }, [baseTodos, priorityOrder]);
 
   const totalCount = sortedTodos.length;
