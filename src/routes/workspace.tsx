@@ -4461,6 +4461,11 @@ const SURVEY_STEPS: SurveyStep[] = [
       { label: "Resort · 250 rooms + irrigation", value: "≈ 2,400 m³ / month" },
     ],
     tip: "If your bill is in litres, divide by 1,000.",
+    conversions: [
+      { from: "1,000 L", to: "m³", factor: "÷ 1,000" },
+      { from: "1 US gallon", to: "m³", factor: "× 0.003785" },
+      { from: "1 ft³", to: "m³", factor: "× 0.02832" },
+    ],
     icon: Droplets,
     color: "var(--chart-2)",
   },
