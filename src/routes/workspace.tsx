@@ -4373,9 +4373,17 @@ function QuickLogCard({
 
 interface SurveyStep {
   key: keyof typeof BLANK_FORM;
+  metricType: string;
+  category: string;
+  scope: string;
   question: string;
   helper: string;
   unit: string;
+  unitLabel: string;
+  source: string;
+  examples: { label: string; value: string }[];
+  subTypes?: string[];
+  tip?: string;
   icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   color: string;
 }
@@ -4391,41 +4399,104 @@ const BLANK_FORM = {
 const SURVEY_STEPS: SurveyStep[] = [
   {
     key: "electricity_kwh",
-    question: "How much electricity did you use?",
-    helper: "Find this on your power bill, in kWh.",
+    metricType: "Energy · Electricity",
+    category: "Purchased grid electricity",
+    scope: "GHG Scope 2",
+    question: "How much electricity did the property consume?",
+    helper: "Sum every electricity meter (main building, annexes, EV chargers).",
     unit: "kWh",
+    unitLabel: "kilowatt-hours",
+    source: "Find it on your utility invoice under “Total energy used” or “Consumption (kWh)”.",
+    examples: [
+      { label: "Boutique hotel · 40 rooms", value: "≈ 28,000 kWh / month" },
+      { label: "Mid-size hotel · 120 rooms", value: "≈ 95,000 kWh / month" },
+      { label: "Resort · 250 rooms + spa", value: "≈ 240,000 kWh / month" },
+    ],
+    tip: "If your bill shows MWh, multiply by 1,000.",
     icon: Bolt,
     color: "var(--chart-3)",
   },
   {
     key: "gas_kwh",
-    question: "How much gas did you use?",
-    helper: "Look for kWh or convert m³ × 10.55.",
+    metricType: "Energy · Natural gas",
+    category: "On-site fuel combustion",
+    scope: "GHG Scope 1",
+    question: "How much natural gas was burned on-site?",
+    helper: "Boilers, kitchens, laundry, pool heating — combine all gas meters.",
     unit: "kWh",
+    unitLabel: "kilowatt-hours",
+    source: "Most invoices show kWh directly. If shown in m³, multiply by 10.55. If in therms, multiply by 29.3.",
+    examples: [
+      { label: "No on-site gas (all-electric)", value: "0 kWh" },
+      { label: "Hotel with gas boiler", value: "≈ 18,000 kWh / month" },
+      { label: "Hotel + heated pool & laundry", value: "≈ 60,000 kWh / month" },
+    ],
+    tip: "Leave at 0 if your property is fully electric.",
     icon: Flame,
     color: "var(--chart-1)",
   },
   {
     key: "water_m3",
-    question: "How much water did you consume?",
-    helper: "Cubic metres (m³) from your water bill.",
+    metricType: "Water · Potable",
+    category: "Municipal water withdrawal",
+    scope: "Resource use",
+    question: "How much water did the property withdraw?",
+    helper: "Cubic metres from your water utility bill (1 m³ = 1,000 litres).",
     unit: "m³",
+    unitLabel: "cubic metres",
+    source: "Look for “Consommation” / “Volume facturé” on the water invoice.",
+    examples: [
+      { label: "City hotel · 80 rooms", value: "≈ 420 m³ / month" },
+      { label: "Hotel with spa & pool", value: "≈ 950 m³ / month" },
+      { label: "Resort · 250 rooms + irrigation", value: "≈ 2,400 m³ / month" },
+    ],
+    tip: "If your bill is in litres, divide by 1,000.",
     icon: Droplets,
     color: "var(--chart-2)",
   },
   {
     key: "waste_kg",
-    question: "How much waste did you produce?",
-    helper: "Total kilograms collected this month.",
+    metricType: "Waste · All streams",
+    category: "Operational waste generated",
+    scope: "Scope 3 · Category 5",
+    question: "How much waste was collected this month?",
+    helper: "Add up every waste stream the hauler picked up — in kilograms.",
     unit: "kg",
+    unitLabel: "kilograms",
+    source: "Use your waste collection invoices or hauler manifests (weight tickets).",
+    subTypes: [
+      "Mixed / general waste",
+      "Food & organic waste",
+      "Paper & cardboard",
+      "Glass",
+      "Plastic & metal packaging",
+      "Hazardous (batteries, oils, e-waste)",
+    ],
+    examples: [
+      { label: "Boutique hotel · 40 rooms", value: "≈ 850 kg / month" },
+      { label: "Mid-size hotel · 120 rooms", value: "≈ 3,100 kg / month" },
+      { label: "Resort with F&B outlets", value: "≈ 7,500 kg / month" },
+    ],
+    tip: "1 m³ of mixed waste ≈ 100 kg. 1 standard 240 L bin ≈ 25 kg.",
     icon: Trash2,
     color: "var(--chart-5)",
   },
   {
     key: "occupied_room_nights",
-    question: "How many occupied room-nights?",
-    helper: "Rooms × nights occupied. Used to normalise.",
+    metricType: "Activity · Occupancy",
+    category: "Normalisation denominator",
+    scope: "Operational metric",
+    question: "How many occupied room-nights this month?",
+    helper: "One room sold for one night = 1 room-night. Used to compare against peers.",
     unit: "rn",
+    unitLabel: "room-nights",
+    source: "Pull from your PMS occupancy report (e.g. Opera, Mews, Cloudbeds).",
+    examples: [
+      { label: "80 rooms · 65% occupancy · 30 days", value: "≈ 1,560 room-nights" },
+      { label: "120 rooms · 75% occupancy · 31 days", value: "≈ 2,790 room-nights" },
+      { label: "250 rooms · 80% occupancy · 30 days", value: "≈ 6,000 room-nights" },
+    ],
+    tip: "Formula: rooms × occupancy % × nights in the month.",
     icon: ClipboardList,
     color: "var(--champagne)",
   },
