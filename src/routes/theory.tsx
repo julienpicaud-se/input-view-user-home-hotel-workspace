@@ -33,6 +33,7 @@ import {
 import { DEMO_PROFILE_ID, type UserProfile } from "@/lib/user-profile";
 import { MONTH_NAMES, formatNumber, calculateCO2e, pctChange } from "@/lib/format";
 import { DesignModeSwitcher } from "@/components/design-mode-switcher";
+import { TheoryNav } from "@/components/theory-nav";
 import {
   generateInsights,
   sendAssistantMessage,
