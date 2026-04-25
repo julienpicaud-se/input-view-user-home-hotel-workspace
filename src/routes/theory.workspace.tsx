@@ -154,6 +154,15 @@ function TheoryWorkspacePage() {
     typeof window !== "undefined" &&
     !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
 
+  // Hands-free mode: after a confirm, auto-advance + auto-listen on next step.
+  const [handsFree, setHandsFree] = React.useState(false);
+  const handsFreeRef = React.useRef(false);
+  React.useEffect(() => {
+    handsFreeRef.current = handsFree;
+  }, [handsFree]);
+  // When true on the next step, we auto-start listening.
+  const autoListenRef = React.useRef(false);
+
   const expected = expectedReportingPeriod();
   const monthLabel = `${MONTH_NAMES[expected.month - 1]} ${expected.year}`;
 
@@ -247,7 +256,11 @@ function TheoryWorkspacePage() {
   }
 
   // ---- Guided log flow ----
-  function startLog() {
+  function startLog(opts?: { handsFree?: boolean }) {
+    const wantsHandsFree = !!opts?.handsFree && speechSupported;
+    setHandsFree(wantsHandsFree);
+    handsFreeRef.current = wantsHandsFree;
+    autoListenRef.current = wantsHandsFree;
     setLogOpen(true);
     setStep(0);
     setValues(
@@ -404,6 +417,14 @@ function TheoryWorkspacePage() {
     setVoicePending(null);
     setVoiceHeard("");
     setVoiceError("");
+    // Hands-free: advance to the next step (or review) and re-listen there.
+    if (handsFreeRef.current) {
+      autoListenRef.current = true;
+      // Tiny delay so the user sees the saved chip flash before we move on.
+      window.setTimeout(() => {
+        setStep((s) => Math.min(s + 1, FIELDS.length));
+      }, 280);
+    }
   }
 
   function rejectVoice() {
@@ -412,12 +433,24 @@ function TheoryWorkspacePage() {
     setVoiceError("");
   }
 
-  // Reset voice state when changing step or closing the log
+  // Reset voice state when changing step or closing the log.
+  // In hands-free mode, also auto-start listening on the new step.
   React.useEffect(() => {
     stopListening();
     setVoiceHeard("");
     setVoicePending(null);
     setVoiceError("");
+    if (!logOpen) {
+      autoListenRef.current = false;
+      return;
+    }
+    if (autoListenRef.current && step < FIELDS.length && speechSupported) {
+      autoListenRef.current = false;
+      const fieldKey = FIELDS[step].key;
+      // Small gap so the new step renders & mic resource is free.
+      const t = window.setTimeout(() => startListening(fieldKey), 350);
+      return () => window.clearTimeout(t);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, logOpen]);
 
@@ -574,9 +607,9 @@ function TheoryWorkspacePage() {
 
         {/* Big primary action — Log this month */}
         {!logOpen && (
-          <section className="mb-8">
+          <section className="mb-8 space-y-3">
             <button
-              onClick={startLog}
+              onClick={() => startLog()}
               className="group relative w-full overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-violet-600/30 via-fuchsia-600/20 to-amber-600/20 p-6 text-left shadow-[0_0_50px_rgba(168,85,247,0.18)] transition-all hover:border-white/30 hover:shadow-[0_0_70px_rgba(168,85,247,0.3)] sm:p-8"
             >
               <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-gradient-to-br from-violet-500/40 to-fuchsia-500/20 blur-3xl" />
@@ -596,6 +629,28 @@ function TheoryWorkspacePage() {
                 <ChevronRight className="h-7 w-7 text-white/70 transition-transform group-hover:translate-x-1" />
               </div>
             </button>
+
+            {speechSupported && (
+              <button
+                onClick={() => startLog({ handsFree: true })}
+                className="group relative flex w-full items-center justify-between gap-4 overflow-hidden rounded-2xl border border-rose-300/20 bg-gradient-to-br from-rose-500/15 via-fuchsia-500/10 to-violet-500/10 px-5 py-4 text-left transition-all hover:border-rose-300/40 hover:from-rose-500/25"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-rose-500 to-pink-500 text-white shadow-[0_0_20px_rgba(244,63,94,0.4)]">
+                    <Mic className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="font-serif text-lg leading-tight">
+                      Hands-free voice log
+                    </p>
+                    <p className="text-xs text-white/60">
+                      Just talk — Sera asks, confirms & advances on her own.
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="h-5 w-5 text-white/60 transition-transform group-hover:translate-x-1" />
+              </button>
+            )}
           </section>
         )}
 
@@ -623,13 +678,43 @@ function TheoryWorkspacePage() {
                   }`}
                 />
               </div>
-              <button
-                onClick={() => setLogOpen(false)}
-                className="rounded-full p-1 text-white/50 hover:bg-white/10 hover:text-white"
-                aria-label="Close"
-              >
-                <X className="h-4 w-4" />
-              </button>
+              <div className="flex items-center gap-2">
+                {speechSupported && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !handsFree;
+                      setHandsFree(next);
+                      handsFreeRef.current = next;
+                      if (!next) {
+                        autoListenRef.current = false;
+                        stopListening();
+                      } else if (!isReview && !listening && !voicePending) {
+                        // Start listening immediately on the current step
+                        const fk = FIELDS[step]?.key;
+                        if (fk) startListening(fk);
+                      }
+                    }}
+                    aria-pressed={handsFree}
+                    title={handsFree ? "Hands-free on — Sera auto-advances" : "Turn on hands-free"}
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] transition-colors ${
+                      handsFree
+                        ? "border-rose-300/40 bg-rose-500/15 text-rose-100"
+                        : "border-white/15 bg-white/[0.04] text-white/60 hover:bg-white/[0.08] hover:text-white"
+                    }`}
+                  >
+                    <Mic className="h-3 w-3" />
+                    Hands-free {handsFree ? "on" : "off"}
+                  </button>
+                )}
+                <button
+                  onClick={() => setLogOpen(false)}
+                  className="rounded-full p-1 text-white/50 hover:bg-white/10 hover:text-white"
+                  aria-label="Close"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
             </div>
 
             <div className="p-5 sm:p-7">
