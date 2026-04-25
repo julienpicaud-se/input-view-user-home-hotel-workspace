@@ -374,13 +374,17 @@ function SimpleInsightsPage() {
 function UtilityRow({ summary }: { summary: UtilitySummary }) {
   const { Icon, label, value, prev, unit, rank } = summary;
   const change = pctChange(value, prev);
-  const tone = rank
-    ? rank.bucket === "top"
-      ? "good"
-      : rank.bucket === "average"
-        ? "ok"
-        : "bad"
-    : "neutral";
+  // rank is a percentile where lower = better.
+  const bucket: "top" | "average" | "bottom" | null =
+    rank === null
+      ? null
+      : rank <= 30
+        ? "top"
+        : rank <= 65
+          ? "average"
+          : "bottom";
+  const tone =
+    bucket === "top" ? "good" : bucket === "average" ? "ok" : bucket === "bottom" ? "bad" : "neutral";
 
   const toneStyles =
     tone === "good"
@@ -406,11 +410,11 @@ function UtilityRow({ summary }: { summary: UtilitySummary }) {
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-2">
           <span className="text-sm font-semibold text-foreground">{label}</span>
-          {rank && (
+          {bucket && (
             <span className="text-xs text-muted-foreground">
-              {rank.bucket === "top"
+              {bucket === "top"
                 ? "Better than most peers"
-                : rank.bucket === "average"
+                : bucket === "average"
                   ? "About average"
                   : "Above average — room to save"}
             </span>
