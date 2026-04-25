@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Check, ChevronDown, LayoutDashboard, Sparkles, Sun } from "lucide-react";
+import { Check, ChevronDown, LayoutDashboard, Sparkles, Sun, Bot } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,14 +27,29 @@ export function DesignModeSwitcher() {
       void navigate({ to: "/simple" });
     } else if (next === "extra-simple") {
       void navigate({ to: "/easy" });
+    } else if (next === "ai-first") {
+      void navigate({ to: "/ai" });
     } else {
       void navigate({ to: "/" });
     }
   };
 
   const label =
-    mode === "simple" ? "Simple" : mode === "extra-simple" ? "Extra Simple" : "Classic";
-  const Icon = mode === "simple" ? Sparkles : mode === "extra-simple" ? Sun : LayoutDashboard;
+    mode === "simple"
+      ? "Simple"
+      : mode === "extra-simple"
+        ? "Extra Simple"
+        : mode === "ai-first"
+          ? "AI First"
+          : "Classic";
+  const Icon =
+    mode === "simple"
+      ? Sparkles
+      : mode === "extra-simple"
+        ? Sun
+        : mode === "ai-first"
+          ? Bot
+          : LayoutDashboard;
 
   return (
     <DropdownMenu>
