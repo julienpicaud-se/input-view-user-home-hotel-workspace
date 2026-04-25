@@ -896,17 +896,23 @@ function TheoryWorkspacePage() {
                   </div>
 
                   {/* Voice feedback / confirmation */}
-                  {speechSupported && (listening || voiceHeard || voicePending || voiceError) && (
+                  {speechSupported && (listening || voiceHeard || voicePending || voiceError || commandFlash) && (
                     <div className="mt-3 rounded-2xl border border-violet-300/20 bg-violet-500/[0.06] p-3 backdrop-blur-sm">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
+                          {commandFlash && (
+                            <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-emerald-300/30 bg-emerald-500/15 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-emerald-100">
+                              <Check className="h-3 w-3" />
+                              {commandFlash}
+                            </div>
+                          )}
                           {listening && (
                             <div className="flex items-center gap-2 text-sm text-violet-100">
                               <span className="relative flex h-2.5 w-2.5">
                                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
                                 <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-rose-500" />
                               </span>
-                              Listening… say the value (e.g. "twelve thousand four hundred")
+                              Listening… say the value, or "yes / no / next / back / skip / repeat / stop"
                             </div>
                           )}
                           {!listening && voiceHeard && (
