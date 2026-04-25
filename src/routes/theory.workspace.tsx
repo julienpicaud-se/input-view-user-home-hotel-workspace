@@ -1,0 +1,748 @@
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import * as React from "react";
+import { toast } from "sonner";
+import {
+  ArrowLeft,
+  Bolt,
+  Flame,
+  Droplets,
+  Trash2,
+  BedDouble,
+  Building2,
+  Check,
+  Pencil,
+  Loader2,
+  Sparkles,
+  Lightbulb,
+  TrendingUp,
+  TrendingDown,
+  ChevronRight,
+  Save,
+  Leaf,
+  X,
+} from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  getActiveHotelId,
+  type Hotel,
+  type MonthlyEntry,
+} from "@/lib/hotel";
+import { DEMO_PROFILE_ID, type UserProfile } from "@/lib/user-profile";
+import {
+  MONTH_NAMES,
+  formatNumber,
+  calculateCO2e,
+  pctChange,
+} from "@/lib/format";
+import { DesignModeSwitcher } from "@/components/design-mode-switcher";
+import {
+  generateInsights,
+  sendAssistantMessage,
+  type Insight,
+} from "@/server/assistant.functions";
+import { SeraStage } from "@/routes/theory";
+
+export const Route = createFileRoute("/theory/workspace")({
+  head: () => ({
+    meta: [
+      { title: "Hotel Theatre — AI Theory | RA+" },
+      {
+        name: "description",
+        content:
+          "Step inside one hotel's theatre. Sera is on stage with you — log data, see insights, and act in seconds.",
+      },
+    ],
+  }),
+  component: TheoryWorkspacePage,
+});
+
+function expectedReportingPeriod(): { year: number; month: number } {
+  const now = new Date();
+  const d = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  return { year: d.getFullYear(), month: d.getMonth() + 1 };
+}
+
+const FIELDS = [
+  {
+    key: "electricity_kwh",
+    label: "Electricity",
+    unit: "kWh",
+    Icon: Bolt,
+    hue: "from-amber-400 to-orange-500",
+    sera: "Look on your electricity bill for **Total kWh used** this month.",
+  },
+  {
+    key: "gas_kwh",
+    label: "Gas",
+    unit: "kWh",
+    Icon: Flame,
+    hue: "from-rose-400 to-red-500",
+    sera: "Find **kWh used** on your gas bill. If it's in m³, multiply by ~10.5.",
+  },
+  {
+    key: "water_m3",
+    label: "Water",
+    unit: "m³",
+    Icon: Droplets,
+    hue: "from-sky-400 to-blue-500",
+    sera: "On your water bill, look for **m³ used** or **cubic metres**.",
+  },
+  {
+    key: "waste_kg",
+    label: "Waste",
+    unit: "kg",
+    Icon: Trash2,
+    hue: "from-emerald-400 to-teal-500",
+    sera: "From your waste hauler invoice — total kg collected.",
+  },
+  {
+    key: "occupied_room_nights",
+    label: "Room-nights",
+    unit: "nights",
+    Icon: BedDouble,
+    hue: "from-violet-400 to-fuchsia-500",
+    sera: "From your PMS — total **occupied room-nights** for the month.",
+  },
+] as const;
+
+type FieldKey = (typeof FIELDS)[number]["key"];
+type Values = Record<FieldKey, string>;
+const EMPTY: Values = {
+  electricity_kwh: "",
+  gas_kwh: "",
+  water_m3: "",
+  waste_kg: "",
+  occupied_room_nights: "",
+};
+
+function TheoryWorkspacePage() {
+  const callAssistant = useServerFn(sendAssistantMessage);
+  const callInsights = useServerFn(generateInsights);
+  const navigate = useNavigate();
+
+  const [profile, setProfile] = React.useState<UserProfile | null>(null);
+  const [hotel, setHotel] = React.useState<Hotel | null>(null);
+  const [entries, setEntries] = React.useState<MonthlyEntry[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [activeId, setActiveId] = React.useState<string>("");
+
+  const [insights, setInsights] = React.useState<Insight[]>([]);
+  const [insightsLoading, setInsightsLoading] = React.useState(false);
+
+  const [seraSay, setSeraSay] = React.useState("");
+  const [seraThinking, setSeraThinking] = React.useState(false);
+
+  // Inline guided log state
+  const [logOpen, setLogOpen] = React.useState(false);
+  const [step, setStep] = React.useState<number>(0);
+  const [values, setValues] = React.useState<Values>(EMPTY);
+  const [saving, setSaving] = React.useState(false);
+
+  const expected = expectedReportingPeriod();
+  const monthLabel = `${MONTH_NAMES[expected.month - 1]} ${expected.year}`;
+
+  React.useEffect(() => {
+    const id = getActiveHotelId();
+    setActiveId(id);
+    void (async () => {
+      const [{ data: profileData }, { data: hotelData }, { data: entriesData }] =
+        await Promise.all([
+          supabase.from("user_profiles").select("*").eq("id", DEMO_PROFILE_ID).maybeSingle(),
+          supabase.from("hotels").select("*").eq("id", id).maybeSingle(),
+          supabase
+            .from("monthly_entries")
+            .select("*")
+            .eq("hotel_id", id)
+            .order("year", { ascending: true })
+            .order("month", { ascending: true }),
+        ]);
+      setProfile((profileData as UserProfile) ?? null);
+      setHotel((hotelData as Hotel) ?? null);
+      setEntries((entriesData as MonthlyEntry[] | null) ?? []);
+      setLoading(false);
+    })();
+  }, []);
+
+  const firstName = (profile?.display_name?.split(" ")[0] || "there").trim();
+
+  // Latest entries
+  const currentEntry = React.useMemo(() => {
+    return entries.find((e) => e.year === expected.year && e.month === expected.month) ?? null;
+  }, [entries, expected.year, expected.month]);
+
+  const prevPeriod = expected.month === 1
+    ? { year: expected.year - 1, month: 12 }
+    : { year: expected.year, month: expected.month - 1 };
+
+  const prevEntry = React.useMemo(() => {
+    return entries.find((e) => e.year === prevPeriod.year && e.month === prevPeriod.month) ?? null;
+  }, [entries, prevPeriod.year, prevPeriod.month]);
+
+  const co2 = currentEntry ? calculateCO2e(currentEntry) : 0;
+  const prevCo2 = prevEntry ? calculateCO2e(prevEntry) : 0;
+  const co2Change = pctChange(co2 || null, prevCo2 || null);
+
+  // Sera ambient lines for this hotel
+  React.useEffect(() => {
+    if (loading || !hotel) return;
+    if (!currentEntry) {
+      setSeraSay(
+        `${firstName}, ${hotel.name} is missing ${monthLabel}. Tap "Log this month" — I'll guide you step-by-step.`,
+      );
+    } else if (co2Change !== null && co2Change > 5) {
+      setSeraSay(
+        `Your CO₂e is up ${co2Change.toFixed(0)}% vs last month. Want me to tell you why?`,
+      );
+    } else if (co2Change !== null && co2Change < 0) {
+      setSeraSay(
+        `Nice — CO₂e down ${Math.abs(co2Change).toFixed(0)}% vs last month at ${hotel.name}. Want to see what's working?`,
+      );
+    } else {
+      setSeraSay(`${hotel.name} looks steady. Want my top 3 actions for next month?`);
+    }
+  }, [loading, hotel, currentEntry, co2Change, monthLabel, firstName]);
+
+  // Background insights
+  React.useEffect(() => {
+    if (!hotel) return;
+    setInsightsLoading(true);
+    callInsights({ data: { hotelId: hotel.id } })
+      .then((r) => setInsights(r.insights ?? []))
+      .catch(() => setInsights([]))
+      .finally(() => setInsightsLoading(false));
+  }, [hotel, callInsights]);
+
+  // ---- Sera ----
+  async function askSera(text: string) {
+    if (!text.trim() || seraThinking) return;
+    setSeraThinking(true);
+    setSeraSay("Thinking…");
+    try {
+      const res = await callAssistant({
+        data: { message: text, hotelId: hotel?.id, history: [] },
+      });
+      if (res.ok) setSeraSay(res.content);
+      else setSeraSay(`Sorry — ${res.error}`);
+    } catch {
+      setSeraSay("Something went wrong. Please try again.");
+    } finally {
+      setSeraThinking(false);
+    }
+  }
+
+  // ---- Guided log flow ----
+  function startLog() {
+    setLogOpen(true);
+    setStep(0);
+    setValues(
+      currentEntry
+        ? {
+            electricity_kwh: currentEntry.electricity_kwh?.toString() ?? "",
+            gas_kwh: currentEntry.gas_kwh?.toString() ?? "",
+            water_m3: currentEntry.water_m3?.toString() ?? "",
+            waste_kg: currentEntry.waste_kg?.toString() ?? "",
+            occupied_room_nights: currentEntry.occupied_room_nights?.toString() ?? "",
+          }
+        : EMPTY,
+    );
+  }
+
+  function setVal(k: FieldKey, v: string) {
+    setValues((prev) => ({ ...prev, [k]: v }));
+  }
+
+  function next() {
+    if (step < FIELDS.length) setStep((s) => s + 1);
+  }
+
+  function back() {
+    if (step > 0) setStep((s) => s - 1);
+  }
+
+  async function saveAll() {
+    if (!hotel) return;
+    setSaving(true);
+    const payload: Record<string, number | null | string> = {
+      hotel_id: hotel.id,
+      year: expected.year,
+      month: expected.month,
+    };
+    for (const f of FIELDS) {
+      const raw = values[f.key].replace(/,/g, "").trim();
+      payload[f.key] = raw === "" ? null : Number(raw);
+    }
+    const { data, error } = await supabase
+      .from("monthly_entries")
+      .upsert(payload, { onConflict: "hotel_id,year,month" })
+      .select()
+      .maybeSingle();
+    setSaving(false);
+    if (error || !data) {
+      toast.error("Couldn't save — please try again.", {
+        style: { background: "#1a1230", color: "#fff", border: "1px solid rgba(255,255,255,0.1)" },
+      });
+      return;
+    }
+    const saved = data as MonthlyEntry;
+    setEntries((prev) => {
+      const filtered = prev.filter(
+        (e) => !(e.hotel_id === saved.hotel_id && e.year === saved.year && e.month === saved.month),
+      );
+      return [...filtered, saved];
+    });
+    setLogOpen(false);
+    toast.success(`Saved ${monthLabel} for ${hotel.name}.`, {
+      style: { background: "#1a1230", color: "#fff", border: "1px solid rgba(255,255,255,0.1)" },
+    });
+    void askSera(
+      `I just logged ${MONTH_NAMES[expected.month - 1]} for ${hotel.name}. In 2 sentences: how does it look vs last month, and one thing to do next.`,
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#0a0612] text-white/60">
+        <Loader2 className="h-6 w-6 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!hotel) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#0a0612] px-6 text-center text-white">
+        <div className="max-w-md">
+          <p className="font-serif text-2xl">No hotel selected.</p>
+          <p className="mt-2 text-sm text-white/60">Pick a hotel from the stage.</p>
+          <Link
+            to="/theory"
+            className="mt-5 inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 px-5 py-2.5 text-sm font-medium text-white"
+          >
+            <ArrowLeft className="h-4 w-4" /> Back to stage
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const currentField = step < FIELDS.length ? FIELDS[step] : null;
+  const isReview = step >= FIELDS.length;
+
+  return (
+    <div className="relative min-h-screen overflow-hidden bg-[#0a0612] text-white">
+      {/* ambient backdrop */}
+      <div className="pointer-events-none absolute inset-0 z-0">
+        <div className="absolute -left-20 top-0 h-[36rem] w-[36rem] rounded-full bg-violet-600/15 blur-[120px]" />
+        <div className="absolute right-0 top-1/2 h-[32rem] w-[32rem] rounded-full bg-amber-500/10 blur-[120px]" />
+      </div>
+
+      {/* Header */}
+      <header className="relative z-30 flex items-center justify-between px-5 py-4 sm:px-8">
+        <Link
+          to="/theory"
+          className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.04] px-3 py-1.5 text-xs text-white/80 backdrop-blur-md transition-colors hover:bg-white/[0.08]"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Stage
+        </Link>
+        <DesignModeSwitcher />
+      </header>
+
+      <main className="relative z-10 mx-auto max-w-4xl px-5 pb-72 pt-2 sm:px-8">
+        {/* Hero hotel card */}
+        <section className="mb-8">
+          <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-white/45">
+            <Building2 className="h-3.5 w-3.5" />
+            Hotel theatre
+          </div>
+          <h1 className="mt-3 font-serif text-4xl leading-tight sm:text-5xl">
+            {hotel.name}
+          </h1>
+          <p className="mt-2 text-sm text-white/60">
+            {hotel.region} · {hotel.rooms} rooms · {hotel.star_rating}★ · {hotel.climate_zone}
+          </p>
+        </section>
+
+        {/* Status pulse */}
+        <section className="mb-8 grid gap-3 sm:grid-cols-3">
+          <PulseTile
+            label={`${MONTH_NAMES[expected.month - 1]} status`}
+            value={currentEntry ? "Logged" : "Pending"}
+            hint={currentEntry ? "All set" : "Tap below to log"}
+            tone={currentEntry ? "success" : "warning"}
+          />
+          <PulseTile
+            label="CO₂e this month"
+            value={co2 > 0 ? `${formatNumber(co2 / 1000, 2)}t` : "—"}
+            hint={
+              co2Change !== null
+                ? `${co2Change > 0 ? "+" : ""}${co2Change.toFixed(0)}% vs last`
+                : "No comparison"
+            }
+            tone={co2Change !== null && co2Change < 0 ? "success" : co2Change !== null && co2Change > 5 ? "warning" : "neutral"}
+            Icon={co2Change !== null && co2Change < 0 ? TrendingDown : TrendingUp}
+          />
+          <PulseTile
+            label="Renewable"
+            value={
+              currentEntry?.renewable_pct != null
+                ? `${currentEntry.renewable_pct}%`
+                : "—"
+            }
+            hint="Of electricity used"
+            tone="neutral"
+            Icon={Leaf}
+          />
+        </section>
+
+        {/* Big primary action — Log this month */}
+        {!logOpen && (
+          <section className="mb-8">
+            <button
+              onClick={startLog}
+              className="group relative w-full overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-violet-600/30 via-fuchsia-600/20 to-amber-600/20 p-6 text-left shadow-[0_0_50px_rgba(168,85,247,0.18)] transition-all hover:border-white/30 hover:shadow-[0_0_70px_rgba(168,85,247,0.3)] sm:p-8"
+            >
+              <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-gradient-to-br from-violet-500/40 to-fuchsia-500/20 blur-3xl" />
+              <div className="relative flex items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-amber-200/80">
+                    <Sparkles className="h-3.5 w-3.5" />
+                    {currentEntry ? "Update" : "Guided log"}
+                  </div>
+                  <h2 className="mt-2 font-serif text-2xl sm:text-3xl">
+                    {currentEntry ? `Update ${MONTH_NAMES[expected.month - 1]}` : `Log ${MONTH_NAMES[expected.month - 1]}`}
+                  </h2>
+                  <p className="mt-1.5 text-sm text-white/65">
+                    I'll ask one thing at a time. About 30 seconds.
+                  </p>
+                </div>
+                <ChevronRight className="h-7 w-7 text-white/70 transition-transform group-hover:translate-x-1" />
+              </div>
+            </button>
+          </section>
+        )}
+
+        {/* Inline guided log flow */}
+        {logOpen && (
+          <section className="mb-8 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] backdrop-blur-md">
+            {/* Progress dots */}
+            <div className="flex items-center justify-between border-b border-white/10 px-5 py-3">
+              <div className="flex items-center gap-2">
+                {FIELDS.map((_, i) => (
+                  <span
+                    key={i}
+                    className={`h-1.5 rounded-full transition-all ${
+                      i < step
+                        ? "w-6 bg-gradient-to-r from-violet-400 to-fuchsia-400"
+                        : i === step
+                          ? "w-10 bg-white"
+                          : "w-6 bg-white/15"
+                    }`}
+                  />
+                ))}
+                <span
+                  className={`h-1.5 rounded-full transition-all ${
+                    isReview ? "w-10 bg-white" : "w-6 bg-white/15"
+                  }`}
+                />
+              </div>
+              <button
+                onClick={() => setLogOpen(false)}
+                className="rounded-full p-1 text-white/50 hover:bg-white/10 hover:text-white"
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="p-5 sm:p-7">
+              {!isReview && currentField && (
+                <div>
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${currentField.hue} text-white shadow-md`}
+                    >
+                      <currentField.Icon className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-[0.2em] text-white/45">
+                        Step {step + 1} of {FIELDS.length}
+                      </p>
+                      <h3 className="font-serif text-2xl">{currentField.label}</h3>
+                    </div>
+                  </div>
+
+                  <p className="mt-4 text-sm leading-relaxed text-white/75">
+                    {currentField.sera}
+                  </p>
+
+                  <div className="mt-5 flex items-end gap-3">
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      autoFocus
+                      value={values[currentField.key]}
+                      onChange={(e) => setVal(currentField.key, e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") next();
+                      }}
+                      placeholder="0"
+                      className="flex-1 rounded-2xl border border-white/15 bg-white/[0.04] px-5 py-4 font-serif text-3xl text-white placeholder:text-white/25 focus:border-violet-300/50 focus:outline-none"
+                    />
+                    <span className="pb-3 font-serif text-xl text-white/50">
+                      {currentField.unit}
+                    </span>
+                  </div>
+
+                  <div className="mt-5 flex items-center justify-between">
+                    <button
+                      onClick={back}
+                      disabled={step === 0}
+                      className="rounded-xl px-4 py-2 text-sm text-white/60 hover:text-white disabled:opacity-30"
+                    >
+                      Back
+                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          setVal(currentField.key, "");
+                          next();
+                        }}
+                        className="rounded-xl px-4 py-2 text-sm text-white/60 hover:text-white"
+                      >
+                        Skip
+                      </button>
+                      <button
+                        onClick={next}
+                        className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 px-5 py-2.5 text-sm font-medium text-white shadow-md hover:from-violet-400 hover:to-fuchsia-400"
+                      >
+                        Next
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {isReview && (
+                <div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 text-white shadow-md">
+                      <Check className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-[0.2em] text-white/45">
+                        Final review
+                      </p>
+                      <h3 className="font-serif text-2xl">Look good?</h3>
+                    </div>
+                  </div>
+
+                  <p className="mt-4 text-sm text-white/65">
+                    Tap any number to edit it. Otherwise hit save.
+                  </p>
+
+                  <ul className="mt-5 divide-y divide-white/5 rounded-2xl border border-white/10 bg-white/[0.02]">
+                    {FIELDS.map((f, i) => (
+                      <li
+                        key={f.key}
+                        className="flex items-center gap-3 px-4 py-3"
+                      >
+                        <div
+                          className={`flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br ${f.hue} text-white`}
+                        >
+                          <f.Icon className="h-4 w-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-white/80">{f.label}</p>
+                          <p className="text-xs text-white/50">{f.unit}</p>
+                        </div>
+                        <button
+                          onClick={() => setStep(i)}
+                          className="rounded-lg px-3 py-1.5 text-right font-serif text-lg text-white hover:bg-white/5"
+                        >
+                          {values[f.key] === "" ? (
+                            <span className="text-white/30">—</span>
+                          ) : (
+                            values[f.key]
+                          )}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <div className="mt-5 flex items-center justify-between">
+                    <button
+                      onClick={back}
+                      className="rounded-xl px-4 py-2 text-sm text-white/60 hover:text-white"
+                    >
+                      Back
+                    </button>
+                    <button
+                      onClick={saveAll}
+                      disabled={saving}
+                      className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 px-5 py-2.5 text-sm font-medium text-white shadow-md hover:from-emerald-400 hover:to-teal-400 disabled:opacity-50"
+                    >
+                      {saving ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Save className="h-4 w-4" />
+                      )}
+                      Save {MONTH_NAMES[expected.month - 1]}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* What Sera sees here */}
+        <section className="mb-8">
+          <h2 className="mb-3 text-xs uppercase tracking-[0.22em] text-white/50">
+            Sera's read on {hotel.name}
+          </h2>
+          {insightsLoading && insights.length === 0 ? (
+            <div className="flex items-center gap-2 text-sm text-white/50">
+              <Loader2 className="h-4 w-4 animate-spin" /> Reading your data…
+            </div>
+          ) : insights.length === 0 ? (
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm text-white/55">
+              Once you log a few months, I'll start spotting patterns and recommending actions here.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {insights.map((ins, i) => (
+                <div
+                  key={i}
+                  className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 backdrop-blur-sm"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500/30 to-fuchsia-500/20 text-violet-200">
+                      <Lightbulb className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h4 className="font-medium text-white/90">{ins.title}</h4>
+                      <p className="mt-1 text-sm leading-relaxed text-white/60">
+                        {ins.body}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* Recent history */}
+        {entries.length > 0 && (
+          <section className="mb-8">
+            <h2 className="mb-3 text-xs uppercase tracking-[0.22em] text-white/50">
+              Recent months
+            </h2>
+            <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02]">
+              <table className="w-full text-sm">
+                <thead className="text-[10px] uppercase tracking-wider text-white/40">
+                  <tr className="border-b border-white/5">
+                    <th className="px-4 py-2.5 text-left font-medium">Month</th>
+                    <th className="px-4 py-2.5 text-right font-medium">Elec</th>
+                    <th className="px-4 py-2.5 text-right font-medium">Gas</th>
+                    <th className="px-4 py-2.5 text-right font-medium">Water</th>
+                    <th className="px-4 py-2.5 text-right font-medium">CO₂e</th>
+                  </tr>
+                </thead>
+                <tbody className="text-white/75">
+                  {[...entries]
+                    .sort((a, b) => (b.year - a.year) * 100 + (b.month - a.month))
+                    .slice(0, 6)
+                    .map((e) => (
+                      <tr key={e.id} className="border-b border-white/5 last:border-0">
+                        <td className="px-4 py-2.5">
+                          {MONTH_NAMES[e.month - 1].slice(0, 3)} {e.year}
+                        </td>
+                        <td className="px-4 py-2.5 text-right tabular-nums">
+                          {formatNumber(e.electricity_kwh)}
+                        </td>
+                        <td className="px-4 py-2.5 text-right tabular-nums">
+                          {formatNumber(e.gas_kwh)}
+                        </td>
+                        <td className="px-4 py-2.5 text-right tabular-nums">
+                          {formatNumber(e.water_m3)}
+                        </td>
+                        <td className="px-4 py-2.5 text-right tabular-nums">
+                          {formatNumber(calculateCO2e(e) / 1000, 2)}t
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+      </main>
+
+      {/* SERA always on stage */}
+      <SeraStage
+        say={seraSay}
+        thinking={seraThinking}
+        onAsk={askSera}
+        onUploadBill={() =>
+          toast("Bill upload available in Classic › Workspace › Upload bill.", {
+            style: { background: "#1a1230", color: "#fff", border: "1px solid rgba(255,255,255,0.1)" },
+          })
+        }
+        onVoice={() =>
+          toast("Voice capture available in Classic › Workspace › Voice.", {
+            style: { background: "#1a1230", color: "#fff", border: "1px solid rgba(255,255,255,0.1)" },
+          })
+        }
+        suggestions={
+          currentEntry
+            ? ["How am I doing?", "What should I focus on?", "Explain my bill"]
+            : [`Log ${MONTH_NAMES[expected.month - 1]}`, "How am I doing?", "What should I focus on?"]
+        }
+        onSuggestion={(s) => {
+          if (s.startsWith("Log ")) {
+            startLog();
+          } else {
+            void askSera(s);
+          }
+        }}
+      />
+    </div>
+  );
+}
+
+function PulseTile({
+  label,
+  value,
+  hint,
+  tone,
+  Icon,
+}: {
+  label: string;
+  value: string;
+  hint: string;
+  tone: "success" | "warning" | "neutral";
+  Icon?: React.ComponentType<{ className?: string }>;
+}) {
+  const accent =
+    tone === "success"
+      ? "from-emerald-400/20 to-teal-400/10 text-emerald-200"
+      : tone === "warning"
+        ? "from-amber-400/20 to-orange-400/10 text-amber-200"
+        : "from-violet-400/20 to-fuchsia-400/10 text-violet-200";
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur-sm">
+      <div className={`absolute inset-0 bg-gradient-to-br ${accent} opacity-50`} />
+      <div className="relative">
+        <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-white/50">
+          {Icon && <Icon className="h-3 w-3" />}
+          {label}
+        </div>
+        <p className="mt-2 font-serif text-3xl text-white">{value}</p>
+        <p className="mt-1 text-xs text-white/60">{hint}</p>
+      </div>
+    </div>
+  );
+}
