@@ -185,6 +185,17 @@ function TheoryWorkspacePage() {
   const expected = expectedReportingPeriod();
   const monthLabel = `${MONTH_NAMES[expected.month - 1]} ${expected.year}`;
 
+  const refreshEntries = React.useCallback(async () => {
+    const id = getActiveHotelId();
+    const { data: entriesData } = await supabase
+      .from("monthly_entries")
+      .select("*")
+      .eq("hotel_id", id)
+      .order("year", { ascending: true })
+      .order("month", { ascending: true });
+    setEntries((entriesData as MonthlyEntry[] | null) ?? []);
+  }, []);
+
   React.useEffect(() => {
     const id = getActiveHotelId();
     setActiveId(id);
