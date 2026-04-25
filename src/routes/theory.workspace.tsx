@@ -39,6 +39,11 @@ import {
 } from "@/lib/format";
 import { DesignModeSwitcher } from "@/components/design-mode-switcher";
 import { TheoryNav } from "@/components/theory-nav";
+import { TheorySectionNav, TheorySection } from "@/components/theory-section-nav";
+import { TheoryAnalyze } from "@/components/theory-analyze";
+import { TheoryHistory } from "@/components/theory-history";
+import { TheoryBenchmarks } from "@/components/theory-benchmarks";
+import { TheoryImport, TheoryHotelSettings } from "@/components/theory-import-settings";
 import {
   generateInsights,
   sendAssistantMessage,
