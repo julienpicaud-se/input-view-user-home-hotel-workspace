@@ -505,10 +505,18 @@ function TheoryWorkspacePage() {
       setListening(false);
       const heard = finalText.trim();
       if (!heard) return;
+      // Voice command takes priority over number parsing — lets the user
+      // say "yes / no / next / back / skip / repeat / stop" hands-free.
+      const cmd = parseCommand(heard);
+      if (cmd) {
+        setVoiceHeard("");
+        runCommand(cmd);
+        return;
+      }
       const parsed = parseSpokenNumber(heard);
       setVoicePending({ raw: heard, parsed });
       if (parsed === null) {
-        setVoiceError(`I heard "${heard}" but couldn't read a number.`);
+        setVoiceError(`I heard "${heard}" but couldn't read a number. Try again or say "skip".`);
       }
     };
     recognitionRef.current = rec;
