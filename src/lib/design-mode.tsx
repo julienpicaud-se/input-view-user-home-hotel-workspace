@@ -1,11 +1,12 @@
 import * as React from "react";
 
 /**
- * "Classic" = the original, dense pro design (sidebar, dashboards, dense charts).
- * "Simple" = an alternative, ultra-friendly design tailored for hotel managers
- * who only visit once a month. Same features, totally different UX.
+ * "Classic"      = the original, dense pro design (sidebar, dashboards, dense charts).
+ * "Simple"       = a calmer, manager-friendly multi-page experience.
+ * "Extra Simple" = a single-page, near-zero-click experience for managers
+ *                  who only visit once a month.
  */
-export type DesignMode = "classic" | "simple";
+export type DesignMode = "classic" | "simple" | "extra-simple";
 
 const STORAGE_KEY = "ra-plus-design-mode";
 
@@ -20,7 +21,9 @@ function readInitial(): DesignMode {
   if (typeof window === "undefined") return "classic";
   try {
     const v = window.localStorage.getItem(STORAGE_KEY);
-    return v === "simple" ? "simple" : "classic";
+    if (v === "simple") return "simple";
+    if (v === "extra-simple") return "extra-simple";
+    return "classic";
   } catch {
     return "classic";
   }
