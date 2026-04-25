@@ -1134,51 +1134,37 @@ function TheoryWorkspacePage() {
           )}
         </section>
 
-        {/* Recent history */}
-        {entries.length > 0 && (
-          <section className="mb-8">
-            <h2 className="mb-3 text-xs uppercase tracking-[0.22em] text-white/50">
-              Recent months
-            </h2>
-            <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02]">
-              <table className="w-full text-sm">
-                <thead className="text-[10px] uppercase tracking-wider text-white/40">
-                  <tr className="border-b border-white/5">
-                    <th className="px-4 py-2.5 text-left font-medium">Month</th>
-                    <th className="px-4 py-2.5 text-right font-medium">Elec</th>
-                    <th className="px-4 py-2.5 text-right font-medium">Gas</th>
-                    <th className="px-4 py-2.5 text-right font-medium">Water</th>
-                    <th className="px-4 py-2.5 text-right font-medium">CO₂e</th>
-                  </tr>
-                </thead>
-                <tbody className="text-white/75">
-                  {[...entries]
-                    .sort((a, b) => (b.year - a.year) * 100 + (b.month - a.month))
-                    .slice(0, 6)
-                    .map((e) => (
-                      <tr key={e.id} className="border-b border-white/5 last:border-0">
-                        <td className="px-4 py-2.5">
-                          {MONTH_NAMES[e.month - 1].slice(0, 3)} {e.year}
-                        </td>
-                        <td className="px-4 py-2.5 text-right tabular-nums">
-                          {formatNumber(e.electricity_kwh)}
-                        </td>
-                        <td className="px-4 py-2.5 text-right tabular-nums">
-                          {formatNumber(e.gas_kwh)}
-                        </td>
-                        <td className="px-4 py-2.5 text-right tabular-nums">
-                          {formatNumber(e.water_m3)}
-                        </td>
-                        <td className="px-4 py-2.5 text-right tabular-nums">
-                          {formatNumber(calculateCO2e(e) / 1000, 2)}t
-                        </td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
+        {/* Analyze */}
+        <TheorySection id="analyze" title="Analyze" subtitle="Trends across the last 12 months — tap a metric, then ask Sera.">
+          <TheoryAnalyze hotel={hotel} entries={entries} />
+        </TheorySection>
+
+        {/* History — past data, editable */}
+        <TheorySection id="history" title="Past data" subtitle="Browse and correct any prior month inline.">
+          <TheoryHistory entries={entries} onChanged={refreshEntries} />
+        </TheorySection>
+
+        {/* Benchmarks */}
+        <TheorySection id="benchmarks" title="Benchmarks" subtitle="How this hotel compares to similar peers.">
+          <TheoryBenchmarks hotel={hotel} entries={entries} />
+        </TheorySection>
+
+        {/* Import — bills + smart paste */}
+        <TheorySection id="import" title="Import" subtitle="Drop a bill or paste anything — Sera does the rest.">
+          <TheoryImport hotelId={hotel.id} onSaved={refreshEntries} />
+        </TheorySection>
+
+        {/* To-dos placeholder */}
+        <TheorySection id="todos" title="To-dos" subtitle="Sera's daily focus list — coming online with your next sync.">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm text-white/60">
+            Once Sera finishes reading {hotel.name}'s patterns, she'll list 3 high-impact to-dos here every morning.
+          </div>
+        </TheorySection>
+
+        {/* Settings */}
+        <TheorySection id="settings" title="Settings" subtitle="Tune this hotel's profile — Sera uses it for benchmarking.">
+          <TheoryHotelSettings hotel={hotel} onSaved={(h) => setHotel(h)} />
+        </TheorySection>
       </main>
 
       {/* SERA always on stage */}
