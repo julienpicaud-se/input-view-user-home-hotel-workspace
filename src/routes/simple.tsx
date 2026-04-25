@@ -239,7 +239,7 @@ function SimpleHomePage() {
                 monthLabel={monthLabel}
                 onAction={() => {
                   setActiveHotelId(s.hotel.id);
-                  void navigate({ to: "/simple/log" });
+                  void navigate({ to: "/simple/workspace" });
                 }}
               />
             ))}
