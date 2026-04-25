@@ -141,17 +141,42 @@ function RootComponent() {
 }
 
 function ModeAwareShell() {
-  const { mode } = useDesignMode();
+  const { mode, setMode } = useDesignMode();
   const location = useLocation();
   const navigate = useNavigate();
+  const path = location.pathname;
+  const isSimplePath = path === "/simple" || path.startsWith("/simple/");
+  const isEasyPath = path === "/easy" || path.startsWith("/easy/");
+  const isAIPath = path === "/ai" || path.startsWith("/ai/");
+  const isTheoryPath = path === "/theory" || path.startsWith("/theory/");
+  const shellMode = isSimplePath
+    ? "simple"
+    : isEasyPath
+      ? "extra-simple"
+      : isAIPath
+        ? "ai-first"
+        : isTheoryPath
+          ? "ai-theory"
+          : mode;
 
   // Redirect when the current path doesn't match the active design mode.
   React.useEffect(() => {
-    const path = location.pathname;
-    const isSimplePath = path === "/simple" || path.startsWith("/simple/");
-    const isEasyPath = path === "/easy" || path.startsWith("/easy/");
-    const isAIPath = path === "/ai" || path.startsWith("/ai/");
-    const isTheoryPath = path === "/theory" || path.startsWith("/theory/");
+    if (isSimplePath && mode !== "simple") {
+      setMode("simple");
+      return;
+    }
+    if (isEasyPath && mode !== "extra-simple") {
+      setMode("extra-simple");
+      return;
+    }
+    if (isAIPath && mode !== "ai-first") {
+      setMode("ai-first");
+      return;
+    }
+    if (isTheoryPath && mode !== "ai-theory") {
+      setMode("ai-theory");
+      return;
+    }
     if (mode === "simple" && !isSimplePath) {
       void navigate({ to: "/simple" });
     } else if (mode === "extra-simple" && !isEasyPath) {
@@ -160,12 +185,10 @@ function ModeAwareShell() {
       void navigate({ to: "/ai" });
     } else if (mode === "ai-theory" && !isTheoryPath) {
       void navigate({ to: "/theory" });
-    } else if (mode === "classic" && (isSimplePath || isEasyPath || isAIPath || isTheoryPath)) {
-      void navigate({ to: "/" });
     }
-  }, [mode, location.pathname, navigate]);
+  }, [mode, isSimplePath, isEasyPath, isAIPath, isTheoryPath, navigate, setMode]);
 
-  if (mode === "simple" || mode === "extra-simple" || mode === "ai-first" || mode === "ai-theory") {
+  if (shellMode === "simple" || shellMode === "extra-simple" || shellMode === "ai-first" || shellMode === "ai-theory") {
     // These modes own their own header + nav.
     return <Outlet />;
   }
