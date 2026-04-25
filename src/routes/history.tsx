@@ -317,13 +317,17 @@ function HistoryPage() {
                     ref={(el) => {
                       rowRefs.current[k] = el;
                     }}
-                    className={`border-t border-border transition-colors ${
+                    className={`group border-t border-border transition-colors ${
                       isHighlighted
                         ? "bg-warning/15 ring-2 ring-warning/40"
                         : "hover:bg-muted/20"
                     }`}
                   >
-                    <td className="whitespace-nowrap px-4 py-2.5 font-medium">
+                    <td
+                      className={`sticky left-0 z-10 whitespace-nowrap px-4 py-2.5 font-medium backdrop-blur-sm ${
+                        isHighlighted ? "bg-warning/30" : "bg-card/95 group-hover:bg-muted/60"
+                      }`}
+                    >
                       {MONTH_SHORT[r.month - 1]} {r.year}
                     </td>
                     <CellInput
