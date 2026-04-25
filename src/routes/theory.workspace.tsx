@@ -526,7 +526,7 @@ function TheoryWorkspacePage() {
         const curStep = stepRef.current;
         const nextField = curStep < FIELDS.length ? FIELDS[curStep].key : null;
         if (nextField) {
-          window.setTimeout(() => startListening(nextField), 600);
+          window.setTimeout(() => startListening(nextField, { keepPending: true }), 600);
         }
       }
     };
