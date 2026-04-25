@@ -69,11 +69,46 @@ function expectedReportingPeriod(): { year: number; month: number } {
 }
 
 const FIELDS = [
-  { key: "electricity_kwh", label: "Electricity", unit: "kWh", Icon: Bolt },
-  { key: "gas_kwh", label: "Gas", unit: "kWh", Icon: Flame },
-  { key: "water_m3", label: "Water", unit: "m³", Icon: Droplets },
-  { key: "waste_kg", label: "Waste", unit: "kg", Icon: Trash2 },
-  { key: "occupied_room_nights", label: "Room-nights sold", unit: "nights", Icon: BedDouble },
+  {
+    key: "electricity_kwh",
+    label: "Electricity",
+    unit: "kWh",
+    Icon: Bolt,
+    where: "On your electricity bill, look for **Total consumption** or **kWh used** for the period.",
+    example: "e.g. 12,450",
+  },
+  {
+    key: "gas_kwh",
+    label: "Gas",
+    unit: "kWh",
+    Icon: Flame,
+    where: "On your gas bill, find **kWh used**. If your bill shows m³, multiply by ~10.5.",
+    example: "e.g. 3,200",
+  },
+  {
+    key: "water_m3",
+    label: "Water",
+    unit: "m³",
+    Icon: Droplets,
+    where: "On your water bill, look for **m³ used** or **cubic metres**.",
+    example: "e.g. 480",
+  },
+  {
+    key: "waste_kg",
+    label: "Waste",
+    unit: "kg",
+    Icon: Trash2,
+    where: "From your waste hauler invoice or internal log — total kg collected this month.",
+    example: "e.g. 950",
+  },
+  {
+    key: "occupied_room_nights",
+    label: "Room-nights sold",
+    unit: "nights",
+    Icon: BedDouble,
+    where: "From your PMS — total **occupied room-nights** for the month.",
+    example: "e.g. 1,820",
+  },
 ] as const;
 
 type FieldKey = (typeof FIELDS)[number]["key"];
