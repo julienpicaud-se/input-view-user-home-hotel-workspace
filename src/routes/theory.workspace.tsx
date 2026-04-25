@@ -141,6 +141,19 @@ function TheoryWorkspacePage() {
   const [values, setValues] = React.useState<Values>(EMPTY);
   const [saving, setSaving] = React.useState(false);
 
+  // Voice input state (per-step)
+  const [listening, setListening] = React.useState(false);
+  const [voiceHeard, setVoiceHeard] = React.useState<string>("");
+  const [voicePending, setVoicePending] = React.useState<{
+    raw: string;
+    parsed: number | null;
+  } | null>(null);
+  const [voiceError, setVoiceError] = React.useState<string>("");
+  const recognitionRef = React.useRef<any>(null);
+  const speechSupported =
+    typeof window !== "undefined" &&
+    !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
+
   const expected = expectedReportingPeriod();
   const monthLabel = `${MONTH_NAMES[expected.month - 1]} ${expected.year}`;
 
