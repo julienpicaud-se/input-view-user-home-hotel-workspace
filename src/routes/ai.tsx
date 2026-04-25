@@ -253,7 +253,22 @@ function AIFirstPage() {
       { role: "user", content: `Help me log ${monthLabel} for ${target.name}.` },
       {
         role: "assistant",
-        content: `Easy. Just type the numbers from your bills below — leave blank what you don't have. I'll save it and tell you immediately how it compares to last month.`,
+        content: `Great — I'll walk you through it one number at a time. Just tell me what's on your bill and I'll do the rest. We'll review everything together before saving.`,
+        attachment: { kind: "guided-log", hotelId: target.id, year: expected.year, month: expected.month },
+      },
+    ]);
+  }
+
+  function actionQuickForm() {
+    const target = missing[0] ?? activeHotel;
+    if (!target) return;
+    setActiveHotelId(target.id);
+    setMessages((prev) => [
+      ...prev,
+      { role: "user", content: `Show me the full form for ${target.name}.` },
+      {
+        role: "assistant",
+        content: `Here's the full form. Fill what you have — leave the rest blank.`,
         attachment: { kind: "log-form", hotelId: target.id, year: expected.year, month: expected.month },
       },
     ]);
