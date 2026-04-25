@@ -124,6 +124,11 @@ const AiWorkspaceRoute = AiWorkspaceRouteImport.update({
   path: '/workspace',
   getParentRoute: () => AiRoute,
 } as any)
+const TheoryWorkspaceRoute = TheoryWorkspaceRouteImport.update({
+  id: '/workspace',
+  path: '/workspace',
+  getParentRoute: () => TheoryRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
