@@ -129,6 +129,7 @@ function AIFirstPage() {
   const callAssistant = useServerFn(sendAssistantMessage);
   const callInsights = useServerFn(generateInsights);
 
+  const navigate = useNavigate();
   const [profile, setProfile] = React.useState<UserProfile | null>(null);
   const [hotels, setHotels] = React.useState<Hotel[]>([]);
   const [entries, setEntries] = React.useState<MonthlyEntry[]>([]);
