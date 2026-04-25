@@ -678,13 +678,43 @@ function TheoryWorkspacePage() {
                   }`}
                 />
               </div>
-              <button
-                onClick={() => setLogOpen(false)}
-                className="rounded-full p-1 text-white/50 hover:bg-white/10 hover:text-white"
-                aria-label="Close"
-              >
-                <X className="h-4 w-4" />
-              </button>
+              <div className="flex items-center gap-2">
+                {speechSupported && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !handsFree;
+                      setHandsFree(next);
+                      handsFreeRef.current = next;
+                      if (!next) {
+                        autoListenRef.current = false;
+                        stopListening();
+                      } else if (!isReview && !listening && !voicePending) {
+                        // Start listening immediately on the current step
+                        const fk = FIELDS[step]?.key;
+                        if (fk) startListening(fk);
+                      }
+                    }}
+                    aria-pressed={handsFree}
+                    title={handsFree ? "Hands-free on — Sera auto-advances" : "Turn on hands-free"}
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] transition-colors ${
+                      handsFree
+                        ? "border-rose-300/40 bg-rose-500/15 text-rose-100"
+                        : "border-white/15 bg-white/[0.04] text-white/60 hover:bg-white/[0.08] hover:text-white"
+                    }`}
+                  >
+                    <Mic className="h-3 w-3" />
+                    Hands-free {handsFree ? "on" : "off"}
+                  </button>
+                )}
+                <button
+                  onClick={() => setLogOpen(false)}
+                  className="rounded-full p-1 text-white/50 hover:bg-white/10 hover:text-white"
+                  aria-label="Close"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
             </div>
 
             <div className="p-5 sm:p-7">
