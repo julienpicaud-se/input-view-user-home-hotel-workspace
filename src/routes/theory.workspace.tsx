@@ -358,7 +358,104 @@ function TheoryWorkspacePage() {
     return total + current;
   }
 
-  function stopListening() {
+  // ---- Voice commands (hands-free navigation) ----
+  type VoiceCommand =
+    | "confirm"
+    | "reject"
+    | "next"
+    | "back"
+    | "skip"
+    | "repeat"
+    | "stop";
+
+  function parseCommand(input: string): VoiceCommand | null {
+    if (!input) return null;
+    const s = input.toLowerCase().trim().replace(/[.!?,]/g, "");
+    // Keep matching tight — only treat short utterances as commands so
+    // numbers like "twelve hundred" are never swallowed by accident.
+    if (s.split(/\s+/).length > 4) return null;
+    const has = (...words: string[]) => words.some((w) => s === w || s.startsWith(w + " ") || s.endsWith(" " + w) || s.includes(" " + w + " "));
+    if (has("yes", "yeah", "yep", "yup", "correct", "confirm", "save", "okay", "ok", "right", "sure")) return "confirm";
+    if (has("no", "nope", "wrong", "incorrect")) return "reject";
+    if (s === "try again" || s.startsWith("try again")) return "reject";
+    if (has("back", "previous", "go back")) return "back";
+    if (has("skip")) return "skip";
+    if (has("next", "forward")) return "next";
+    if (has("repeat", "again", "what")) return "repeat";
+    if (has("stop", "cancel", "quit", "exit", "close")) return "stop";
+    return null;
+  }
+
+  function runCommand(cmd: VoiceCommand) {
+    const curStep = stepRef.current;
+    const curField = curStep < FIELDS.length ? FIELDS[curStep] : null;
+    const pending = voicePendingRef.current;
+
+    switch (cmd) {
+      case "confirm": {
+        flashCommand("Confirm");
+        if (pending && pending.parsed !== null && curField) {
+          confirmVoice(curField.key);
+        } else if (handsFreeRef.current) {
+          // No pending value to confirm — treat as "next".
+          autoListenRef.current = true;
+          setStep((s) => Math.min(s + 1, FIELDS.length));
+        }
+        return;
+      }
+      case "reject": {
+        flashCommand("Try again");
+        rejectVoice();
+        if (handsFreeRef.current && curField) {
+          window.setTimeout(() => startListening(curField.key), 250);
+        }
+        return;
+      }
+      case "next": {
+        flashCommand("Next");
+        if (handsFreeRef.current) autoListenRef.current = true;
+        setStep((s) => Math.min(s + 1, FIELDS.length));
+        return;
+      }
+      case "back": {
+        flashCommand("Back");
+        if (handsFreeRef.current) autoListenRef.current = true;
+        setStep((s) => Math.max(s - 1, 0));
+        return;
+      }
+      case "skip": {
+        flashCommand("Skip");
+        if (curField) setVal(curField.key, "");
+        if (handsFreeRef.current) autoListenRef.current = true;
+        setStep((s) => Math.min(s + 1, FIELDS.length));
+        return;
+      }
+      case "repeat": {
+        flashCommand("Repeat");
+        rejectVoice();
+        if (curField) {
+          // Visually re-trigger by toggling the heard text briefly; mostly
+          // useful in hands-free where we also re-listen.
+          if (handsFreeRef.current) {
+            window.setTimeout(() => startListening(curField.key), 200);
+          }
+        }
+        return;
+      }
+      case "stop": {
+        flashCommand("Stopped");
+        stopListening();
+        rejectVoice();
+        if (handsFreeRef.current) {
+          setHandsFree(false);
+          handsFreeRef.current = false;
+          autoListenRef.current = false;
+        }
+        return;
+      }
+    }
+  }
+
     try {
       recognitionRef.current?.stop?.();
     } catch {
