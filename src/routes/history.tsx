@@ -295,7 +295,7 @@ function HistoryPage() {
           <table className="w-full min-w-[820px] text-sm">
             <thead className="bg-muted/50 text-left text-xs uppercase tracking-wider text-muted-foreground">
               <tr>
-                <th className="px-4 py-3 font-medium">Period</th>
+                <th className="sticky left-0 z-10 bg-muted/95 px-4 py-3 font-medium backdrop-blur-sm">Period</th>
                 <th className="px-4 py-3 font-medium">Electricity</th>
                 <th className="px-4 py-3 font-medium">Gas</th>
                 <th className="px-4 py-3 font-medium">Water</th>
@@ -317,13 +317,17 @@ function HistoryPage() {
                     ref={(el) => {
                       rowRefs.current[k] = el;
                     }}
-                    className={`border-t border-border transition-colors ${
+                    className={`group border-t border-border transition-colors ${
                       isHighlighted
                         ? "bg-warning/15 ring-2 ring-warning/40"
                         : "hover:bg-muted/20"
                     }`}
                   >
-                    <td className="whitespace-nowrap px-4 py-2.5 font-medium">
+                    <td
+                      className={`sticky left-0 z-10 whitespace-nowrap px-4 py-2.5 font-medium backdrop-blur-sm ${
+                        isHighlighted ? "bg-warning/30" : "bg-card/95 group-hover:bg-muted/60"
+                      }`}
+                    >
                       {MONTH_SHORT[r.month - 1]} {r.year}
                     </td>
                     <CellInput

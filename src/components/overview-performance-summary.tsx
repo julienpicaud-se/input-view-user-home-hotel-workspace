@@ -343,7 +343,7 @@ Please:
         <table className="w-full min-w-[560px] text-sm">
           <thead className="bg-muted/40 text-[11px] uppercase tracking-wider text-muted-foreground">
             <tr>
-              <th className="px-4 py-2 text-left font-medium">Utility</th>
+              <th className="sticky left-0 z-10 bg-muted/95 px-4 py-2 text-left font-medium backdrop-blur-sm">Utility</th>
               <th className="px-3 py-2 text-right font-medium">This month</th>
               <th className="px-3 py-2 text-right font-medium">vs last month</th>
               <th className="px-3 py-2 text-right font-medium">vs last year</th>
@@ -362,7 +362,7 @@ Please:
                       : ""
                   }
                 >
-                  <td className="px-4 py-3">
+                  <td className="sticky left-0 z-10 bg-card/95 px-4 py-3 backdrop-blur-sm">
                     <div className="flex items-center gap-2">
                       <div
                         className="flex h-7 w-7 items-center justify-center rounded-lg"
