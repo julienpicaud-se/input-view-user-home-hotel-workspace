@@ -399,6 +399,14 @@ function AIFirstPage() {
               onClick={actionQuickForm}
             />
             <SuggestionChip
+              icon={Building2}
+              label="Open hotel workspace"
+              onClick={() => {
+                if (activeHotelId) setActiveHotelIdLib(activeHotelId);
+                void navigate({ to: "/ai/workspace" });
+              }}
+            />
+            <SuggestionChip
               icon={Lightbulb}
               label="What should I do?"
               onClick={actionWhatToDo}
