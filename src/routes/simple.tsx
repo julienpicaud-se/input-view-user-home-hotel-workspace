@@ -248,13 +248,20 @@ function SimpleHomePage() {
       </section>
 
       {/* Big helper buttons */}
-      <section className="mb-12 grid gap-3 sm:grid-cols-2">
+      <section className="mb-12 grid gap-3 sm:grid-cols-3">
+        <BigAction
+          to="/simple/workspace"
+          icon={Building2}
+          title="Open hotel workspace"
+          subtitle="Focus on one property — its data, status and tips."
+          tone="primary"
+        />
         <BigAction
           to="/simple/insights"
           icon={Sparkles}
           title="How am I doing?"
-          subtitle="See trends, peer comparison and AI tips."
-          tone="primary"
+          subtitle="Trends, peer comparison and AI tips."
+          tone="muted"
         />
         <BigAction
           to="/simple/log"
