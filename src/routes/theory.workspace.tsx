@@ -705,6 +705,12 @@ function TheoryWorkspacePage() {
           </p>
         </section>
 
+        {/* Section anchor nav — Log / Analyze / History / Benchmarks / Import / Settings */}
+        <TheorySectionNav />
+
+        {/* anchor for "log" — wraps the existing primary action + guided log block below */}
+        <div id="theory-section-log" className="scroll-mt-24" />
+
         {/* Status pulse */}
         <section className="mb-8 grid gap-3 sm:grid-cols-3">
           <PulseTile
