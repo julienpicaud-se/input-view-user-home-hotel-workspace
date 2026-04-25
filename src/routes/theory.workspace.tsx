@@ -153,6 +153,11 @@ function TheoryWorkspacePage() {
   const speechSupported =
     typeof window !== "undefined" &&
     !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
+  // Refs mirror state so async speech callbacks can read latest values.
+  const stepRef = React.useRef(0);
+  const voicePendingRef = React.useRef<typeof voicePending>(null);
+  React.useEffect(() => { voicePendingRef.current = voicePending; }, [voicePending]);
+  React.useEffect(() => { stepRef.current = step; }, [step]);
 
   // Hands-free mode: after a confirm, auto-advance + auto-listen on next step.
   const [handsFree, setHandsFree] = React.useState(false);
@@ -162,6 +167,14 @@ function TheoryWorkspacePage() {
   }, [handsFree]);
   // When true on the next step, we auto-start listening.
   const autoListenRef = React.useRef(false);
+  // Brief banner showing the recognized command (e.g. "Skip", "Back").
+  const [commandFlash, setCommandFlash] = React.useState<string>("");
+  const commandFlashTimer = React.useRef<number | null>(null);
+  function flashCommand(label: string) {
+    setCommandFlash(label);
+    if (commandFlashTimer.current) window.clearTimeout(commandFlashTimer.current);
+    commandFlashTimer.current = window.setTimeout(() => setCommandFlash(""), 1400);
+  }
 
   const expected = expectedReportingPeriod();
   const monthLabel = `${MONTH_NAMES[expected.month - 1]} ${expected.year}`;
@@ -345,6 +358,104 @@ function TheoryWorkspacePage() {
     return total + current;
   }
 
+  // ---- Voice commands (hands-free navigation) ----
+  type VoiceCommand =
+    | "confirm"
+    | "reject"
+    | "next"
+    | "back"
+    | "skip"
+    | "repeat"
+    | "stop";
+
+  function parseCommand(input: string): VoiceCommand | null {
+    if (!input) return null;
+    const s = input.toLowerCase().trim().replace(/[.!?,]/g, "");
+    // Keep matching tight — only treat short utterances as commands so
+    // numbers like "twelve hundred" are never swallowed by accident.
+    if (s.split(/\s+/).length > 4) return null;
+    const has = (...words: string[]) => words.some((w) => s === w || s.startsWith(w + " ") || s.endsWith(" " + w) || s.includes(" " + w + " "));
+    if (has("yes", "yeah", "yep", "yup", "correct", "confirm", "save", "okay", "ok", "right", "sure")) return "confirm";
+    if (has("no", "nope", "wrong", "incorrect")) return "reject";
+    if (s === "try again" || s.startsWith("try again")) return "reject";
+    if (has("back", "previous", "go back")) return "back";
+    if (has("skip")) return "skip";
+    if (has("next", "forward")) return "next";
+    if (has("repeat", "again", "what")) return "repeat";
+    if (has("stop", "cancel", "quit", "exit", "close")) return "stop";
+    return null;
+  }
+
+  function runCommand(cmd: VoiceCommand) {
+    const curStep = stepRef.current;
+    const curField = curStep < FIELDS.length ? FIELDS[curStep] : null;
+    const pending = voicePendingRef.current;
+
+    switch (cmd) {
+      case "confirm": {
+        flashCommand("Confirm");
+        if (pending && pending.parsed !== null && curField) {
+          confirmVoice(curField.key);
+        } else if (handsFreeRef.current) {
+          // No pending value to confirm — treat as "next".
+          autoListenRef.current = true;
+          setStep((s) => Math.min(s + 1, FIELDS.length));
+        }
+        return;
+      }
+      case "reject": {
+        flashCommand("Try again");
+        rejectVoice();
+        if (handsFreeRef.current && curField) {
+          window.setTimeout(() => startListening(curField.key), 250);
+        }
+        return;
+      }
+      case "next": {
+        flashCommand("Next");
+        if (handsFreeRef.current) autoListenRef.current = true;
+        setStep((s) => Math.min(s + 1, FIELDS.length));
+        return;
+      }
+      case "back": {
+        flashCommand("Back");
+        if (handsFreeRef.current) autoListenRef.current = true;
+        setStep((s) => Math.max(s - 1, 0));
+        return;
+      }
+      case "skip": {
+        flashCommand("Skip");
+        if (curField) setVal(curField.key, "");
+        if (handsFreeRef.current) autoListenRef.current = true;
+        setStep((s) => Math.min(s + 1, FIELDS.length));
+        return;
+      }
+      case "repeat": {
+        flashCommand("Repeat");
+        rejectVoice();
+        if (curField) {
+          // Visually re-trigger by toggling the heard text briefly; mostly
+          // useful in hands-free where we also re-listen.
+          if (handsFreeRef.current) {
+            window.setTimeout(() => startListening(curField.key), 200);
+          }
+        }
+        return;
+      }
+      case "stop": {
+        flashCommand("Stopped");
+        stopListening();
+        rejectVoice();
+        if (handsFreeRef.current) {
+          setHandsFree(false);
+          handsFreeRef.current = false;
+          autoListenRef.current = false;
+        }
+        return;
+      }
+    }
+  }
+
   function stopListening() {
     try {
       recognitionRef.current?.stop?.();
@@ -354,14 +465,16 @@ function TheoryWorkspacePage() {
     setListening(false);
   }
 
-  function startListening(field: FieldKey) {
+  function startListening(field: FieldKey, opts?: { keepPending?: boolean }) {
     if (!speechSupported) {
       setVoiceError("Voice input isn't supported in this browser.");
       return;
     }
     setVoiceError("");
-    setVoiceHeard("");
-    setVoicePending(null);
+    if (!opts?.keepPending) {
+      setVoiceHeard("");
+      setVoicePending(null);
+    }
     const SR =
       (window as any).SpeechRecognition ||
       (window as any).webkitSpeechRecognition;
@@ -394,10 +507,27 @@ function TheoryWorkspacePage() {
       setListening(false);
       const heard = finalText.trim();
       if (!heard) return;
+      // Voice command takes priority over number parsing — lets the user
+      // say "yes / no / next / back / skip / repeat / stop" hands-free.
+      const cmd = parseCommand(heard);
+      if (cmd) {
+        setVoiceHeard("");
+        runCommand(cmd);
+        return;
+      }
       const parsed = parseSpokenNumber(heard);
       setVoicePending({ raw: heard, parsed });
       if (parsed === null) {
-        setVoiceError(`I heard "${heard}" but couldn't read a number.`);
+        setVoiceError(`I heard "${heard}" but couldn't read a number. Try again or say "skip".`);
+      }
+      // Hands-free: after showing the pending value, re-open the mic so
+      // the user can say "yes" / "no" / "try again" without tapping.
+      if (handsFreeRef.current) {
+        const curStep = stepRef.current;
+        const nextField = curStep < FIELDS.length ? FIELDS[curStep].key : null;
+        if (nextField) {
+          window.setTimeout(() => startListening(nextField, { keepPending: true }), 600);
+        }
       }
     };
     recognitionRef.current = rec;
@@ -777,17 +907,23 @@ function TheoryWorkspacePage() {
                   </div>
 
                   {/* Voice feedback / confirmation */}
-                  {speechSupported && (listening || voiceHeard || voicePending || voiceError) && (
+                  {speechSupported && (listening || voiceHeard || voicePending || voiceError || commandFlash) && (
                     <div className="mt-3 rounded-2xl border border-violet-300/20 bg-violet-500/[0.06] p-3 backdrop-blur-sm">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
+                          {commandFlash && (
+                            <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-emerald-300/30 bg-emerald-500/15 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-emerald-100">
+                              <Check className="h-3 w-3" />
+                              {commandFlash}
+                            </div>
+                          )}
                           {listening && (
                             <div className="flex items-center gap-2 text-sm text-violet-100">
                               <span className="relative flex h-2.5 w-2.5">
                                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
                                 <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-rose-500" />
                               </span>
-                              Listening… say the value (e.g. "twelve thousand four hundred")
+                              Listening… say the value, or "yes / no / next / back / skip / repeat / stop"
                             </div>
                           )}
                           {!listening && voiceHeard && (
