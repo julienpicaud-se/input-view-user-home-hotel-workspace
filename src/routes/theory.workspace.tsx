@@ -653,7 +653,7 @@ function TheoryWorkspacePage() {
                     {currentField.sera}
                   </p>
 
-                  <div className="mt-5 flex items-end gap-3">
+                  <div className="mt-5 flex items-end gap-2 sm:gap-3">
                     <input
                       type="text"
                       inputMode="decimal"
@@ -664,12 +664,95 @@ function TheoryWorkspacePage() {
                         if (e.key === "Enter") next();
                       }}
                       placeholder="0"
-                      className="flex-1 rounded-2xl border border-white/15 bg-white/[0.04] px-5 py-4 font-serif text-3xl text-white placeholder:text-white/25 focus:border-violet-300/50 focus:outline-none"
+                      className="flex-1 min-w-0 rounded-2xl border border-white/15 bg-white/[0.04] px-5 py-4 font-serif text-3xl text-white placeholder:text-white/25 focus:border-violet-300/50 focus:outline-none"
                     />
                     <span className="pb-3 font-serif text-xl text-white/50">
                       {currentField.unit}
                     </span>
+                    {speechSupported && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          listening ? stopListening() : startListening(currentField.key)
+                        }
+                        aria-label={listening ? "Stop listening" : "Speak the value"}
+                        className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border transition-all ${
+                          listening
+                            ? "border-rose-300/50 bg-gradient-to-br from-rose-500 to-pink-500 text-white shadow-[0_0_30px_rgba(244,63,94,0.5)] animate-pulse"
+                            : "border-white/15 bg-white/[0.04] text-white/80 hover:border-violet-300/40 hover:bg-violet-500/10 hover:text-white"
+                        }`}
+                      >
+                        {listening ? (
+                          <MicOff className="h-5 w-5" />
+                        ) : (
+                          <Mic className="h-5 w-5" />
+                        )}
+                      </button>
+                    )}
                   </div>
+
+                  {/* Voice feedback / confirmation */}
+                  {speechSupported && (listening || voiceHeard || voicePending || voiceError) && (
+                    <div className="mt-3 rounded-2xl border border-violet-300/20 bg-violet-500/[0.06] p-3 backdrop-blur-sm">
+                      {listening && (
+                        <div className="flex items-center gap-2 text-sm text-violet-100">
+                          <span className="relative flex h-2.5 w-2.5">
+                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
+                            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-rose-500" />
+                          </span>
+                          Listening… say the value (e.g. "twelve thousand four hundred")
+                        </div>
+                      )}
+                      {!listening && voiceHeard && (
+                        <p className="text-xs uppercase tracking-[0.18em] text-white/45">
+                          Heard
+                          <span className="ml-2 normal-case tracking-normal text-white/80">
+                            "{voiceHeard}"
+                          </span>
+                        </p>
+                      )}
+                      {!listening && voicePending && voicePending.parsed !== null && (
+                        <div className="mt-2">
+                          <p className="text-sm text-white/85">
+                            Sera: did you say{" "}
+                            <span className="font-serif text-xl text-white">
+                              {formatNumber(voicePending.parsed)} {currentField.unit}
+                            </span>
+                            ?
+                          </p>
+                          <div className="mt-3 flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => confirmVoice(currentField.key)}
+                              className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 px-4 py-2 text-sm font-medium text-white shadow-md hover:from-emerald-400 hover:to-teal-400"
+                            >
+                              <Check className="h-4 w-4" /> Yes, save it
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                rejectVoice();
+                                startListening(currentField.key);
+                              }}
+                              className="inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2 text-sm text-white/80 hover:bg-white/[0.08]"
+                            >
+                              <Mic className="h-4 w-4" /> Try again
+                            </button>
+                            <button
+                              type="button"
+                              onClick={rejectVoice}
+                              className="rounded-xl px-3 py-2 text-sm text-white/55 hover:text-white"
+                            >
+                              Type instead
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      {!listening && voiceError && (
+                        <p className="mt-2 text-sm text-amber-200/90">{voiceError}</p>
+                      )}
+                    </div>
+                  )}
 
                   <div className="mt-5 flex items-center justify-between">
                     <button
