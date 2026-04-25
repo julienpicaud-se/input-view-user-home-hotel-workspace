@@ -295,7 +295,7 @@ function HistoryPage() {
           <table className="w-full min-w-[820px] text-sm">
             <thead className="bg-muted/50 text-left text-xs uppercase tracking-wider text-muted-foreground">
               <tr>
-                <th className="px-4 py-3 font-medium">Period</th>
+                <th className="sticky left-0 z-10 bg-muted/95 px-4 py-3 font-medium backdrop-blur-sm">Period</th>
                 <th className="px-4 py-3 font-medium">Electricity</th>
                 <th className="px-4 py-3 font-medium">Gas</th>
                 <th className="px-4 py-3 font-medium">Water</th>
