@@ -413,6 +413,14 @@ function TheoryWorkspacePage() {
     setVoicePending(null);
     setVoiceHeard("");
     setVoiceError("");
+    // Hands-free: advance to the next step (or review) and re-listen there.
+    if (handsFreeRef.current) {
+      autoListenRef.current = true;
+      // Tiny delay so the user sees the saved chip flash before we move on.
+      window.setTimeout(() => {
+        setStep((s) => Math.min(s + 1, FIELDS.length));
+      }, 280);
+    }
   }
 
   function rejectVoice() {
@@ -421,12 +429,24 @@ function TheoryWorkspacePage() {
     setVoiceError("");
   }
 
-  // Reset voice state when changing step or closing the log
+  // Reset voice state when changing step or closing the log.
+  // In hands-free mode, also auto-start listening on the new step.
   React.useEffect(() => {
     stopListening();
     setVoiceHeard("");
     setVoicePending(null);
     setVoiceError("");
+    if (!logOpen) {
+      autoListenRef.current = false;
+      return;
+    }
+    if (autoListenRef.current && step < FIELDS.length && speechSupported) {
+      autoListenRef.current = false;
+      const fieldKey = FIELDS[step].key;
+      // Small gap so the new step renders & mic resource is free.
+      const t = window.setTimeout(() => startListening(fieldKey), 350);
+      return () => window.clearTimeout(t);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, logOpen]);
 
