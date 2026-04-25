@@ -679,15 +679,9 @@ function TheoryWorkspacePage() {
 
       {/* Header */}
       <header className="relative z-30 flex items-center justify-between gap-3 px-5 py-4 sm:px-8">
-        <Link
-          to="/theory"
-          className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.04] px-3 py-1.5 text-xs text-white/80 backdrop-blur-md transition-colors hover:bg-white/[0.08]"
-          aria-label="Back to Stage"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Stage</span>
-        </Link>
-        <TheoryNav active="workspace" />
+        <div className="min-w-0 flex-1">
+          <TheoryNav active="workspace" />
+        </div>
         <DesignModeSwitcher />
       </header>
 
