@@ -256,7 +256,11 @@ function TheoryWorkspacePage() {
   }
 
   // ---- Guided log flow ----
-  function startLog() {
+  function startLog(opts?: { handsFree?: boolean }) {
+    const wantsHandsFree = !!opts?.handsFree && speechSupported;
+    setHandsFree(wantsHandsFree);
+    handsFreeRef.current = wantsHandsFree;
+    autoListenRef.current = wantsHandsFree;
     setLogOpen(true);
     setStep(0);
     setValues(
