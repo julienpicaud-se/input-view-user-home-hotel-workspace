@@ -3,20 +3,23 @@ import { Link } from "@tanstack/react-router";
 import { Orbit, Building2 } from "lucide-react";
 
 /**
- * Persistent two-tab nav for AI Theory mode so users can always
- * see — and reach — both surfaces (Stage home + Hotel workspace).
+ * Persistent Stage / Workspace tab bar for AI Theory mode.
+ * The active tab is filled with the signature violet→fuchsia gradient,
+ * carries a glow, and shows a small pulsing dot — so the current
+ * surface is impossible to miss.
  */
 export function TheoryNav({ active }: { active: "stage" | "workspace" }) {
   const base =
-    "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all";
+    "relative inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold tracking-wide transition-all sm:px-4 sm:text-sm";
   const on =
-    "bg-white/[0.12] text-white shadow-[0_0_20px_rgba(168,85,247,0.25)] ring-1 ring-white/15";
-  const off = "text-white/55 hover:text-white/85";
+    "bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-[0_0_24px_rgba(168,85,247,0.55)] ring-1 ring-white/30";
+  const off =
+    "text-white/55 hover:text-white hover:bg-white/[0.06]";
 
   return (
     <nav
       aria-label="AI Theory sections"
-      className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] p-1 backdrop-blur-md"
+      className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-black/40 p-1 backdrop-blur-md"
     >
       <Link
         to="/theory"
@@ -25,6 +28,9 @@ export function TheoryNav({ active }: { active: "stage" | "workspace" }) {
       >
         <Orbit className="h-3.5 w-3.5" />
         Stage
+        {active === "stage" && (
+          <span className="ml-1 h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
+        )}
       </Link>
       <Link
         to="/theory/workspace"
@@ -33,6 +39,9 @@ export function TheoryNav({ active }: { active: "stage" | "workspace" }) {
       >
         <Building2 className="h-3.5 w-3.5" />
         Workspace
+        {active === "workspace" && (
+          <span className="ml-1 h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
+        )}
       </Link>
     </nav>
   );
