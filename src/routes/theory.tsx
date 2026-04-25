@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 import * as React from "react";
 import { toast } from "sonner";
 import {
@@ -71,9 +71,14 @@ const FIELDS = [
 type FieldKey = (typeof FIELDS)[number]["key"];
 
 function TheoryHomePage() {
+  const location = useLocation();
   const callAssistant = useServerFn(sendAssistantMessage);
   const callInsights = useServerFn(generateInsights);
   const navigate = useNavigate();
+
+  if (location.pathname !== "/theory") {
+    return <Outlet />;
+  }
 
   const [profile, setProfile] = React.useState<UserProfile | null>(null);
   const [hotels, setHotels] = React.useState<Hotel[]>([]);

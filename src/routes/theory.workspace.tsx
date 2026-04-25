@@ -200,21 +200,26 @@ function TheoryWorkspacePage() {
     const id = getActiveHotelId();
     setActiveId(id);
     void (async () => {
-      const [{ data: profileData }, { data: hotelData }, { data: entriesData }] =
-        await Promise.all([
-          supabase.from("user_profiles").select("*").eq("id", DEMO_PROFILE_ID).maybeSingle(),
-          supabase.from("hotels").select("*").eq("id", id).maybeSingle(),
-          supabase
-            .from("monthly_entries")
-            .select("*")
-            .eq("hotel_id", id)
-            .order("year", { ascending: true })
-            .order("month", { ascending: true }),
-        ]);
-      setProfile((profileData as UserProfile) ?? null);
-      setHotel((hotelData as Hotel) ?? null);
-      setEntries((entriesData as MonthlyEntry[] | null) ?? []);
-      setLoading(false);
+      try {
+        const [{ data: profileData }, { data: hotelData }, { data: entriesData }] =
+          await Promise.all([
+            supabase.from("user_profiles").select("*").eq("id", DEMO_PROFILE_ID).maybeSingle(),
+            supabase.from("hotels").select("*").eq("id", id).maybeSingle(),
+            supabase
+              .from("monthly_entries")
+              .select("*")
+              .eq("hotel_id", id)
+              .order("year", { ascending: true })
+              .order("month", { ascending: true }),
+          ]);
+        setProfile((profileData as UserProfile) ?? null);
+        setHotel((hotelData as Hotel) ?? null);
+        setEntries((entriesData as MonthlyEntry[] | null) ?? []);
+      } catch {
+        toast.error("Workspace data could not load. Please try again.");
+      } finally {
+        setLoading(false);
+      }
     })();
   }, []);
 
