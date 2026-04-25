@@ -456,6 +456,7 @@ function TheoryWorkspacePage() {
     }
   }
 
+  function stopListening() {
     try {
       recognitionRef.current?.stop?.();
     } catch {
