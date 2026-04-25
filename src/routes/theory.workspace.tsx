@@ -607,9 +607,9 @@ function TheoryWorkspacePage() {
 
         {/* Big primary action — Log this month */}
         {!logOpen && (
-          <section className="mb-8">
+          <section className="mb-8 space-y-3">
             <button
-              onClick={startLog}
+              onClick={() => startLog()}
               className="group relative w-full overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-violet-600/30 via-fuchsia-600/20 to-amber-600/20 p-6 text-left shadow-[0_0_50px_rgba(168,85,247,0.18)] transition-all hover:border-white/30 hover:shadow-[0_0_70px_rgba(168,85,247,0.3)] sm:p-8"
             >
               <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-gradient-to-br from-violet-500/40 to-fuchsia-500/20 blur-3xl" />
@@ -629,6 +629,28 @@ function TheoryWorkspacePage() {
                 <ChevronRight className="h-7 w-7 text-white/70 transition-transform group-hover:translate-x-1" />
               </div>
             </button>
+
+            {speechSupported && (
+              <button
+                onClick={() => startLog({ handsFree: true })}
+                className="group relative flex w-full items-center justify-between gap-4 overflow-hidden rounded-2xl border border-rose-300/20 bg-gradient-to-br from-rose-500/15 via-fuchsia-500/10 to-violet-500/10 px-5 py-4 text-left transition-all hover:border-rose-300/40 hover:from-rose-500/25"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-rose-500 to-pink-500 text-white shadow-[0_0_20px_rgba(244,63,94,0.4)]">
+                    <Mic className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="font-serif text-lg leading-tight">
+                      Hands-free voice log
+                    </p>
+                    <p className="text-xs text-white/60">
+                      Just talk — Sera asks, confirms & advances on her own.
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="h-5 w-5 text-white/60 transition-transform group-hover:translate-x-1" />
+              </button>
+            )}
           </section>
         )}
 
