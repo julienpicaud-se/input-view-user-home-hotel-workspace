@@ -267,7 +267,161 @@ function TheoryWorkspacePage() {
     setValues((prev) => ({ ...prev, [k]: v }));
   }
 
-  function next() {
+  // ---- Voice input ----
+  // Parses spoken number strings, including spelled-out words and units.
+  function parseSpokenNumber(input: string): number | null {
+    if (!input) return null;
+    let s = input.toLowerCase().trim();
+    // Strip common units & filler words
+    s = s.replace(
+      /\b(kwh|kilowatt[-\s]?hours?|kilowatts?|cubic\s+met(?:re|er)s?|m3|m\^3|m³|kilograms?|kilos?|kgs?|kg|nights?|rooms?|approximately|about|around|roughly|maybe|i\s+think|i\s+guess|please|thanks?)\b/g,
+      " ",
+    );
+    s = s.replace(/[, ]+/g, " ").trim();
+
+    // Try direct numeric parse first (handles "1234.5", "1,234.5", "1 234")
+    const direct = s.replace(/\s+/g, "").replace(/,/g, "");
+    if (/^-?\d+(\.\d+)?$/.test(direct)) return Number(direct);
+
+    // Word-to-number for small spoken values
+    const ones: Record<string, number> = {
+      zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5,
+      six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11,
+      twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15,
+      sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19,
+    };
+    const tens: Record<string, number> = {
+      twenty: 20, thirty: 30, forty: 40, fifty: 50,
+      sixty: 60, seventy: 70, eighty: 80, ninety: 90,
+    };
+    const scales: Record<string, number> = {
+      hundred: 100, thousand: 1000, million: 1000000,
+    };
+    const tokens = s.split(/[\s-]+/).filter(Boolean);
+    if (tokens.length === 0) return null;
+
+    let total = 0;
+    let current = 0;
+    let matchedAny = false;
+    for (const tk of tokens) {
+      if (tk === "and") continue;
+      if (ones[tk] !== undefined) {
+        current += ones[tk];
+        matchedAny = true;
+      } else if (tens[tk] !== undefined) {
+        current += tens[tk];
+        matchedAny = true;
+      } else if (scales[tk] !== undefined) {
+        if (current === 0) current = 1;
+        if (tk === "hundred") {
+          current *= 100;
+        } else {
+          total += current * scales[tk];
+          current = 0;
+        }
+        matchedAny = true;
+      } else if (/^\d+(\.\d+)?$/.test(tk)) {
+        current += Number(tk);
+        matchedAny = true;
+      } else {
+        // unknown token — abort word parsing
+        return null;
+      }
+    }
+    if (!matchedAny) return null;
+    return total + current;
+  }
+
+  function stopListening() {
+    try {
+      recognitionRef.current?.stop?.();
+    } catch {
+      // ignore
+    }
+    setListening(false);
+  }
+
+  function startListening(field: FieldKey) {
+    if (!speechSupported) {
+      setVoiceError("Voice input isn't supported in this browser.");
+      return;
+    }
+    setVoiceError("");
+    setVoiceHeard("");
+    setVoicePending(null);
+    const SR =
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
+    const rec = new SR();
+    rec.lang = "en-US";
+    rec.continuous = false;
+    rec.interimResults = true;
+    rec.maxAlternatives = 1;
+    let finalText = "";
+    rec.onresult = (event: any) => {
+      let interim = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const t = event.results[i][0].transcript;
+        if (event.results[i].isFinal) finalText += t;
+        else interim += t;
+      }
+      setVoiceHeard((finalText + interim).trim());
+    };
+    rec.onerror = (e: any) => {
+      setListening(false);
+      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+        setVoiceError("Microphone permission denied.");
+      } else if (e.error === "no-speech") {
+        setVoiceError("I didn't catch that. Try again.");
+      } else {
+        setVoiceError("Couldn't capture audio. Try again.");
+      }
+    };
+    rec.onend = () => {
+      setListening(false);
+      const heard = finalText.trim();
+      if (!heard) return;
+      const parsed = parseSpokenNumber(heard);
+      setVoicePending({ raw: heard, parsed });
+      if (parsed === null) {
+        setVoiceError(`I heard "${heard}" but couldn't read a number.`);
+      }
+    };
+    recognitionRef.current = rec;
+    try {
+      rec.start();
+      setListening(true);
+    } catch {
+      setListening(false);
+      setVoiceError("Couldn't start the microphone.");
+    }
+  }
+
+  function confirmVoice(field: FieldKey) {
+    if (voicePending && voicePending.parsed !== null) {
+      setVal(field, String(voicePending.parsed));
+    }
+    setVoicePending(null);
+    setVoiceHeard("");
+    setVoiceError("");
+  }
+
+  function rejectVoice() {
+    setVoicePending(null);
+    setVoiceHeard("");
+    setVoiceError("");
+  }
+
+  // Reset voice state when changing step or closing the log
+  React.useEffect(() => {
+    stopListening();
+    setVoiceHeard("");
+    setVoicePending(null);
+    setVoiceError("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, logOpen]);
+
+  function num(k: FieldKey): number | null {
     if (step < FIELDS.length) setStep((s) => s + 1);
   }
 
