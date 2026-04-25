@@ -162,6 +162,14 @@ function TheoryWorkspacePage() {
   }, [handsFree]);
   // When true on the next step, we auto-start listening.
   const autoListenRef = React.useRef(false);
+  // Brief banner showing the recognized command (e.g. "Skip", "Back").
+  const [commandFlash, setCommandFlash] = React.useState<string>("");
+  const commandFlashTimer = React.useRef<number | null>(null);
+  function flashCommand(label: string) {
+    setCommandFlash(label);
+    if (commandFlashTimer.current) window.clearTimeout(commandFlashTimer.current);
+    commandFlashTimer.current = window.setTimeout(() => setCommandFlash(""), 1400);
+  }
 
   const expected = expectedReportingPeriod();
   const monthLabel = `${MONTH_NAMES[expected.month - 1]} ${expected.year}`;
