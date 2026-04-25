@@ -382,11 +382,16 @@ function AIFirstPage() {
               icon={ListChecks}
               label={
                 missing.length > 0
-                  ? `Log ${monthLabel}${missing.length > 1 ? ` (${missing.length})` : ""}`
-                  : `Log ${monthLabel}`
+                  ? `Guided log${missing.length > 1 ? ` (${missing.length})` : ""}`
+                  : `Guided log`
               }
               onClick={actionLogData}
               tone="primary"
+            />
+            <SuggestionChip
+              icon={Pencil}
+              label="Quick form"
+              onClick={actionQuickForm}
             />
             <SuggestionChip
               icon={Lightbulb}
