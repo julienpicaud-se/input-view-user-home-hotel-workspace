@@ -157,6 +157,7 @@ function TheoryWorkspacePage() {
   const stepRef = React.useRef(0);
   const voicePendingRef = React.useRef<typeof voicePending>(null);
   React.useEffect(() => { voicePendingRef.current = voicePending; }, [voicePending]);
+  React.useEffect(() => { stepRef.current = step; }, [step]);
 
   // Hands-free mode: after a confirm, auto-advance + auto-listen on next step.
   const [handsFree, setHandsFree] = React.useState(false);
