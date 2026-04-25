@@ -632,6 +632,39 @@ function MessageBubble({
             </div>
           );
         })()}
+        {msg.attachment?.kind === "guided-log" && (() => {
+          const att = msg.attachment;
+          const targetHotel = hotels.find((h) => h.id === att.hotelId);
+          if (!targetHotel) return null;
+          const pd = new Date(att.year, att.month - 2, 1);
+          const existing =
+            entries.find(
+              (e) =>
+                e.hotel_id === att.hotelId && e.year === att.year && e.month === att.month,
+            ) ?? null;
+          const prev =
+            entries.find(
+              (e) =>
+                e.hotel_id === att.hotelId &&
+                e.year === pd.getFullYear() &&
+                e.month === pd.getMonth() + 1,
+            ) ?? null;
+          return (
+            <div className="mt-2">
+              <GuidedLogFlow
+                hotel={targetHotel}
+                year={att.year}
+                month={att.month}
+                existing={existing}
+                prev={prev}
+                onSaved={(entry, hotelName) => {
+                  onSavedEntry(entry);
+                  onAfterSave(hotelName);
+                }}
+              />
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
