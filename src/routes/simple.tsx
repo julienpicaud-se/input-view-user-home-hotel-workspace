@@ -11,6 +11,7 @@ import {
   Sunset,
   Loader2,
   Leaf,
+  Building2,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -239,7 +240,7 @@ function SimpleHomePage() {
                 monthLabel={monthLabel}
                 onAction={() => {
                   setActiveHotelId(s.hotel.id);
-                  void navigate({ to: "/simple/log" });
+                  void navigate({ to: "/simple/workspace" });
                 }}
               />
             ))}
@@ -248,13 +249,20 @@ function SimpleHomePage() {
       </section>
 
       {/* Big helper buttons */}
-      <section className="mb-12 grid gap-3 sm:grid-cols-2">
+      <section className="mb-12 grid gap-3 sm:grid-cols-3">
+        <BigAction
+          to="/simple/workspace"
+          icon={Building2}
+          title="Open hotel workspace"
+          subtitle="Focus on one property — its data, status and tips."
+          tone="primary"
+        />
         <BigAction
           to="/simple/insights"
           icon={Sparkles}
           title="How am I doing?"
-          subtitle="See trends, peer comparison and AI tips."
-          tone="primary"
+          subtitle="Trends, peer comparison and AI tips."
+          tone="muted"
         />
         <BigAction
           to="/simple/log"
@@ -388,7 +396,11 @@ function BigAction({
   subtitle,
   tone,
 }: {
-  to: "/simple/log" | "/simple/insights" | "/simple/settings";
+  to:
+    | "/simple/log"
+    | "/simple/insights"
+    | "/simple/settings"
+    | "/simple/workspace";
   icon: React.ComponentType<{ className?: string }>;
   title: string;
   subtitle: string;

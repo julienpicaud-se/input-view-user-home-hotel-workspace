@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import * as React from "react";
 import { toast } from "sonner";
 import {
@@ -27,7 +27,11 @@ import {
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import { type Hotel, type MonthlyEntry } from "@/lib/hotel";
+import {
+  setActiveHotelId as setActiveHotelIdLib,
+  type Hotel,
+  type MonthlyEntry,
+} from "@/lib/hotel";
 import { DEMO_PROFILE_ID, type UserProfile } from "@/lib/user-profile";
 import { MONTH_NAMES, calculateCO2e, formatNumber, pctChange } from "@/lib/format";
 import { DesignModeSwitcher } from "@/components/design-mode-switcher";
@@ -125,6 +129,7 @@ function AIFirstPage() {
   const callAssistant = useServerFn(sendAssistantMessage);
   const callInsights = useServerFn(generateInsights);
 
+  const navigate = useNavigate();
   const [profile, setProfile] = React.useState<UserProfile | null>(null);
   const [hotels, setHotels] = React.useState<Hotel[]>([]);
   const [entries, setEntries] = React.useState<MonthlyEntry[]>([]);
@@ -392,6 +397,14 @@ function AIFirstPage() {
               icon={Pencil}
               label="Quick form"
               onClick={actionQuickForm}
+            />
+            <SuggestionChip
+              icon={Building2}
+              label="Open hotel workspace"
+              onClick={() => {
+                if (activeHotelId) setActiveHotelIdLib(activeHotelId);
+                void navigate({ to: "/ai/workspace" });
+              }}
             />
             <SuggestionChip
               icon={Lightbulb}
