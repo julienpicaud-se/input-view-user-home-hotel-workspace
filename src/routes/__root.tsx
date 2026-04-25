@@ -150,16 +150,19 @@ function ModeAwareShell() {
     const path = location.pathname;
     const isSimplePath = path === "/simple" || path.startsWith("/simple/");
     const isEasyPath = path === "/easy" || path.startsWith("/easy/");
+    const isAIPath = path === "/ai" || path.startsWith("/ai/");
     if (mode === "simple" && !isSimplePath) {
       void navigate({ to: "/simple" });
     } else if (mode === "extra-simple" && !isEasyPath) {
       void navigate({ to: "/easy" });
-    } else if (mode === "classic" && (isSimplePath || isEasyPath)) {
+    } else if (mode === "ai-first" && !isAIPath) {
+      void navigate({ to: "/ai" });
+    } else if (mode === "classic" && (isSimplePath || isEasyPath || isAIPath)) {
       void navigate({ to: "/" });
     }
   }, [mode, location.pathname, navigate]);
 
-  if (mode === "simple" || mode === "extra-simple") {
+  if (mode === "simple" || mode === "extra-simple" || mode === "ai-first") {
     // These modes own their own header + nav.
     return <Outlet />;
   }
