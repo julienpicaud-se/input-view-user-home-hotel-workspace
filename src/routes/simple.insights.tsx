@@ -151,7 +151,7 @@ function SimpleInsightsPage() {
           history: chatHistory,
         },
       });
-      const reply = res.ok ? res.message : "Sorry — I couldn't reach Sera just now. Try again?";
+      const reply = res.ok ? res.content : "Sorry — I couldn't reach Sera just now. Try again?";
       setChatHistory((h) => [...h, { role: "assistant", content: reply }]);
     } catch {
       setChatHistory((h) => [
@@ -268,7 +268,7 @@ function SimpleInsightsPage() {
                     <div className="text-sm font-semibold text-foreground">
                       {ins.title}
                     </div>
-                    <p className="mt-1 text-sm text-muted-foreground">{ins.detail}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">{ins.body}</p>
                   </li>
                 ))}
               </ul>
