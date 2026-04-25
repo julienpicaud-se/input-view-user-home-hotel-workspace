@@ -465,14 +465,16 @@ function TheoryWorkspacePage() {
     setListening(false);
   }
 
-  function startListening(field: FieldKey) {
+  function startListening(field: FieldKey, opts?: { keepPending?: boolean }) {
     if (!speechSupported) {
       setVoiceError("Voice input isn't supported in this browser.");
       return;
     }
     setVoiceError("");
-    setVoiceHeard("");
-    setVoicePending(null);
+    if (!opts?.keepPending) {
+      setVoiceHeard("");
+      setVoicePending(null);
+    }
     const SR =
       (window as any).SpeechRecognition ||
       (window as any).webkitSpeechRecognition;
