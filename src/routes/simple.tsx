@@ -388,7 +388,11 @@ function BigAction({
   subtitle,
   tone,
 }: {
-  to: "/simple/log" | "/simple/insights" | "/simple/settings";
+  to:
+    | "/simple/log"
+    | "/simple/insights"
+    | "/simple/settings"
+    | "/simple/workspace";
   icon: React.ComponentType<{ className?: string }>;
   title: string;
   subtitle: string;
