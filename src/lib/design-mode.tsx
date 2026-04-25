@@ -5,8 +5,11 @@ import * as React from "react";
  * "Simple"       = a calmer, manager-friendly multi-page experience.
  * "Extra Simple" = a single-page, near-zero-click experience for managers
  *                  who only visit once a month.
+ * "AI First"     = chat-led experience: Sera drives everything (insights,
+ *                  recommendations, next actions, data entry) through a
+ *                  single conversational surface.
  */
-export type DesignMode = "classic" | "simple" | "extra-simple";
+export type DesignMode = "classic" | "simple" | "extra-simple" | "ai-first";
 
 const STORAGE_KEY = "ra-plus-design-mode";
 
@@ -23,6 +26,7 @@ function readInitial(): DesignMode {
     const v = window.localStorage.getItem(STORAGE_KEY);
     if (v === "simple") return "simple";
     if (v === "extra-simple") return "extra-simple";
+    if (v === "ai-first") return "ai-first";
     return "classic";
   } catch {
     return "classic";
