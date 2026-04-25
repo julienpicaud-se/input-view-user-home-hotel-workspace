@@ -117,6 +117,23 @@ export function DesignModeSwitcher() {
             </p>
           </div>
         </DropdownMenuItem>
+        <DropdownMenuItem
+          onSelect={() => handleSelect("ai-first")}
+          className="flex items-start gap-3 rounded-xl py-2.5"
+        >
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent/15 text-accent-foreground">
+            <Bot className="h-4 w-4" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm font-medium">AI First</span>
+              {mode === "ai-first" && <Check className="h-4 w-4 shrink-0 text-primary" />}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Just chat with Sera. She logs data, gives insights and tells you what to do next.
+            </p>
+          </div>
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
