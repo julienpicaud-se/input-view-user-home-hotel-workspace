@@ -860,3 +860,318 @@ function InlineLogForm({
     </div>
   );
 }
+
+/* ---------------- Guided step-by-step flow ---------------- */
+
+function GuidedLogFlow({
+  hotel,
+  year,
+  month,
+  existing,
+  prev,
+  onSaved,
+}: {
+  hotel: Hotel;
+  year: number;
+  month: number;
+  existing: MonthlyEntry | null;
+  prev: MonthlyEntry | null;
+  onSaved: (entry: MonthlyEntry, hotelName: string) => void;
+}) {
+  const monthLabel = `${MONTH_NAMES[month - 1]} ${year}`;
+  const [step, setStep] = React.useState(0);
+  const [values, setValues] = React.useState<Values>(() =>
+    existing
+      ? {
+          electricity_kwh: existing.electricity_kwh?.toString() ?? "",
+          gas_kwh: existing.gas_kwh?.toString() ?? "",
+          water_m3: existing.water_m3?.toString() ?? "",
+          waste_kg: existing.waste_kg?.toString() ?? "",
+          occupied_room_nights: existing.occupied_room_nights?.toString() ?? "",
+        }
+      : { ...EMPTY },
+  );
+  const [draft, setDraft] = React.useState<string>("");
+  const [saving, setSaving] = React.useState(false);
+  const [saved, setSaved] = React.useState(false);
+
+  const totalSteps = FIELDS.length;
+  const isReview = step >= totalSteps;
+  const currentField = !isReview ? FIELDS[step] : null;
+  const prevValForCurrent =
+    currentField && prev ? (prev[currentField.key] as number | null) : null;
+
+  React.useEffect(() => {
+    if (currentField) {
+      setDraft(values[currentField.key] ?? "");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
+
+  function commitDraftAndAdvance(skip: boolean) {
+    if (!currentField) return;
+    setValues((prev) => ({
+      ...prev,
+      [currentField.key]: skip ? "" : draft.trim(),
+    }));
+    setStep((s) => s + 1);
+  }
+
+  function goBack() {
+    if (step === 0) return;
+    setStep((s) => s - 1);
+  }
+
+  async function confirmAndSave() {
+    const filledCount = Object.values(values).filter((v) => v.trim() !== "").length;
+    if (filledCount === 0) {
+      toast.error("Add at least one number first.");
+      return;
+    }
+    setSaving(true);
+    const num = (s: string): number | null => {
+      const v = s.trim();
+      if (v === "") return null;
+      const n = Number(v.replace(/,/g, ""));
+      return Number.isFinite(n) ? n : null;
+    };
+    const payload = {
+      hotel_id: hotel.id,
+      year,
+      month,
+      electricity_kwh: num(values.electricity_kwh),
+      gas_kwh: num(values.gas_kwh),
+      water_m3: num(values.water_m3),
+      waste_kg: num(values.waste_kg),
+      occupied_room_nights: num(values.occupied_room_nights),
+    };
+    const { data, error } = existing
+      ? await supabase
+          .from("monthly_entries")
+          .update(payload)
+          .eq("id", existing.id)
+          .select()
+          .single()
+      : await supabase.from("monthly_entries").insert(payload).select().single();
+    setSaving(false);
+    if (error || !data) {
+      toast.error("Could not save. Try again in a moment.");
+      return;
+    }
+    setSaved(true);
+    toast.success(`${hotel.name} saved.`);
+    onSaved(data as MonthlyEntry, hotel.name);
+  }
+
+  if (currentField) {
+    const FIcon = currentField.Icon;
+    const draftNum = draft.trim() === "" ? null : Number(draft.replace(/,/g, ""));
+    const change =
+      prevValForCurrent != null && draftNum != null && Number.isFinite(draftNum)
+        ? pctChange(draftNum, prevValForCurrent)
+        : null;
+
+    return (
+      <div className="rounded-2xl border border-border bg-card p-3.5">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <div className="truncate text-sm font-medium text-foreground">{hotel.name}</div>
+            <div className="text-[11px] text-muted-foreground">
+              {monthLabel} · Step {step + 1} of {totalSteps}
+            </div>
+          </div>
+          <div className="flex gap-1">
+            {FIELDS.map((_, i) => (
+              <span
+                key={i}
+                className={`h-1.5 w-5 rounded-full ${
+                  i < step ? "bg-primary" : i === step ? "bg-primary/60" : "bg-border"
+                }`}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="mb-3 rounded-xl bg-primary/5 p-3">
+          <div className="mb-1 flex items-center gap-2">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/15 text-primary">
+              <FIcon className="h-3.5 w-3.5" />
+            </div>
+            <div className="text-xs font-semibold text-foreground">
+              How much {currentField.label.toLowerCase()} did you use in {MONTH_NAMES[month - 1]}?
+            </div>
+          </div>
+          <div className="text-[11px] leading-relaxed text-muted-foreground">
+            {renderMarkdownLite(currentField.where)}
+          </div>
+          <div className="mt-1 text-[11px] text-muted-foreground">
+            Type a number in <strong className="font-semibold">{currentField.unit}</strong>.{" "}
+            {currentField.example}
+            {prevValForCurrent != null && (
+              <>
+                {" "}
+                · Last month: <strong>{formatNumber(prevValForCurrent)}</strong>{" "}
+                {currentField.unit}
+              </>
+            )}
+          </div>
+        </div>
+
+        <label className="flex items-center gap-2 rounded-xl border border-border/60 bg-background px-3 py-2.5 focus-within:border-primary/60">
+          <input
+            autoFocus
+            inputMode="decimal"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                commitDraftAndAdvance(false);
+              }
+            }}
+            placeholder={
+              prevValForCurrent != null
+                ? formatNumber(prevValForCurrent)
+                : currentField.example.replace(/^e\.g\.\s*/, "")
+            }
+            className="w-full bg-transparent text-base font-medium text-foreground outline-none placeholder:text-muted-foreground/50"
+          />
+          <span className="text-xs text-muted-foreground">{currentField.unit}</span>
+          {change != null && (
+            <span
+              className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
+                change <= 0 ? "bg-success/10 text-success" : "bg-amber-500/10 text-amber-600"
+              }`}
+            >
+              {change > 0 ? "+" : ""}
+              {change.toFixed(0)}%
+            </span>
+          )}
+        </label>
+
+        <div className="mt-3 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={goBack}
+            disabled={step === 0}
+            className="inline-flex items-center gap-1 rounded-xl border border-border bg-card px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground disabled:opacity-40"
+          >
+            Back
+          </button>
+          <button
+            type="button"
+            onClick={() => commitDraftAndAdvance(true)}
+            className="inline-flex items-center gap-1 rounded-xl border border-border bg-card px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+          >
+            <SkipForward className="h-3.5 w-3.5" /> Skip
+          </button>
+          <button
+            type="button"
+            onClick={() => commitDraftAndAdvance(false)}
+            className="ml-auto inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+          >
+            {step === totalSteps - 1 ? "Review" : "Next"}
+            <ArrowRight className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-2xl border border-border bg-card p-3.5">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <div className="truncate text-sm font-medium text-foreground">{hotel.name}</div>
+          <div className="text-[11px] text-muted-foreground">
+            {monthLabel} · Review &amp; confirm
+          </div>
+        </div>
+        {saved && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-[11px] font-medium text-success">
+            <CheckCircle2 className="h-3 w-3" /> Saved
+          </span>
+        )}
+      </div>
+
+      <div className="mb-3 rounded-xl bg-primary/5 p-3 text-xs leading-relaxed text-muted-foreground">
+        Here's what I'll save. Tap any line to change it, or hit{" "}
+        <strong className="font-semibold text-foreground">Confirm &amp; save</strong> when it
+        looks right.
+      </div>
+
+      <ul className="divide-y divide-border/60 overflow-hidden rounded-xl border border-border/60">
+        {FIELDS.map((f, i) => {
+          const v = values[f.key].trim();
+          const prevVal = prev ? (prev[f.key] as number | null) : null;
+          const currNum = v === "" ? null : Number(v.replace(/,/g, ""));
+          const change =
+            prevVal != null && currNum != null && Number.isFinite(currNum)
+              ? pctChange(currNum, prevVal)
+              : null;
+          return (
+            <li key={f.key}>
+              <button
+                type="button"
+                onClick={() => setStep(i)}
+                className="flex w-full items-center gap-3 bg-background px-3 py-2.5 text-left transition-colors hover:bg-muted/40"
+              >
+                <f.Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs text-muted-foreground">{f.label}</div>
+                  <div className="text-sm font-medium text-foreground">
+                    {v === "" ? (
+                      <span className="italic text-muted-foreground">Not provided</span>
+                    ) : (
+                      <>
+                        {formatNumber(currNum ?? 0)}{" "}
+                        <span className="text-xs font-normal text-muted-foreground">
+                          {f.unit}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                {change != null && (
+                  <span
+                    className={`text-[10px] font-medium ${
+                      change <= 0 ? "text-success" : "text-amber-600"
+                    }`}
+                  >
+                    {change > 0 ? "+" : ""}
+                    {change.toFixed(0)}%
+                  </span>
+                )}
+                <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+
+      <div className="mt-3 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setStep(0)}
+          disabled={saving || saved}
+          className="inline-flex items-center gap-1 rounded-xl border border-border bg-card px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground disabled:opacity-40"
+        >
+          Start over
+        </button>
+        <button
+          type="button"
+          onClick={confirmAndSave}
+          disabled={saving || saved}
+          className="ml-auto inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+        >
+          {saving ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <CheckCircle2 className="h-4 w-4" />
+          )}
+          {saved ? "Saved" : "Confirm & save"}
+        </button>
+      </div>
+    </div>
+  );
+}
