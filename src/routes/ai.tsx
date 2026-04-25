@@ -57,6 +57,7 @@ interface ChatMsg {
   // Optional UI-only payload rendered with the message (e.g. inline data form, insight cards).
   attachment?:
     | { kind: "log-form"; hotelId: string; year: number; month: number }
+    | { kind: "guided-log"; hotelId: string; year: number; month: number }
     | { kind: "insights"; items: Insight[] }
     | { kind: "summary"; hotelId: string };
 }
