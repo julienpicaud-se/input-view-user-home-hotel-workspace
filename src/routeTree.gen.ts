@@ -20,9 +20,12 @@ import { Route as BenchmarksRouteImport } from './routes/benchmarks'
 import { Route as AssistantRouteImport } from './routes/assistant'
 import { Route as AiRouteImport } from './routes/ai'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SimpleWorkspaceRouteImport } from './routes/simple.workspace'
 import { Route as SimpleSettingsRouteImport } from './routes/simple.settings'
 import { Route as SimpleLogRouteImport } from './routes/simple.log'
 import { Route as SimpleInsightsRouteImport } from './routes/simple.insights'
+import { Route as EasyWorkspaceRouteImport } from './routes/easy.workspace'
+import { Route as AiWorkspaceRouteImport } from './routes/ai.workspace'
 
 const WorkspaceRoute = WorkspaceRouteImport.update({
   id: '/workspace',
@@ -79,6 +82,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SimpleWorkspaceRoute = SimpleWorkspaceRouteImport.update({
+  id: '/workspace',
+  path: '/workspace',
+  getParentRoute: () => SimpleRoute,
+} as any)
 const SimpleSettingsRoute = SimpleSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -94,55 +102,74 @@ const SimpleInsightsRoute = SimpleInsightsRouteImport.update({
   path: '/insights',
   getParentRoute: () => SimpleRoute,
 } as any)
+const EasyWorkspaceRoute = EasyWorkspaceRouteImport.update({
+  id: '/workspace',
+  path: '/workspace',
+  getParentRoute: () => EasyRoute,
+} as any)
+const AiWorkspaceRoute = AiWorkspaceRouteImport.update({
+  id: '/workspace',
+  path: '/workspace',
+  getParentRoute: () => AiRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/ai': typeof AiRoute
+  '/ai': typeof AiRouteWithChildren
   '/assistant': typeof AssistantRoute
   '/benchmarks': typeof BenchmarksRoute
-  '/easy': typeof EasyRoute
+  '/easy': typeof EasyRouteWithChildren
   '/history': typeof HistoryRoute
   '/hotel': typeof HotelRoute
   '/log': typeof LogRoute
   '/profile': typeof ProfileRoute
   '/simple': typeof SimpleRouteWithChildren
   '/workspace': typeof WorkspaceRoute
+  '/ai/workspace': typeof AiWorkspaceRoute
+  '/easy/workspace': typeof EasyWorkspaceRoute
   '/simple/insights': typeof SimpleInsightsRoute
   '/simple/log': typeof SimpleLogRoute
   '/simple/settings': typeof SimpleSettingsRoute
+  '/simple/workspace': typeof SimpleWorkspaceRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/ai': typeof AiRoute
+  '/ai': typeof AiRouteWithChildren
   '/assistant': typeof AssistantRoute
   '/benchmarks': typeof BenchmarksRoute
-  '/easy': typeof EasyRoute
+  '/easy': typeof EasyRouteWithChildren
   '/history': typeof HistoryRoute
   '/hotel': typeof HotelRoute
   '/log': typeof LogRoute
   '/profile': typeof ProfileRoute
   '/simple': typeof SimpleRouteWithChildren
   '/workspace': typeof WorkspaceRoute
+  '/ai/workspace': typeof AiWorkspaceRoute
+  '/easy/workspace': typeof EasyWorkspaceRoute
   '/simple/insights': typeof SimpleInsightsRoute
   '/simple/log': typeof SimpleLogRoute
   '/simple/settings': typeof SimpleSettingsRoute
+  '/simple/workspace': typeof SimpleWorkspaceRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/ai': typeof AiRoute
+  '/ai': typeof AiRouteWithChildren
   '/assistant': typeof AssistantRoute
   '/benchmarks': typeof BenchmarksRoute
-  '/easy': typeof EasyRoute
+  '/easy': typeof EasyRouteWithChildren
   '/history': typeof HistoryRoute
   '/hotel': typeof HotelRoute
   '/log': typeof LogRoute
   '/profile': typeof ProfileRoute
   '/simple': typeof SimpleRouteWithChildren
   '/workspace': typeof WorkspaceRoute
+  '/ai/workspace': typeof AiWorkspaceRoute
+  '/easy/workspace': typeof EasyWorkspaceRoute
   '/simple/insights': typeof SimpleInsightsRoute
   '/simple/log': typeof SimpleLogRoute
   '/simple/settings': typeof SimpleSettingsRoute
+  '/simple/workspace': typeof SimpleWorkspaceRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -158,9 +185,12 @@ export interface FileRouteTypes {
     | '/profile'
     | '/simple'
     | '/workspace'
+    | '/ai/workspace'
+    | '/easy/workspace'
     | '/simple/insights'
     | '/simple/log'
     | '/simple/settings'
+    | '/simple/workspace'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -174,9 +204,12 @@ export interface FileRouteTypes {
     | '/profile'
     | '/simple'
     | '/workspace'
+    | '/ai/workspace'
+    | '/easy/workspace'
     | '/simple/insights'
     | '/simple/log'
     | '/simple/settings'
+    | '/simple/workspace'
   id:
     | '__root__'
     | '/'
@@ -190,17 +223,20 @@ export interface FileRouteTypes {
     | '/profile'
     | '/simple'
     | '/workspace'
+    | '/ai/workspace'
+    | '/easy/workspace'
     | '/simple/insights'
     | '/simple/log'
     | '/simple/settings'
+    | '/simple/workspace'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AiRoute: typeof AiRoute
+  AiRoute: typeof AiRouteWithChildren
   AssistantRoute: typeof AssistantRoute
   BenchmarksRoute: typeof BenchmarksRoute
-  EasyRoute: typeof EasyRoute
+  EasyRoute: typeof EasyRouteWithChildren
   HistoryRoute: typeof HistoryRoute
   HotelRoute: typeof HotelRoute
   LogRoute: typeof LogRoute
@@ -288,6 +324,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/simple/workspace': {
+      id: '/simple/workspace'
+      path: '/workspace'
+      fullPath: '/simple/workspace'
+      preLoaderRoute: typeof SimpleWorkspaceRouteImport
+      parentRoute: typeof SimpleRoute
+    }
     '/simple/settings': {
       id: '/simple/settings'
       path: '/settings'
@@ -309,19 +352,55 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SimpleInsightsRouteImport
       parentRoute: typeof SimpleRoute
     }
+    '/easy/workspace': {
+      id: '/easy/workspace'
+      path: '/workspace'
+      fullPath: '/easy/workspace'
+      preLoaderRoute: typeof EasyWorkspaceRouteImport
+      parentRoute: typeof EasyRoute
+    }
+    '/ai/workspace': {
+      id: '/ai/workspace'
+      path: '/workspace'
+      fullPath: '/ai/workspace'
+      preLoaderRoute: typeof AiWorkspaceRouteImport
+      parentRoute: typeof AiRoute
+    }
   }
 }
+
+interface AiRouteChildren {
+  AiWorkspaceRoute: typeof AiWorkspaceRoute
+}
+
+const AiRouteChildren: AiRouteChildren = {
+  AiWorkspaceRoute: AiWorkspaceRoute,
+}
+
+const AiRouteWithChildren = AiRoute._addFileChildren(AiRouteChildren)
+
+interface EasyRouteChildren {
+  EasyWorkspaceRoute: typeof EasyWorkspaceRoute
+}
+
+const EasyRouteChildren: EasyRouteChildren = {
+  EasyWorkspaceRoute: EasyWorkspaceRoute,
+}
+
+const EasyRouteWithChildren = EasyRoute._addFileChildren(EasyRouteChildren)
 
 interface SimpleRouteChildren {
   SimpleInsightsRoute: typeof SimpleInsightsRoute
   SimpleLogRoute: typeof SimpleLogRoute
   SimpleSettingsRoute: typeof SimpleSettingsRoute
+  SimpleWorkspaceRoute: typeof SimpleWorkspaceRoute
 }
 
 const SimpleRouteChildren: SimpleRouteChildren = {
   SimpleInsightsRoute: SimpleInsightsRoute,
   SimpleLogRoute: SimpleLogRoute,
   SimpleSettingsRoute: SimpleSettingsRoute,
+  SimpleWorkspaceRoute: SimpleWorkspaceRoute,
 }
 
 const SimpleRouteWithChildren =
@@ -329,10 +408,10 @@ const SimpleRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AiRoute: AiRoute,
+  AiRoute: AiRouteWithChildren,
   AssistantRoute: AssistantRoute,
   BenchmarksRoute: BenchmarksRoute,
-  EasyRoute: EasyRoute,
+  EasyRoute: EasyRouteWithChildren,
   HistoryRoute: HistoryRoute,
   HotelRoute: HotelRoute,
   LogRoute: LogRoute,

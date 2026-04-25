@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { Home, ClipboardList, Sparkles, Settings2, ArrowLeft, HelpCircle } from "lucide-react";
+import { Home, ClipboardList, Sparkles, Settings2, ArrowLeft, HelpCircle, Building2 } from "lucide-react";
 import { DesignModeSwitcher } from "@/components/design-mode-switcher";
 import { HotelSwitcher } from "@/components/hotel-switcher";
 import { cn } from "@/lib/utils";
@@ -26,8 +26,9 @@ interface SimpleShellProps {
   help?: string;
 }
 
-const NAV: { to: "/simple" | "/simple/log" | "/simple/insights" | "/simple/settings"; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+const NAV: { to: "/simple" | "/simple/workspace" | "/simple/log" | "/simple/insights" | "/simple/settings"; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { to: "/simple", label: "Home", icon: Home },
+  { to: "/simple/workspace", label: "Hotel", icon: Building2 },
   { to: "/simple/log", label: "Add this month", icon: ClipboardList },
   { to: "/simple/insights", label: "How am I doing?", icon: Sparkles },
   { to: "/simple/settings", label: "Settings", icon: Settings2 },
