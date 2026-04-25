@@ -21,6 +21,9 @@ import {
   Building2,
   ChevronDown,
   ArrowUpRight,
+  ArrowRight,
+  SkipForward,
+  Pencil,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
