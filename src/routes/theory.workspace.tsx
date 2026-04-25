@@ -518,6 +518,15 @@ function TheoryWorkspacePage() {
       if (parsed === null) {
         setVoiceError(`I heard "${heard}" but couldn't read a number. Try again or say "skip".`);
       }
+      // Hands-free: after showing the pending value, re-open the mic so
+      // the user can say "yes" / "no" / "try again" without tapping.
+      if (handsFreeRef.current) {
+        const curStep = stepRef.current;
+        const nextField = curStep < FIELDS.length ? FIELDS[curStep].key : null;
+        if (nextField) {
+          window.setTimeout(() => startListening(nextField), 600);
+        }
+      }
     };
     recognitionRef.current = rec;
     try {
