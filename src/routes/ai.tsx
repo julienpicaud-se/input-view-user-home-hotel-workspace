@@ -27,7 +27,11 @@ import {
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import { type Hotel, type MonthlyEntry } from "@/lib/hotel";
+import {
+  setActiveHotelId as setActiveHotelIdLib,
+  type Hotel,
+  type MonthlyEntry,
+} from "@/lib/hotel";
 import { DEMO_PROFILE_ID, type UserProfile } from "@/lib/user-profile";
 import { MONTH_NAMES, calculateCO2e, formatNumber, pctChange } from "@/lib/format";
 import { DesignModeSwitcher } from "@/components/design-mode-switcher";
