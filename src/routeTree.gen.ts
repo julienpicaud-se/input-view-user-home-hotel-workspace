@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WorkspaceRouteImport } from './routes/workspace'
+import { Route as TheoryRouteImport } from './routes/theory'
 import { Route as SimpleRouteImport } from './routes/simple'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as LogRouteImport } from './routes/log'
@@ -20,6 +21,7 @@ import { Route as BenchmarksRouteImport } from './routes/benchmarks'
 import { Route as AssistantRouteImport } from './routes/assistant'
 import { Route as AiRouteImport } from './routes/ai'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as TheoryWorkspaceRouteImport } from './routes/theory.workspace'
 import { Route as SimpleWorkspaceRouteImport } from './routes/simple.workspace'
 import { Route as SimpleSettingsRouteImport } from './routes/simple.settings'
 import { Route as SimpleLogRouteImport } from './routes/simple.log'
@@ -30,6 +32,11 @@ import { Route as AiWorkspaceRouteImport } from './routes/ai.workspace'
 const WorkspaceRoute = WorkspaceRouteImport.update({
   id: '/workspace',
   path: '/workspace',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TheoryRoute = TheoryRouteImport.update({
+  id: '/theory',
+  path: '/theory',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SimpleRoute = SimpleRouteImport.update({
@@ -82,6 +89,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TheoryWorkspaceRoute = TheoryWorkspaceRouteImport.update({
+  id: '/workspace',
+  path: '/workspace',
+  getParentRoute: () => TheoryRoute,
+} as any)
 const SimpleWorkspaceRoute = SimpleWorkspaceRouteImport.update({
   id: '/workspace',
   path: '/workspace',
@@ -112,6 +124,11 @@ const AiWorkspaceRoute = AiWorkspaceRouteImport.update({
   path: '/workspace',
   getParentRoute: () => AiRoute,
 } as any)
+const TheoryWorkspaceRoute = TheoryWorkspaceRouteImport.update({
+  id: '/workspace',
+  path: '/workspace',
+  getParentRoute: () => TheoryRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -124,6 +141,7 @@ export interface FileRoutesByFullPath {
   '/log': typeof LogRoute
   '/profile': typeof ProfileRoute
   '/simple': typeof SimpleRouteWithChildren
+  '/theory': typeof TheoryRouteWithChildren
   '/workspace': typeof WorkspaceRoute
   '/ai/workspace': typeof AiWorkspaceRoute
   '/easy/workspace': typeof EasyWorkspaceRoute
@@ -131,6 +149,7 @@ export interface FileRoutesByFullPath {
   '/simple/log': typeof SimpleLogRoute
   '/simple/settings': typeof SimpleSettingsRoute
   '/simple/workspace': typeof SimpleWorkspaceRoute
+  '/theory/workspace': typeof TheoryWorkspaceRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -143,6 +162,7 @@ export interface FileRoutesByTo {
   '/log': typeof LogRoute
   '/profile': typeof ProfileRoute
   '/simple': typeof SimpleRouteWithChildren
+  '/theory': typeof TheoryRouteWithChildren
   '/workspace': typeof WorkspaceRoute
   '/ai/workspace': typeof AiWorkspaceRoute
   '/easy/workspace': typeof EasyWorkspaceRoute
@@ -150,6 +170,7 @@ export interface FileRoutesByTo {
   '/simple/log': typeof SimpleLogRoute
   '/simple/settings': typeof SimpleSettingsRoute
   '/simple/workspace': typeof SimpleWorkspaceRoute
+  '/theory/workspace': typeof TheoryWorkspaceRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -163,6 +184,7 @@ export interface FileRoutesById {
   '/log': typeof LogRoute
   '/profile': typeof ProfileRoute
   '/simple': typeof SimpleRouteWithChildren
+  '/theory': typeof TheoryRouteWithChildren
   '/workspace': typeof WorkspaceRoute
   '/ai/workspace': typeof AiWorkspaceRoute
   '/easy/workspace': typeof EasyWorkspaceRoute
@@ -170,6 +192,7 @@ export interface FileRoutesById {
   '/simple/log': typeof SimpleLogRoute
   '/simple/settings': typeof SimpleSettingsRoute
   '/simple/workspace': typeof SimpleWorkspaceRoute
+  '/theory/workspace': typeof TheoryWorkspaceRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -184,6 +207,7 @@ export interface FileRouteTypes {
     | '/log'
     | '/profile'
     | '/simple'
+    | '/theory'
     | '/workspace'
     | '/ai/workspace'
     | '/easy/workspace'
@@ -191,6 +215,7 @@ export interface FileRouteTypes {
     | '/simple/log'
     | '/simple/settings'
     | '/simple/workspace'
+    | '/theory/workspace'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -203,6 +228,7 @@ export interface FileRouteTypes {
     | '/log'
     | '/profile'
     | '/simple'
+    | '/theory'
     | '/workspace'
     | '/ai/workspace'
     | '/easy/workspace'
@@ -210,6 +236,7 @@ export interface FileRouteTypes {
     | '/simple/log'
     | '/simple/settings'
     | '/simple/workspace'
+    | '/theory/workspace'
   id:
     | '__root__'
     | '/'
@@ -222,6 +249,7 @@ export interface FileRouteTypes {
     | '/log'
     | '/profile'
     | '/simple'
+    | '/theory'
     | '/workspace'
     | '/ai/workspace'
     | '/easy/workspace'
@@ -229,6 +257,7 @@ export interface FileRouteTypes {
     | '/simple/log'
     | '/simple/settings'
     | '/simple/workspace'
+    | '/theory/workspace'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -242,6 +271,7 @@ export interface RootRouteChildren {
   LogRoute: typeof LogRoute
   ProfileRoute: typeof ProfileRoute
   SimpleRoute: typeof SimpleRouteWithChildren
+  TheoryRoute: typeof TheoryRouteWithChildren
   WorkspaceRoute: typeof WorkspaceRoute
 }
 
@@ -252,6 +282,13 @@ declare module '@tanstack/react-router' {
       path: '/workspace'
       fullPath: '/workspace'
       preLoaderRoute: typeof WorkspaceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/theory': {
+      id: '/theory'
+      path: '/theory'
+      fullPath: '/theory'
+      preLoaderRoute: typeof TheoryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/simple': {
@@ -323,6 +360,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/theory/workspace': {
+      id: '/theory/workspace'
+      path: '/workspace'
+      fullPath: '/theory/workspace'
+      preLoaderRoute: typeof TheoryWorkspaceRouteImport
+      parentRoute: typeof TheoryRoute
     }
     '/simple/workspace': {
       id: '/simple/workspace'
@@ -406,6 +450,17 @@ const SimpleRouteChildren: SimpleRouteChildren = {
 const SimpleRouteWithChildren =
   SimpleRoute._addFileChildren(SimpleRouteChildren)
 
+interface TheoryRouteChildren {
+  TheoryWorkspaceRoute: typeof TheoryWorkspaceRoute
+}
+
+const TheoryRouteChildren: TheoryRouteChildren = {
+  TheoryWorkspaceRoute: TheoryWorkspaceRoute,
+}
+
+const TheoryRouteWithChildren =
+  TheoryRoute._addFileChildren(TheoryRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AiRoute: AiRouteWithChildren,
@@ -417,6 +472,7 @@ const rootRouteChildren: RootRouteChildren = {
   LogRoute: LogRoute,
   ProfileRoute: ProfileRoute,
   SimpleRoute: SimpleRouteWithChildren,
+  TheoryRoute: TheoryRouteWithChildren,
   WorkspaceRoute: WorkspaceRoute,
 }
 export const routeTree = rootRouteImport

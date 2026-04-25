@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Check, ChevronDown, LayoutDashboard, Sparkles, Sun, Bot } from "lucide-react";
+import { Check, ChevronDown, LayoutDashboard, Sparkles, Sun, Bot, Orbit } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,6 +29,8 @@ export function DesignModeSwitcher() {
       void navigate({ to: "/easy" });
     } else if (next === "ai-first") {
       void navigate({ to: "/ai" });
+    } else if (next === "ai-theory") {
+      void navigate({ to: "/theory" });
     } else {
       void navigate({ to: "/" });
     }
@@ -41,7 +43,9 @@ export function DesignModeSwitcher() {
         ? "Extra Simple"
         : mode === "ai-first"
           ? "AI First"
-          : "Classic";
+          : mode === "ai-theory"
+            ? "AI Theory"
+            : "Classic";
   const Icon =
     mode === "simple"
       ? Sparkles
@@ -49,7 +53,9 @@ export function DesignModeSwitcher() {
         ? Sun
         : mode === "ai-first"
           ? Bot
-          : LayoutDashboard;
+          : mode === "ai-theory"
+            ? Orbit
+            : LayoutDashboard;
 
   return (
     <DropdownMenu>
@@ -131,6 +137,23 @@ export function DesignModeSwitcher() {
             </div>
             <p className="text-xs text-muted-foreground">
               Just chat with Sera. She logs data, gives insights and tells you what to do next.
+            </p>
+          </div>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onSelect={() => handleSelect("ai-theory")}
+          className="flex items-start gap-3 rounded-xl py-2.5"
+        >
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 text-violet-500">
+            <Orbit className="h-4 w-4" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm font-medium">AI Theory</span>
+              {mode === "ai-theory" && <Check className="h-4 w-4 shrink-0 text-primary" />}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Sera is everywhere. An immersive AI stage — speak, tap, glance, done.
             </p>
           </div>
         </DropdownMenuItem>
