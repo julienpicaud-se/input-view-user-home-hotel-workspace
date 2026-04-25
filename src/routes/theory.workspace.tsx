@@ -706,12 +706,7 @@ function TheoryWorkspacePage() {
                             </div>
                           )}
                           {!listening && voiceHeard && (
-                            <p className="text-xs uppercase tracking-[0.18em] text-white/45">
-                              Heard
-                              <span className="ml-2 normal-case tracking-normal text-white/80">
-                                "{voiceHeard}"
-                              </span>
-                            </p>
+                            <HeardChip text={voiceHeard} onClear={rejectVoice} />
                           )}
                         </div>
                         <button
