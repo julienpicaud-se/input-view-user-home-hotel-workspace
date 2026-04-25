@@ -15,6 +15,7 @@ import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as LogRouteImport } from './routes/log'
 import { Route as HotelRouteImport } from './routes/hotel'
 import { Route as HistoryRouteImport } from './routes/history'
+import { Route as EasyRouteImport } from './routes/easy'
 import { Route as BenchmarksRouteImport } from './routes/benchmarks'
 import { Route as AssistantRouteImport } from './routes/assistant'
 import { Route as IndexRouteImport } from './routes/index'
@@ -52,6 +53,11 @@ const HistoryRoute = HistoryRouteImport.update({
   path: '/history',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EasyRoute = EasyRouteImport.update({
+  id: '/easy',
+  path: '/easy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BenchmarksRoute = BenchmarksRouteImport.update({
   id: '/benchmarks',
   path: '/benchmarks',
@@ -87,6 +93,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/assistant': typeof AssistantRoute
   '/benchmarks': typeof BenchmarksRoute
+  '/easy': typeof EasyRoute
   '/history': typeof HistoryRoute
   '/hotel': typeof HotelRoute
   '/log': typeof LogRoute
@@ -101,6 +108,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/assistant': typeof AssistantRoute
   '/benchmarks': typeof BenchmarksRoute
+  '/easy': typeof EasyRoute
   '/history': typeof HistoryRoute
   '/hotel': typeof HotelRoute
   '/log': typeof LogRoute
@@ -116,6 +124,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/assistant': typeof AssistantRoute
   '/benchmarks': typeof BenchmarksRoute
+  '/easy': typeof EasyRoute
   '/history': typeof HistoryRoute
   '/hotel': typeof HotelRoute
   '/log': typeof LogRoute
@@ -132,6 +141,7 @@ export interface FileRouteTypes {
     | '/'
     | '/assistant'
     | '/benchmarks'
+    | '/easy'
     | '/history'
     | '/hotel'
     | '/log'
@@ -146,6 +156,7 @@ export interface FileRouteTypes {
     | '/'
     | '/assistant'
     | '/benchmarks'
+    | '/easy'
     | '/history'
     | '/hotel'
     | '/log'
@@ -160,6 +171,7 @@ export interface FileRouteTypes {
     | '/'
     | '/assistant'
     | '/benchmarks'
+    | '/easy'
     | '/history'
     | '/hotel'
     | '/log'
@@ -175,6 +187,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AssistantRoute: typeof AssistantRoute
   BenchmarksRoute: typeof BenchmarksRoute
+  EasyRoute: typeof EasyRoute
   HistoryRoute: typeof HistoryRoute
   HotelRoute: typeof HotelRoute
   LogRoute: typeof LogRoute
@@ -225,6 +238,13 @@ declare module '@tanstack/react-router' {
       path: '/history'
       fullPath: '/history'
       preLoaderRoute: typeof HistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/easy': {
+      id: '/easy'
+      path: '/easy'
+      fullPath: '/easy'
+      preLoaderRoute: typeof EasyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/benchmarks': {
@@ -291,6 +311,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AssistantRoute: AssistantRoute,
   BenchmarksRoute: BenchmarksRoute,
+  EasyRoute: EasyRoute,
   HistoryRoute: HistoryRoute,
   HotelRoute: HotelRoute,
   LogRoute: LogRoute,

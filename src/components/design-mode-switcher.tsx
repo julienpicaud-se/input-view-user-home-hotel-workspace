@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Check, ChevronDown, LayoutDashboard, Sparkles } from "lucide-react";
+import { Check, ChevronDown, LayoutDashboard, Sparkles, Sun } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,8 +13,8 @@ import { useDesignMode, type DesignMode } from "@/lib/design-mode";
 
 /**
  * Dropdown placed at the top-right of the app on every page.
- * Lets the user flip between the original "Classic" experience and
- * the new manager-friendly "Simple" experience without losing any data.
+ * Lets the user flip between Classic, Simple, and Extra Simple
+ * without losing any data.
  */
 export function DesignModeSwitcher() {
   const { mode, setMode } = useDesignMode();
@@ -23,17 +23,18 @@ export function DesignModeSwitcher() {
   const handleSelect = (next: DesignMode) => {
     if (next === mode) return;
     setMode(next);
-    // Send the user to the home of whichever mode they picked so the
-    // shell change is immediately obvious.
     if (next === "simple") {
       void navigate({ to: "/simple" });
+    } else if (next === "extra-simple") {
+      void navigate({ to: "/easy" });
     } else {
       void navigate({ to: "/" });
     }
   };
 
-  const label = mode === "simple" ? "Simple" : "Classic";
-  const Icon = mode === "simple" ? Sparkles : LayoutDashboard;
+  const label =
+    mode === "simple" ? "Simple" : mode === "extra-simple" ? "Extra Simple" : "Classic";
+  const Icon = mode === "simple" ? Sparkles : mode === "extra-simple" ? Sun : LayoutDashboard;
 
   return (
     <DropdownMenu>
@@ -60,9 +61,7 @@ export function DesignModeSwitcher() {
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-2">
               <span className="text-sm font-medium">Classic</span>
-              {mode === "classic" && (
-                <Check className="h-4 w-4 shrink-0 text-primary" />
-              )}
+              {mode === "classic" && <Check className="h-4 w-4 shrink-0 text-primary" />}
             </div>
             <p className="text-xs text-muted-foreground">
               Full dashboard, charts and pro tools.
@@ -79,12 +78,27 @@ export function DesignModeSwitcher() {
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-2">
               <span className="text-sm font-medium">Simple</span>
-              {mode === "simple" && (
-                <Check className="h-4 w-4 shrink-0 text-primary" />
-              )}
+              {mode === "simple" && <Check className="h-4 w-4 shrink-0 text-primary" />}
             </div>
             <p className="text-xs text-muted-foreground">
               Big buttons, plain language. Made for once-a-month visits.
+            </p>
+          </div>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onSelect={() => handleSelect("extra-simple")}
+          className="flex items-start gap-3 rounded-xl py-2.5"
+        >
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-success/15 text-success">
+            <Sun className="h-4 w-4" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm font-medium">Extra Simple</span>
+              {mode === "extra-simple" && <Check className="h-4 w-4 shrink-0 text-primary" />}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Everything on one page. Almost no clicks. Just scroll.
             </p>
           </div>
         </DropdownMenuItem>
