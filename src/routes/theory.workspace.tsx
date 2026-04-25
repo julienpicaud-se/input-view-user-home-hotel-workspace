@@ -694,23 +694,39 @@ function TheoryWorkspacePage() {
                   {/* Voice feedback / confirmation */}
                   {speechSupported && (listening || voiceHeard || voicePending || voiceError) && (
                     <div className="mt-3 rounded-2xl border border-violet-300/20 bg-violet-500/[0.06] p-3 backdrop-blur-sm">
-                      {listening && (
-                        <div className="flex items-center gap-2 text-sm text-violet-100">
-                          <span className="relative flex h-2.5 w-2.5">
-                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
-                            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-rose-500" />
-                          </span>
-                          Listening… say the value (e.g. "twelve thousand four hundred")
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          {listening && (
+                            <div className="flex items-center gap-2 text-sm text-violet-100">
+                              <span className="relative flex h-2.5 w-2.5">
+                                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
+                                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-rose-500" />
+                              </span>
+                              Listening… say the value (e.g. "twelve thousand four hundred")
+                            </div>
+                          )}
+                          {!listening && voiceHeard && (
+                            <p className="text-xs uppercase tracking-[0.18em] text-white/45">
+                              Heard
+                              <span className="ml-2 normal-case tracking-normal text-white/80">
+                                "{voiceHeard}"
+                              </span>
+                            </p>
+                          )}
                         </div>
-                      )}
-                      {!listening && voiceHeard && (
-                        <p className="text-xs uppercase tracking-[0.18em] text-white/45">
-                          Heard
-                          <span className="ml-2 normal-case tracking-normal text-white/80">
-                            "{voiceHeard}"
-                          </span>
-                        </p>
-                      )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            stopListening();
+                            rejectVoice();
+                          }}
+                          aria-label="Cancel voice input"
+                          className="-m-1 rounded-full p-1 text-white/50 hover:bg-white/10 hover:text-white"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+
                       {!listening && voicePending && voicePending.parsed !== null && (
                         <div className="mt-2">
                           <p className="text-sm text-white/85">
@@ -720,7 +736,7 @@ function TheoryWorkspacePage() {
                             </span>
                             ?
                           </p>
-                          <div className="mt-3 flex items-center gap-2">
+                          <div className="mt-3 flex flex-wrap items-center gap-2">
                             <button
                               type="button"
                               onClick={() => confirmVoice(currentField.key)}
