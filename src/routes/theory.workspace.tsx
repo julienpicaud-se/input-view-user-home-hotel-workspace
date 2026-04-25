@@ -263,15 +263,23 @@ function TheoryWorkspacePage() {
   async function saveAll() {
     if (!hotel) return;
     setSaving(true);
-    const payload: Record<string, number | null | string> = {
+    const num = (k: FieldKey): number | null => {
+      const raw = values[k].replace(/,/g, "").trim();
+      return raw === "" ? null : Number(raw);
+    };
+    const payload = {
       hotel_id: hotel.id,
       year: expected.year,
       month: expected.month,
+      electricity_kwh: num("electricity_kwh"),
+      gas_kwh: num("gas_kwh"),
+      water_m3: num("water_m3"),
+      waste_kg: num("waste_kg"),
+      occupied_room_nights:
+        values.occupied_room_nights.trim() === ""
+          ? null
+          : Math.round(Number(values.occupied_room_nights.replace(/,/g, ""))),
     };
-    for (const f of FIELDS) {
-      const raw = values[f.key].replace(/,/g, "").trim();
-      payload[f.key] = raw === "" ? null : Number(raw);
-    }
     const { data, error } = await supabase
       .from("monthly_entries")
       .upsert(payload, { onConflict: "hotel_id,year,month" })
