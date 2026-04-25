@@ -153,6 +153,10 @@ function TheoryWorkspacePage() {
   const speechSupported =
     typeof window !== "undefined" &&
     !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
+  // Refs mirror state so async speech callbacks can read latest values.
+  const stepRef = React.useRef(0);
+  const voicePendingRef = React.useRef<typeof voicePending>(null);
+  React.useEffect(() => { voicePendingRef.current = voicePending; }, [voicePending]);
 
   // Hands-free mode: after a confirm, auto-advance + auto-listen on next step.
   const [handsFree, setHandsFree] = React.useState(false);
