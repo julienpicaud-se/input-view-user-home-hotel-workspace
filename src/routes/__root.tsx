@@ -4,11 +4,16 @@ import {
   createRootRoute,
   HeadContent,
   Scripts,
+  useLocation,
+  useNavigate,
 } from "@tanstack/react-router";
+import * as React from "react";
 import type { ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppSidebar } from "@/components/app-sidebar";
+import { DesignModeProvider, useDesignMode } from "@/lib/design-mode";
+import { DesignModeSwitcher } from "@/components/design-mode-switcher";
 
 import appCss from "../styles.css?url";
 
