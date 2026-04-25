@@ -692,6 +692,14 @@ function InlineHotelCard({
             {hotel.region} · {hotel.rooms} rooms · {hotel.star_rating}★
           </p>
         </div>
+        <Link
+          to="/easy/workspace"
+          onClick={() => setActiveHotelId(hotel.id)}
+          className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border/60 bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition hover:border-primary/40 hover:text-foreground"
+        >
+          Open workspace
+          <ArrowRight className="h-3 w-3" />
+        </Link>
       </header>
 
       <div className="space-y-2">
