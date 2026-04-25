@@ -706,12 +706,7 @@ function TheoryWorkspacePage() {
                             </div>
                           )}
                           {!listening && voiceHeard && (
-                            <p className="text-xs uppercase tracking-[0.18em] text-white/45">
-                              Heard
-                              <span className="ml-2 normal-case tracking-normal text-white/80">
-                                "{voiceHeard}"
-                              </span>
-                            </p>
+                            <HeardChip text={voiceHeard} onClear={rejectVoice} />
                           )}
                         </div>
                         <button
@@ -1019,6 +1014,128 @@ function PulseTile({
         <p className="mt-2 font-serif text-3xl text-white">{value}</p>
         <p className="mt-1 text-xs text-white/60">{hint}</p>
       </div>
+    </div>
+  );
+}
+
+/**
+ * "Heard …" chip that supports two ways to instantly clear the value
+ * without leaving the current step:
+ *  - Long-press (≥450ms) — works for touch and mouse
+ *  - Swipe-down (≥40px vertical drag, mostly vertical) — touch only
+ * On long-press we also vibrate briefly (where supported) to confirm.
+ */
+function HeardChip({ text, onClear }: { text: string; onClear: () => void }) {
+  const [pressing, setPressing] = React.useState(false);
+  const [dragY, setDragY] = React.useState(0);
+  const [clearing, setClearing] = React.useState(false);
+
+  const longPressTimer = React.useRef<number | null>(null);
+  const startY = React.useRef<number | null>(null);
+  const startX = React.useRef<number | null>(null);
+  const triggered = React.useRef(false);
+
+  const SWIPE_THRESHOLD = 40;
+  const LONG_PRESS_MS = 450;
+
+  const trigger = React.useCallback(() => {
+    if (triggered.current) return;
+    triggered.current = true;
+    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+      try {
+        navigator.vibrate?.(15);
+      } catch {
+        // ignore
+      }
+    }
+    setClearing(true);
+    // brief animation, then clear
+    window.setTimeout(() => {
+      onClear();
+    }, 140);
+  }, [onClear]);
+
+  const cancel = React.useCallback(() => {
+    if (longPressTimer.current !== null) {
+      window.clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    setPressing(false);
+    setDragY(0);
+    startY.current = null;
+    startX.current = null;
+  }, []);
+
+  const startPress = React.useCallback(() => {
+    triggered.current = false;
+    setPressing(true);
+    longPressTimer.current = window.setTimeout(() => {
+      trigger();
+      cancel();
+    }, LONG_PRESS_MS);
+  }, [trigger, cancel]);
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      aria-label={`Heard "${text}". Long-press or swipe down to clear.`}
+      onPointerDown={(e) => {
+        // Only handle primary pointer
+        if (e.button !== undefined && e.button !== 0) return;
+        startY.current = e.clientY;
+        startX.current = e.clientX;
+        startPress();
+      }}
+      onPointerMove={(e) => {
+        if (startY.current === null || startX.current === null) return;
+        const dy = e.clientY - startY.current;
+        const dx = Math.abs(e.clientX - startX.current);
+        // Only track downward, mostly-vertical motion
+        if (dy > 0 && dy > dx) {
+          setDragY(Math.min(dy, 80));
+          // Cancel long-press once user starts dragging meaningfully
+          if (dy > 8 && longPressTimer.current !== null) {
+            window.clearTimeout(longPressTimer.current);
+            longPressTimer.current = null;
+          }
+          if (dy >= SWIPE_THRESHOLD) {
+            trigger();
+            cancel();
+          }
+        } else if (dx > 8) {
+          // Sideways drag — abort gesture
+          cancel();
+        }
+      }}
+      onPointerUp={cancel}
+      onPointerCancel={cancel}
+      onPointerLeave={cancel}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " " || e.key === "Delete" || e.key === "Backspace") {
+          e.preventDefault();
+          trigger();
+        }
+      }}
+      style={{
+        transform: `translateY(${dragY}px)`,
+        opacity: clearing ? 0 : 1 - Math.min(dragY / 80, 0.6),
+        transition: pressing && dragY === 0 ? "transform 120ms ease, opacity 120ms ease" : clearing ? "opacity 140ms ease, transform 140ms ease" : "none",
+        touchAction: "pan-x",
+      }}
+      className={`group inline-flex max-w-full cursor-pointer select-none items-center gap-2 rounded-full border px-3 py-1 text-xs uppercase tracking-[0.18em] transition-colors ${
+        pressing
+          ? "border-rose-300/40 bg-rose-500/15 text-rose-100"
+          : "border-white/10 bg-white/[0.04] text-white/45 hover:border-white/20 hover:bg-white/[0.07]"
+      }`}
+    >
+      <span>Heard</span>
+      <span className="truncate normal-case tracking-normal text-white/80">
+        "{text}"
+      </span>
+      <span className="hidden sm:inline whitespace-nowrap normal-case tracking-normal text-[10px] text-white/35 group-hover:text-white/55">
+        · hold to clear
+      </span>
     </div>
   );
 }
