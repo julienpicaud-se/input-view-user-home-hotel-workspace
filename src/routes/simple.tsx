@@ -191,11 +191,13 @@ function SimpleHomePage() {
             <p className="font-serif text-lg italic text-foreground/90">
               "{briefing.headline}"
             </p>
-            {briefing.bullets?.slice(0, 3).map((b, i) => (
-              <p key={i} className="text-muted-foreground">
-                · {b}
+            <p className="text-muted-foreground">{briefing.summary}</p>
+            {briefing.focus && (
+              <p className="rounded-2xl bg-primary/5 px-3 py-2 text-foreground">
+                <span className="font-medium">Focus this month: </span>
+                {briefing.focus}
               </p>
-            ))}
+            )}
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">

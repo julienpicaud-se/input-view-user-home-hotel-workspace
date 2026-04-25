@@ -18,6 +18,9 @@ import { Route as HistoryRouteImport } from './routes/history'
 import { Route as BenchmarksRouteImport } from './routes/benchmarks'
 import { Route as AssistantRouteImport } from './routes/assistant'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SimpleSettingsRouteImport } from './routes/simple.settings'
+import { Route as SimpleLogRouteImport } from './routes/simple.log'
+import { Route as SimpleInsightsRouteImport } from './routes/simple.insights'
 
 const WorkspaceRoute = WorkspaceRouteImport.update({
   id: '/workspace',
@@ -64,6 +67,21 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SimpleSettingsRoute = SimpleSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => SimpleRoute,
+} as any)
+const SimpleLogRoute = SimpleLogRouteImport.update({
+  id: '/log',
+  path: '/log',
+  getParentRoute: () => SimpleRoute,
+} as any)
+const SimpleInsightsRoute = SimpleInsightsRouteImport.update({
+  id: '/insights',
+  path: '/insights',
+  getParentRoute: () => SimpleRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -73,8 +91,11 @@ export interface FileRoutesByFullPath {
   '/hotel': typeof HotelRoute
   '/log': typeof LogRoute
   '/profile': typeof ProfileRoute
-  '/simple': typeof SimpleRoute
+  '/simple': typeof SimpleRouteWithChildren
   '/workspace': typeof WorkspaceRoute
+  '/simple/insights': typeof SimpleInsightsRoute
+  '/simple/log': typeof SimpleLogRoute
+  '/simple/settings': typeof SimpleSettingsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -84,8 +105,11 @@ export interface FileRoutesByTo {
   '/hotel': typeof HotelRoute
   '/log': typeof LogRoute
   '/profile': typeof ProfileRoute
-  '/simple': typeof SimpleRoute
+  '/simple': typeof SimpleRouteWithChildren
   '/workspace': typeof WorkspaceRoute
+  '/simple/insights': typeof SimpleInsightsRoute
+  '/simple/log': typeof SimpleLogRoute
+  '/simple/settings': typeof SimpleSettingsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -96,8 +120,11 @@ export interface FileRoutesById {
   '/hotel': typeof HotelRoute
   '/log': typeof LogRoute
   '/profile': typeof ProfileRoute
-  '/simple': typeof SimpleRoute
+  '/simple': typeof SimpleRouteWithChildren
   '/workspace': typeof WorkspaceRoute
+  '/simple/insights': typeof SimpleInsightsRoute
+  '/simple/log': typeof SimpleLogRoute
+  '/simple/settings': typeof SimpleSettingsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -111,6 +138,9 @@ export interface FileRouteTypes {
     | '/profile'
     | '/simple'
     | '/workspace'
+    | '/simple/insights'
+    | '/simple/log'
+    | '/simple/settings'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -122,6 +152,9 @@ export interface FileRouteTypes {
     | '/profile'
     | '/simple'
     | '/workspace'
+    | '/simple/insights'
+    | '/simple/log'
+    | '/simple/settings'
   id:
     | '__root__'
     | '/'
@@ -133,6 +166,9 @@ export interface FileRouteTypes {
     | '/profile'
     | '/simple'
     | '/workspace'
+    | '/simple/insights'
+    | '/simple/log'
+    | '/simple/settings'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -143,7 +179,7 @@ export interface RootRouteChildren {
   HotelRoute: typeof HotelRoute
   LogRoute: typeof LogRoute
   ProfileRoute: typeof ProfileRoute
-  SimpleRoute: typeof SimpleRoute
+  SimpleRoute: typeof SimpleRouteWithChildren
   WorkspaceRoute: typeof WorkspaceRoute
 }
 
@@ -212,8 +248,44 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/simple/settings': {
+      id: '/simple/settings'
+      path: '/settings'
+      fullPath: '/simple/settings'
+      preLoaderRoute: typeof SimpleSettingsRouteImport
+      parentRoute: typeof SimpleRoute
+    }
+    '/simple/log': {
+      id: '/simple/log'
+      path: '/log'
+      fullPath: '/simple/log'
+      preLoaderRoute: typeof SimpleLogRouteImport
+      parentRoute: typeof SimpleRoute
+    }
+    '/simple/insights': {
+      id: '/simple/insights'
+      path: '/insights'
+      fullPath: '/simple/insights'
+      preLoaderRoute: typeof SimpleInsightsRouteImport
+      parentRoute: typeof SimpleRoute
+    }
   }
 }
+
+interface SimpleRouteChildren {
+  SimpleInsightsRoute: typeof SimpleInsightsRoute
+  SimpleLogRoute: typeof SimpleLogRoute
+  SimpleSettingsRoute: typeof SimpleSettingsRoute
+}
+
+const SimpleRouteChildren: SimpleRouteChildren = {
+  SimpleInsightsRoute: SimpleInsightsRoute,
+  SimpleLogRoute: SimpleLogRoute,
+  SimpleSettingsRoute: SimpleSettingsRoute,
+}
+
+const SimpleRouteWithChildren =
+  SimpleRoute._addFileChildren(SimpleRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -223,7 +295,7 @@ const rootRouteChildren: RootRouteChildren = {
   HotelRoute: HotelRoute,
   LogRoute: LogRoute,
   ProfileRoute: ProfileRoute,
-  SimpleRoute: SimpleRoute,
+  SimpleRoute: SimpleRouteWithChildren,
   WorkspaceRoute: WorkspaceRoute,
 }
 export const routeTree = rootRouteImport
