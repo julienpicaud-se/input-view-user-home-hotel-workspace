@@ -129,17 +129,7 @@ export function TheoryAnalyze({
       const res = await callExplain({
         data: {
           hotelId: hotel.id,
-          chartType: "trend" as const,
-          metric:
-            metric === "co2"
-              ? "co2_total"
-              : metric === "electricity_kwh"
-                ? "electricity"
-                : metric === "gas_kwh"
-                  ? "gas"
-                  : metric === "water_m3"
-                    ? "water"
-                    : "waste",
+          chartId: metric === "co2" ? "co2e" : "consumption",
         },
       });
       if ("explanation" in res && res.explanation) {
