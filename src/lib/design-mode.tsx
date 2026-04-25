@@ -8,8 +8,11 @@ import * as React from "react";
  * "AI First"     = chat-led experience: Sera drives everything (insights,
  *                  recommendations, next actions, data entry) through a
  *                  single conversational surface.
+ * "AI Theory"    = immersive theatre where Sera is omnipresent — a hovering
+ *                  orb that follows the user, narrates everything, turns
+ *                  every action into a single conversational gesture.
  */
-export type DesignMode = "classic" | "simple" | "extra-simple" | "ai-first";
+export type DesignMode = "classic" | "simple" | "extra-simple" | "ai-first" | "ai-theory";
 
 const STORAGE_KEY = "ra-plus-design-mode";
 
@@ -27,6 +30,7 @@ function readInitial(): DesignMode {
     if (v === "simple") return "simple";
     if (v === "extra-simple") return "extra-simple";
     if (v === "ai-first") return "ai-first";
+    if (v === "ai-theory") return "ai-theory";
     return "classic";
   } catch {
     return "classic";
