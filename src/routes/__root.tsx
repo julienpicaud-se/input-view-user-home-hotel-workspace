@@ -4,11 +4,16 @@ import {
   createRootRoute,
   HeadContent,
   Scripts,
+  useLocation,
+  useNavigate,
 } from "@tanstack/react-router";
+import * as React from "react";
 import type { ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppSidebar } from "@/components/app-sidebar";
+import { DesignModeProvider, useDesignMode } from "@/lib/design-mode";
+import { DesignModeSwitcher } from "@/components/design-mode-switcher";
 
 import appCss from "../styles.css?url";
 
@@ -102,7 +107,7 @@ function MobileTopBar() {
           </div>
         </div>
       </Link>
-      <div className="flex items-center gap-3 text-xs">
+      <div className="flex items-center gap-2 text-xs">
         <Link
           to="/"
           className="rounded-lg px-2.5 py-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -118,6 +123,7 @@ function MobileTopBar() {
         >
           Workspace
         </Link>
+        <DesignModeSwitcher />
       </div>
     </header>
   );
@@ -125,18 +131,52 @@ function MobileTopBar() {
 
 function RootComponent() {
   return (
-    <TooltipProvider delayDuration={200}>
-      <div className="flex min-h-screen w-full bg-background text-foreground">
-        <AppSidebar />
-        <div className="flex min-w-0 flex-1 flex-col">
-          <MobileTopBar />
-          <main className="flex-1">
-            <Outlet />
-          </main>
+    <DesignModeProvider>
+      <TooltipProvider delayDuration={200}>
+        <ModeAwareShell />
+        <Toaster richColors position="top-center" />
+      </TooltipProvider>
+    </DesignModeProvider>
+  );
+}
+
+function ModeAwareShell() {
+  const { mode } = useDesignMode();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Redirect when the current path doesn't match the active design mode.
+  React.useEffect(() => {
+    const path = location.pathname;
+    const isSimplePath = path === "/simple" || path.startsWith("/simple/");
+    if (mode === "simple" && !isSimplePath) {
+      void navigate({ to: "/simple" });
+    } else if (mode === "classic" && isSimplePath) {
+      void navigate({ to: "/" });
+    }
+  }, [mode, location.pathname, navigate]);
+
+  if (mode === "simple") {
+    // Simple mode owns its own header + nav via <SimpleShell>.
+    return <Outlet />;
+  }
+
+  return (
+    <div className="flex min-h-screen w-full bg-background text-foreground">
+      <AppSidebar />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <MobileTopBar />
+        {/* Floating switcher so the user can flip from Classic too. */}
+        <div className="pointer-events-none fixed right-4 top-3 z-40 hidden md:block">
+          <div className="pointer-events-auto">
+            <DesignModeSwitcher />
+          </div>
         </div>
+        <main className="flex-1">
+          <Outlet />
+        </main>
       </div>
-      <Toaster richColors position="top-center" />
-    </TooltipProvider>
+    </div>
   );
 }
 
