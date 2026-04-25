@@ -421,7 +421,7 @@ function TheoryWorkspacePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, logOpen]);
 
-  function num(k: FieldKey): number | null {
+  function next() {
     if (step < FIELDS.length) setStep((s) => s + 1);
   }
 
