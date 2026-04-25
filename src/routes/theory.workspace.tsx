@@ -154,6 +154,15 @@ function TheoryWorkspacePage() {
     typeof window !== "undefined" &&
     !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
 
+  // Hands-free mode: after a confirm, auto-advance + auto-listen on next step.
+  const [handsFree, setHandsFree] = React.useState(false);
+  const handsFreeRef = React.useRef(false);
+  React.useEffect(() => {
+    handsFreeRef.current = handsFree;
+  }, [handsFree]);
+  // When true on the next step, we auto-start listening.
+  const autoListenRef = React.useRef(false);
+
   const expected = expectedReportingPeriod();
   const monthLabel = `${MONTH_NAMES[expected.month - 1]} ${expected.year}`;
 
