@@ -540,37 +540,39 @@ function MessageBubble({
         >
           {renderMarkdownLite(msg.content)}
         </div>
-        {msg.attachment?.kind === "log-form" && (
-          <div className="mt-2">
-            <InlineLogForm
-              hotel={hotels.find((h) => h.id === msg.attachment!.kind === "log-form" ? (msg.attachment as { hotelId: string }).hotelId === hotels.find((h) => h.id === (msg.attachment as { hotelId: string }).hotelId)?.id ? hotels.find((h) => h.id === (msg.attachment as { hotelId: string }).hotelId)! : hotels[0] : hotels[0])!}
-              year={(msg.attachment as { year: number }).year}
-              month={(msg.attachment as { month: number }).month}
-              existing={entries.find(
-                (e) =>
-                  e.hotel_id === (msg.attachment as { hotelId: string }).hotelId &&
-                  e.year === (msg.attachment as { year: number }).year &&
-                  e.month === (msg.attachment as { month: number }).month,
-              ) ?? null}
-              prev={(() => {
-                const h = (msg.attachment as { hotelId: string }).hotelId;
-                const y = (msg.attachment as { year: number }).year;
-                const m = (msg.attachment as { month: number }).month;
-                const pd = new Date(y, m - 2, 1);
-                return entries.find(
-                  (e) =>
-                    e.hotel_id === h &&
-                    e.year === pd.getFullYear() &&
-                    e.month === pd.getMonth() + 1,
-                ) ?? null;
-              })()}
-              onSaved={(entry, hotelName) => {
-                onSavedEntry(entry);
-                onAfterSave(hotelName);
-              }}
-            />
-          </div>
-        )}
+        {msg.attachment?.kind === "log-form" && (() => {
+          const att = msg.attachment;
+          const targetHotel = hotels.find((h) => h.id === att.hotelId);
+          if (!targetHotel) return null;
+          const pd = new Date(att.year, att.month - 2, 1);
+          const existing =
+            entries.find(
+              (e) =>
+                e.hotel_id === att.hotelId && e.year === att.year && e.month === att.month,
+            ) ?? null;
+          const prev =
+            entries.find(
+              (e) =>
+                e.hotel_id === att.hotelId &&
+                e.year === pd.getFullYear() &&
+                e.month === pd.getMonth() + 1,
+            ) ?? null;
+          return (
+            <div className="mt-2">
+              <InlineLogForm
+                hotel={targetHotel}
+                year={att.year}
+                month={att.month}
+                existing={existing}
+                prev={prev}
+                onSaved={(entry, hotelName) => {
+                  onSavedEntry(entry);
+                  onAfterSave(hotelName);
+                }}
+              />
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
