@@ -205,18 +205,19 @@ function TheoryHomePage() {
       <AmbientBackdrop />
 
       {/* Top bar */}
-      <header className="relative z-30 flex items-center justify-between px-5 py-4 sm:px-8">
+      <header className="relative z-30 flex items-center justify-between gap-3 px-5 py-4 sm:px-8">
         <Link to="/theory" className="flex items-center gap-2.5">
           <div className="relative flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-500 shadow-[0_0_30px_rgba(168,85,247,0.5)]">
             <Orbit className="h-5 w-5 text-white" />
           </div>
-          <div className="leading-tight">
+          <div className="hidden leading-tight sm:block">
             <div className="font-serif text-lg">Sera Stage</div>
             <div className="text-[10px] uppercase tracking-[0.18em] text-white/50">
               AI Theory · RA+
             </div>
           </div>
         </Link>
+        <TheoryNav active="stage" />
         <DesignModeSwitcher />
       </header>
 
