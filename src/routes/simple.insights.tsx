@@ -393,6 +393,7 @@ function SimpleInsightsPage() {
                     co2Change < 0
                       ? `My CO₂ dropped ${formatPct(co2Change)} from last month — what drove the improvement and how do I keep it going?`
                       : `My CO₂ went up ${formatPct(co2Change)} this month. What likely caused it and what should I do first?`,
+                    "Sera on your CO₂",
                   )
                 }
                 className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-background px-3 py-1.5 text-xs font-medium text-primary transition hover:bg-primary/5"
