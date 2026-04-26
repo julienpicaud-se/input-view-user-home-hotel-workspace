@@ -135,6 +135,7 @@ function SimpleInsightsPage() {
         prev: pv,
         intensity,
         rank,
+        stats,
       };
     });
   }, [latest, prev, filters]);
