@@ -57,6 +57,7 @@ interface UtilitySummary {
   prev: number | null;
   intensity: number | null;
   rank: ReturnType<typeof getPeerRank> | null;
+  stats: PeerStats | null;
 }
 
 function SimpleInsightsPage() {
