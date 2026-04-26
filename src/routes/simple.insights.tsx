@@ -14,10 +14,16 @@ import {
   Users,
   Send,
   CalendarRange,
+  Lightbulb,
+  AlertTriangle,
+  CheckCircle2,
+  Wand2,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
+import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveHotelId, type Hotel, type MonthlyEntry } from "@/lib/hotel";
+import { DEMO_PROFILE_ID, type UserProfile } from "@/lib/user-profile";
 import { MONTH_NAMES, MONTH_SHORT, formatNumber, pctChange, formatPct, calculateCO2e } from "@/lib/format";
 import {
   getPeerStats,
@@ -28,8 +34,10 @@ import {
 } from "@/lib/peer-benchmarks";
 import { SimpleShell } from "@/components/simple-shell";
 import {
+  generateBriefing,
   generateInsights,
   sendAssistantMessage,
+  type BriefingPayload,
   type Insight,
 } from "@/server/assistant.functions";
 
