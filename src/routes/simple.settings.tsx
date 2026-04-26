@@ -3,15 +3,13 @@ import * as React from "react";
 import {
   Building2,
   UserCircle2,
-  History,
   Settings2,
   ChevronDown,
   Loader2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import type { Hotel, MonthlyEntry } from "@/lib/hotel";
+import type { Hotel } from "@/lib/hotel";
 import { SimpleShell } from "@/components/simple-shell";
-import { SimpleHistoryEditor } from "@/components/simple-history-editor";
 import { SimpleHotelEditor } from "@/components/simple-hotel-editor";
 import { SimpleProfileEditor } from "@/components/simple-profile-editor";
 
