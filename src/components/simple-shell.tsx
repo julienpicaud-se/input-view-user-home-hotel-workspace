@@ -26,13 +26,18 @@ interface SimpleShellProps {
   help?: string;
 }
 
-const NAV: { to: "/simple" | "/simple/workspace" | "/simple/log" | "/simple/insights" | "/simple/settings"; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+const NAV: { to: "/simple" | "/simple/workspace" | "/simple/log" | "/simple/insights" | "/simple/settings"; label: string; shortLabel?: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { to: "/simple", label: "Home", icon: Home },
   { to: "/simple/workspace", label: "Hotel", icon: Building2 },
-  { to: "/simple/log", label: "Add this month", icon: ClipboardList },
-  { to: "/simple/insights", label: "How am I doing?", icon: Sparkles },
+  { to: "/simple/log", label: "Add this month", shortLabel: "Add data", icon: ClipboardList },
+  { to: "/simple/insights", label: "How am I doing?", shortLabel: "Insights", icon: Sparkles },
   { to: "/simple/settings", label: "Settings", icon: Settings2 },
 ];
+
+function isNavActive(navTo: string, pathname: string) {
+  if (navTo === "/simple") return pathname === "/simple" || pathname === "/simple/";
+  return pathname === navTo || pathname.startsWith(`${navTo}/`);
+}
 
 export function SimpleShell({ children, title, subtitle, showBack, help }: SimpleShellProps) {
   const location = useLocation();
