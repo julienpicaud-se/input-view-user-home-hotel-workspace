@@ -255,6 +255,64 @@ function SimpleInsightsPage() {
 
       {!loading && latest && (
         <>
+          {/* Sera hero briefing — feels like Sera is right there with you */}
+          <section className="mb-8 overflow-hidden rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/8 via-card to-accent/12 p-5 md:p-6">
+            <div className="pointer-events-none absolute" />
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+                <Sparkles className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                  Sera · Reading your {monthLabel} numbers
+                </div>
+                {briefingLoading && !briefing ? (
+                  <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Looking through your data…
+                  </div>
+                ) : briefing ? (
+                  <>
+                    <p className="mt-1 font-serif text-xl leading-snug text-foreground md:text-2xl">
+                      {briefing.headline}
+                    </p>
+                    <p className="mt-2 text-sm leading-relaxed text-muted-foreground md:text-[15px]">
+                      {briefing.summary}
+                    </p>
+                    {briefing.focus && (
+                      <div className="mt-3 flex items-start gap-2 rounded-2xl bg-primary/5 px-3 py-2.5 text-sm text-foreground">
+                        <Wand2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                        <span>
+                          <span className="font-medium">Focus this month: </span>
+                          {briefing.focus}
+                        </span>
+                      </div>
+                    )}
+                    {(briefing.questions?.length ?? 0) > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        {(briefing.questions ?? []).slice(0, 3).map((q) => (
+                          <button
+                            key={q}
+                            type="button"
+                            onClick={() => askSeraAbout(q)}
+                            className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-background/70 px-2.5 py-1 text-xs text-foreground transition hover:border-primary/60 hover:bg-primary/5"
+                          >
+                            <MessageCircle className="h-3 w-3" />
+                            {q}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Sera will share a personalised briefing here once your data is in.
+                  </p>
+                )}
+              </div>
+            </div>
+          </section>
+
           {/* Headline carbon */}
           <section className="mb-8 rounded-3xl border border-border/60 bg-card p-5 md:p-6">
             <div className="flex items-start justify-between gap-3">
@@ -293,16 +351,40 @@ function SimpleInsightsPage() {
                   ? `That's ${formatPct(co2Change)} less than last month. Keep it up.`
                   : `That's ${formatPct(co2Change)} more than last month. Have a look at where the increase came from below.`}
             </p>
+            {co2Change !== null && (
+              <button
+                type="button"
+                onClick={() =>
+                  askSeraAbout(
+                    co2Change < 0
+                      ? `My CO₂ dropped ${formatPct(co2Change)} from last month — what drove the improvement and how do I keep it going?`
+                      : `My CO₂ went up ${formatPct(co2Change)} this month. What likely caused it and what should I do first?`,
+                  )
+                }
+                className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-background px-3 py-1.5 text-xs font-medium text-primary transition hover:bg-primary/5"
+              >
+                <Sparkles className="h-3 w-3" />
+                Ask Sera why
+              </button>
+            )}
           </section>
 
           {/* Per-utility cards */}
           <section className="mb-10">
-            <h2 className="mb-4 font-serif text-xl font-semibold text-foreground md:text-2xl">
-              Where the energy went
-            </h2>
+            <div className="mb-4 flex items-end justify-between gap-2">
+              <h2 className="font-serif text-xl font-semibold text-foreground md:text-2xl">
+                Where the energy went
+              </h2>
+              <span className="text-xs text-muted-foreground">Tap a row to ask Sera</span>
+            </div>
             <ul className="space-y-3">
               {summaries.map((s) => (
-                <UtilityRow key={s.key} summary={s} />
+                <UtilityRow
+                  key={s.key}
+                  summary={s}
+                  monthLabel={monthLabel}
+                  onAsk={askSeraAbout}
+                />
               ))}
             </ul>
           </section>
