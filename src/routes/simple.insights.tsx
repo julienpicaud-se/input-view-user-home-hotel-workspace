@@ -731,7 +731,7 @@ function UtilityRow({
         : "bg-primary/10 text-primary";
 
   const askPrompt =
-    bucket === "bad"
+    bucket === "bottom"
       ? `My ${label.toLowerCase()} for ${monthLabel} looks high vs peers (${value !== null ? `${formatNumber(value)} ${unit}` : "no value"}). What likely caused it and what should I try first?`
       : bucket === "top"
         ? `My ${label.toLowerCase()} for ${monthLabel} looks better than most peers. What's working and how do I keep it going?`
