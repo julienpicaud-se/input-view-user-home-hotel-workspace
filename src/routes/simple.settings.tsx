@@ -31,23 +31,17 @@ type Section = "hotels" | "history" | "profile";
 
 function SimpleSettingsPage() {
   const [hotels, setHotels] = React.useState<Hotel[]>([]);
-  const [entries, setEntries] = React.useState<MonthlyEntry[]>([]);
   const [activeHotelId, setActiveHotelId] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [open, setOpen] = React.useState<Section | null>("hotels");
 
   const reload = React.useCallback(async () => {
-    const [{ data: hs }, { data: es }] = await Promise.all([
-      supabase.from("hotels").select("*").order("name", { ascending: true }),
-      supabase
-        .from("monthly_entries")
-        .select("*")
-        .order("year", { ascending: true })
-        .order("month", { ascending: true }),
-    ]);
+    const { data: hs } = await supabase
+      .from("hotels")
+      .select("*")
+      .order("name", { ascending: true });
     const list = (hs as Hotel[] | null) ?? [];
     setHotels(list);
-    setEntries((es as MonthlyEntry[] | null) ?? []);
     setActiveHotelId((prev) => prev ?? list[0]?.id ?? null);
     setLoading(false);
   }, []);
@@ -57,10 +51,6 @@ function SimpleSettingsPage() {
   }, [reload]);
 
   const activeHotel = hotels.find((h) => h.id === activeHotelId) ?? null;
-  const activeHotelEntries = React.useMemo(
-    () => entries.filter((e) => e.hotel_id === activeHotelId),
-    [entries, activeHotelId],
-  );
 
   return (
     <SimpleShell
