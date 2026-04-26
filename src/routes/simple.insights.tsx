@@ -34,6 +34,13 @@ import {
 } from "@/lib/peer-benchmarks";
 import { SimpleShell } from "@/components/simple-shell";
 import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import {
   generateBriefing,
   generateInsights,
   sendAssistantMessage,
@@ -83,6 +90,15 @@ function SimpleInsightsPage() {
   const [chatHistory, setChatHistory] = React.useState<{ role: "user" | "assistant"; content: string }[]>([]);
   const [chatLoading, setChatLoading] = React.useState(false);
   const chatScrollRef = React.useRef<HTMLDivElement | null>(null);
+
+  // Side-panel "Ask Sera" state — used by per-utility / per-tip / per-card buttons
+  // so users get an inline answer without losing their place on the page.
+  const [panelOpen, setPanelOpen] = React.useState(false);
+  const [panelTitle, setPanelTitle] = React.useState<string>("Sera");
+  const [panelPrompt, setPanelPrompt] = React.useState<string>("");
+  const [panelAnswer, setPanelAnswer] = React.useState<string | null>(null);
+  const [panelLoading, setPanelLoading] = React.useState(false);
+  const [panelError, setPanelError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     void (async () => {
@@ -218,13 +234,31 @@ function SimpleInsightsPage() {
     }
   }
 
-  // Scroll to chat & send a contextual prompt — used by per-utility "Ask Sera" buttons.
-  function askSeraAbout(prompt: string) {
-    void sendChat(prompt);
-    // Smooth-scroll the page so the user sees Sera answering.
-    requestAnimationFrame(() => {
-      document.getElementById("ask-sera")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
+  // Open the side panel and ask Sera a contextual question. Used by all the
+  // small "Ask Sera about X" buttons across the page so the answer appears
+  // beside the content the user clicked from instead of forcing them to scroll.
+  async function askSeraAbout(prompt: string, title?: string) {
+    setPanelTitle(title ?? "Sera");
+    setPanelPrompt(prompt);
+    setPanelAnswer(null);
+    setPanelError(null);
+    setPanelOpen(true);
+    setPanelLoading(true);
+    try {
+      const res = await callAssistant({
+        data: {
+          message: prompt,
+          hotelId: getActiveHotelId(),
+          history: [],
+        },
+      });
+      if (res.ok) setPanelAnswer(res.content);
+      else setPanelError(res.error ?? "Sera couldn't answer just now.");
+    } catch {
+      setPanelError("Couldn't reach Sera. Please try again.");
+    } finally {
+      setPanelLoading(false);
+    }
   }
 
   return (
@@ -359,6 +393,7 @@ function SimpleInsightsPage() {
                     co2Change < 0
                       ? `My CO₂ dropped ${formatPct(co2Change)} from last month — what drove the improvement and how do I keep it going?`
                       : `My CO₂ went up ${formatPct(co2Change)} this month. What likely caused it and what should I do first?`,
+                    "Sera on your CO₂",
                   )
                 }
                 className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-background px-3 py-1.5 text-xs font-medium text-primary transition hover:bg-primary/5"
@@ -441,6 +476,7 @@ function SimpleInsightsPage() {
                             onClick={() =>
                               askSeraAbout(
                                 `Tell me more about this tip: "${ins.title}". How would I actually do it at ${hotel?.name ?? "my hotel"} this month, step by step?`,
+                                `Sera · ${ins.title}`,
                               )
                             }
                             className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
@@ -601,6 +637,7 @@ function SimpleInsightsPage() {
                 onClick={() =>
                   askSeraAbout(
                     `How do I compare to similar ${hotel?.size_band ?? ""} hotels${hotel?.region ? ` in ${hotel.region}` : ""}? Where am I doing well and where am I behind?`,
+                    "Sera on peer comparison",
                   )
                 }
                 className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-background px-3 py-1.5 text-xs font-medium text-primary transition hover:bg-primary/5"
@@ -687,6 +724,61 @@ function SimpleInsightsPage() {
           </section>
         </>
       )}
+
+      {/* Sera answer side panel — keeps the user in place when they click any
+          "Ask Sera about X" button. The same prompt + answer that the chat
+          would show, but inline beside the page. */}
+      <Sheet open={panelOpen} onOpenChange={setPanelOpen}>
+        <SheetContent
+          side="right"
+          className="flex w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-md"
+        >
+          <SheetHeader className="border-b border-border/60 bg-gradient-to-br from-primary/8 via-card to-card px-5 py-4 text-left">
+            <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              Sera · Answer
+            </div>
+            <SheetTitle className="font-serif text-lg font-semibold text-foreground">
+              {panelTitle}
+            </SheetTitle>
+            {panelPrompt && (
+              <SheetDescription className="text-xs text-muted-foreground">
+                You asked: <span className="text-foreground">{panelPrompt}</span>
+              </SheetDescription>
+            )}
+          </SheetHeader>
+          <div className="flex-1 overflow-y-auto px-5 py-4">
+            {panelLoading && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Sera is reading your numbers…
+              </div>
+            )}
+            {!panelLoading && panelError && (
+              <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                {panelError}
+              </div>
+            )}
+            {!panelLoading && panelAnswer && (
+              <div className="prose prose-sm max-w-none prose-p:my-2 prose-p:text-foreground prose-strong:text-foreground prose-li:my-0.5 prose-ul:my-2 prose-ol:my-2 prose-headings:font-serif prose-headings:text-foreground">
+                <ReactMarkdown>{panelAnswer}</ReactMarkdown>
+              </div>
+            )}
+          </div>
+          {!panelLoading && (panelAnswer || panelError) && (
+            <div className="border-t border-border/60 bg-card px-5 py-3">
+              <button
+                type="button"
+                onClick={() => askSeraAbout(panelPrompt, panelTitle)}
+                className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-background px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/5"
+              >
+                <Sparkles className="h-3 w-3" />
+                Ask again
+              </button>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </SimpleShell>
   );
 }
@@ -698,7 +790,7 @@ function UtilityRow({
 }: {
   summary: UtilitySummary;
   monthLabel: string;
-  onAsk: (prompt: string) => void;
+  onAsk: (prompt: string, title?: string) => void;
 }) {
   const { Icon, label, value, prev, unit, rank } = summary;
   const change = pctChange(value, prev);
@@ -762,7 +854,7 @@ function UtilityRow({
         </div>
         <button
           type="button"
-          onClick={() => onAsk(askPrompt)}
+          onClick={() => onAsk(askPrompt, `Sera on ${label}`)}
           className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
         >
           <Sparkles className="h-3 w-3" />
