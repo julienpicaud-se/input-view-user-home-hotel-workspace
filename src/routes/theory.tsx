@@ -512,12 +512,12 @@ export function SeraStage({
   return (
     <div className="fixed inset-x-0 bottom-0 z-40">
       {/* gradient veil that lifts the orb off the page */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-72 bg-gradient-to-t from-[#0a0612] via-[#0a0612]/80 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-80 bg-gradient-to-t from-[#0a0612] via-[#0a0612]/90 to-transparent" />
 
-      <div className="relative mx-auto max-w-3xl px-4 pb-5 sm:px-6">
+      <div className="relative mx-auto max-w-5xl px-4 pb-5 sm:px-6">
         {/* Sera's live caption */}
         <div className="mb-3 flex justify-center">
-          <div className="max-w-xl rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-center text-sm leading-relaxed text-white/85 shadow-[0_0_40px_rgba(168,85,247,0.15)] backdrop-blur-md">
+          <div className="max-h-40 w-full max-w-3xl overflow-y-auto rounded-2xl border border-white/25 bg-[#21172b]/95 px-5 py-4 text-center text-base font-medium leading-relaxed text-white shadow-[0_0_48px_rgba(168,85,247,0.28)] backdrop-blur-md sm:text-lg">
             {say || "I'm here when you need me."}
           </div>
         </div>
@@ -528,7 +528,7 @@ export function SeraStage({
             <button
               key={s}
               onClick={() => onSuggestion(s)}
-              className="rounded-full border border-white/15 bg-white/[0.04] px-3.5 py-1.5 text-xs text-white/80 backdrop-blur-md transition-colors hover:border-violet-300/40 hover:bg-violet-500/15 hover:text-white"
+              className="rounded-full border border-white/25 bg-[#21172b]/85 px-4 py-2 text-sm font-semibold text-white shadow-sm backdrop-blur-md transition-colors hover:border-violet-200/70 hover:bg-violet-500/30"
             >
               {s}
             </button>
@@ -561,13 +561,13 @@ export function SeraStage({
               onAsk(text);
               setText("");
             }}
-            className="flex flex-1 items-center gap-2 rounded-2xl border border-white/15 bg-white/[0.06] px-3 py-2 backdrop-blur-md focus-within:border-violet-300/50"
+            className="flex flex-1 items-center gap-2 rounded-2xl border border-white/25 bg-[#21172b]/95 px-3 py-2.5 shadow-[0_0_36px_rgba(168,85,247,0.18)] backdrop-blur-md focus-within:border-violet-200/70"
           >
             <input
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder="Ask Sera anything…"
-              className="flex-1 bg-transparent text-sm text-white placeholder:text-white/40 focus:outline-none"
+              className="flex-1 bg-transparent text-base font-medium text-white placeholder:text-white/65 focus:outline-none"
             />
             <button
               type="button"
