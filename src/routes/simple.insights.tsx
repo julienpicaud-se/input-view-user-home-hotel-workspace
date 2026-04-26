@@ -144,6 +144,11 @@ function SimpleInsightsPage() {
   const co2eLatest = latest ? calculateCO2e(latest) : 0;
   const co2ePrev = prev ? calculateCO2e(prev) : 0;
   const co2Change = pctChange(co2eLatest || null, co2ePrev || null);
+  const cohortSize = React.useMemo(() => getPeerCohortSize(filters), [filters]);
+  const recentEntries = React.useMemo(
+    () => [...sorted].reverse().slice(0, 6),
+    [sorted],
+  );
 
   async function sendChat() {
     const msg = chatInput.trim();
