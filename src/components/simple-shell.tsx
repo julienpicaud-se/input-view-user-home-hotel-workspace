@@ -26,13 +26,18 @@ interface SimpleShellProps {
   help?: string;
 }
 
-const NAV: { to: "/simple" | "/simple/workspace" | "/simple/log" | "/simple/insights" | "/simple/settings"; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+const NAV: { to: "/simple" | "/simple/workspace" | "/simple/log" | "/simple/insights" | "/simple/settings"; label: string; shortLabel?: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { to: "/simple", label: "Home", icon: Home },
   { to: "/simple/workspace", label: "Hotel", icon: Building2 },
-  { to: "/simple/log", label: "Add this month", icon: ClipboardList },
-  { to: "/simple/insights", label: "How am I doing?", icon: Sparkles },
+  { to: "/simple/log", label: "Add this month", shortLabel: "Add data", icon: ClipboardList },
+  { to: "/simple/insights", label: "How am I doing?", shortLabel: "Insights", icon: Sparkles },
   { to: "/simple/settings", label: "Settings", icon: Settings2 },
 ];
+
+function isNavActive(navTo: string, pathname: string) {
+  if (navTo === "/simple") return pathname === "/simple" || pathname === "/simple/";
+  return pathname === navTo || pathname.startsWith(`${navTo}/`);
+}
 
 export function SimpleShell({ children, title, subtitle, showBack, help }: SimpleShellProps) {
   const location = useLocation();
@@ -64,27 +69,34 @@ export function SimpleShell({ children, title, subtitle, showBack, help }: Simpl
         </div>
 
         {/* Bottom nav strip on desktop, hidden on small screens (mobile uses bottom bar) */}
-        <nav className="hidden border-t border-border/40 bg-background/60 md:block">
+        <nav
+          className="hidden border-t border-border/40 bg-background/60 md:block"
+          aria-label="Simple view sections"
+        >
           <div className="mx-auto flex w-full max-w-5xl items-center gap-1 px-5 py-2">
             {NAV.map((item) => {
-              const active =
-                item.to === "/simple"
-                  ? location.pathname === "/simple"
-                  : location.pathname.startsWith(item.to);
+              const active = isNavActive(item.to, location.pathname);
               const Icon = item.icon;
               return (
                 <Link
                   key={item.to}
                   to={item.to}
+                  aria-current={active ? "page" : undefined}
                   className={cn(
-                    "inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors",
+                    "relative inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all",
                     active
-                      ? "bg-primary text-primary-foreground"
+                      ? "bg-primary text-primary-foreground shadow-sm shadow-primary/30 ring-1 ring-primary/40"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground"
                   )}
                 >
                   <Icon className="h-4 w-4" />
                   {item.label}
+                  {active && (
+                    <span
+                      aria-hidden
+                      className="absolute -bottom-[9px] left-1/2 h-[3px] w-8 -translate-x-1/2 rounded-full bg-primary"
+                    />
+                  )}
                 </Link>
               );
             })}
@@ -96,16 +108,53 @@ export function SimpleShell({ children, title, subtitle, showBack, help }: Simpl
       <main className="mx-auto w-full max-w-3xl px-5 pb-32 pt-6 md:pt-10">
         {/* Page header */}
         <div className="mb-6 md:mb-10">
-          {showBack && (
-            <button
-              type="button"
-              onClick={() => navigate({ to: "/simple" })}
-              className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              Back to home
-            </button>
-          )}
+          {(() => {
+            const current = NAV.find((n) => isNavActive(n.to, location.pathname));
+            const isHome = current?.to === "/simple";
+            if (showBack || !current) {
+              return (
+                showBack && (
+                  <button
+                    type="button"
+                    onClick={() => navigate({ to: "/simple" })}
+                    className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                    Back to home
+                  </button>
+                )
+              );
+            }
+            const Icon = current.icon;
+            return (
+              <nav
+                aria-label="Breadcrumb"
+                className="mb-4 flex items-center gap-1.5 text-[11px] uppercase tracking-[0.16em] text-muted-foreground"
+              >
+                {isHome ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-primary">
+                    <Icon className="h-3.5 w-3.5" />
+                    {current.label}
+                  </span>
+                ) : (
+                  <>
+                    <Link
+                      to="/simple"
+                      className="inline-flex items-center gap-1 rounded-full px-2 py-1 transition-colors hover:bg-muted hover:text-foreground"
+                    >
+                      <Home className="h-3 w-3" />
+                      Simple
+                    </Link>
+                    <span aria-hidden className="text-muted-foreground/50">/</span>
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-primary">
+                      <Icon className="h-3.5 w-3.5" />
+                      {current.label}
+                    </span>
+                  </>
+                )}
+              </nav>
+            );
+          })()}
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <h1 className="font-serif text-3xl font-semibold leading-tight text-foreground md:text-4xl">
@@ -142,25 +191,39 @@ export function SimpleShell({ children, title, subtitle, showBack, help }: Simpl
       </main>
 
       {/* Bottom nav for mobile */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border/60 bg-background/95 backdrop-blur md:hidden">
+      <nav
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-border/60 bg-background/95 backdrop-blur md:hidden"
+        aria-label="Simple view sections"
+      >
         <div className="mx-auto flex w-full max-w-5xl items-stretch justify-around px-2 py-1.5">
           {NAV.map((item) => {
-            const active =
-              item.to === "/simple"
-                ? location.pathname === "/simple"
-                : location.pathname.startsWith(item.to);
+            const active = isNavActive(item.to, location.pathname);
             const Icon = item.icon;
             return (
               <Link
                 key={item.to}
                 to={item.to}
+                aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl px-2 py-2 text-[10px] font-medium transition-colors",
-                  active ? "text-primary" : "text-muted-foreground"
+                  "relative flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl px-2 py-2 text-[10px] font-medium transition-colors",
+                  active ? "text-primary" : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                <Icon className="h-5 w-5" />
-                <span className="truncate">{item.label}</span>
+                {active && (
+                  <span
+                    aria-hidden
+                    className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-primary"
+                  />
+                )}
+                <span
+                  className={cn(
+                    "flex h-7 w-7 items-center justify-center rounded-full transition-colors",
+                    active ? "bg-primary/15" : "bg-transparent"
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                </span>
+                <span className="truncate">{item.shortLabel ?? item.label}</span>
               </Link>
             );
           })}
