@@ -97,9 +97,11 @@ type Values = Record<FieldDef["key"], string>;
 function SimpleLogPage() {
   const navigate = useNavigate();
   const [hotel, setHotel] = React.useState<Hotel | null>(null);
+  const [allEntries, setAllEntries] = React.useState<MonthlyEntry[]>([]);
   const [existing, setExisting] = React.useState<MonthlyEntry | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
+  const [openTool, setOpenTool] = React.useState<null | "upload" | "voice" | "paste">(null);
   const [values, setValues] = React.useState<Values>({
     electricity_kwh: "",
     gas_kwh: "",
@@ -111,33 +113,38 @@ function SimpleLogPage() {
   const expected = expectedReportingPeriod();
   const monthLabel = `${MONTH_NAMES[expected.month - 1]} ${expected.year}`;
 
+  const reload = React.useCallback(async () => {
+    const hotelId = getActiveHotelId();
+    const [{ data: h }, { data: list }] = await Promise.all([
+      supabase.from("hotels").select("*").eq("id", hotelId).maybeSingle(),
+      supabase
+        .from("monthly_entries")
+        .select("*")
+        .eq("hotel_id", hotelId)
+        .order("year", { ascending: true })
+        .order("month", { ascending: true }),
+    ]);
+    setHotel(h as Hotel | null);
+    const entries = (list as MonthlyEntry[] | null) ?? [];
+    setAllEntries(entries);
+    const entry =
+      entries.find((e) => e.year === expected.year && e.month === expected.month) ??
+      null;
+    setExisting(entry);
+    if (entry) {
+      setValues({
+        electricity_kwh: entry.electricity_kwh?.toString() ?? "",
+        gas_kwh: entry.gas_kwh?.toString() ?? "",
+        water_m3: entry.water_m3?.toString() ?? "",
+        waste_kg: entry.waste_kg?.toString() ?? "",
+        occupied_room_nights: entry.occupied_room_nights?.toString() ?? "",
+      });
+    }
+    setLoading(false);
+  }, [expected.year, expected.month]);
+
   React.useEffect(() => {
-    void (async () => {
-      const hotelId = getActiveHotelId();
-      const [{ data: h }, { data: e }] = await Promise.all([
-        supabase.from("hotels").select("*").eq("id", hotelId).maybeSingle(),
-        supabase
-          .from("monthly_entries")
-          .select("*")
-          .eq("hotel_id", hotelId)
-          .eq("year", expected.year)
-          .eq("month", expected.month)
-          .maybeSingle(),
-      ]);
-      setHotel(h as Hotel | null);
-      const entry = e as MonthlyEntry | null;
-      setExisting(entry);
-      if (entry) {
-        setValues({
-          electricity_kwh: entry.electricity_kwh?.toString() ?? "",
-          gas_kwh: entry.gas_kwh?.toString() ?? "",
-          water_m3: entry.water_m3?.toString() ?? "",
-          waste_kg: entry.waste_kg?.toString() ?? "",
-          occupied_room_nights: entry.occupied_room_nights?.toString() ?? "",
-        });
-      }
-      setLoading(false);
-    })();
+    void reload();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
