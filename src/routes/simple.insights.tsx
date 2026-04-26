@@ -799,7 +799,7 @@ function UtilityRow({
         </div>
         <button
           type="button"
-          onClick={() => onAsk(askPrompt)}
+          onClick={() => onAsk(askPrompt, `Sera on ${label}`)}
           className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
         >
           <Sparkles className="h-3 w-3" />
