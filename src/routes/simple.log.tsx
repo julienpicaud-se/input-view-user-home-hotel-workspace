@@ -13,12 +13,15 @@ import {
   Mic,
   Upload,
   Wand2,
-  ChevronRight,
+  ChevronDown,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveHotelId, type Hotel, type MonthlyEntry } from "@/lib/hotel";
 import { MONTH_NAMES } from "@/lib/format";
 import { SimpleShell } from "@/components/simple-shell";
+import { InvoiceUploadCard } from "@/components/invoice-upload-card";
+import { VoiceLogCard } from "@/components/voice-log-card";
+import { SmartPasteCard } from "@/components/smart-paste-card";
 
 export const Route = createFileRoute("/simple/log")({
   head: () => ({
