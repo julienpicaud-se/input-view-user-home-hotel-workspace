@@ -70,19 +70,24 @@ interface UtilitySummary {
 
 function SimpleInsightsPage() {
   const callAssistant = useServerFn(sendAssistantMessage);
+  const callBriefing = useServerFn(generateBriefing);
   const [hotel, setHotel] = React.useState<Hotel | null>(null);
+  const [profile, setProfile] = React.useState<UserProfile | null>(null);
   const [entries, setEntries] = React.useState<MonthlyEntry[]>([]);
   const [insights, setInsights] = React.useState<Insight[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [insightsLoading, setInsightsLoading] = React.useState(true);
+  const [briefing, setBriefing] = React.useState<BriefingPayload | null>(null);
+  const [briefingLoading, setBriefingLoading] = React.useState(true);
   const [chatInput, setChatInput] = React.useState("");
   const [chatHistory, setChatHistory] = React.useState<{ role: "user" | "assistant"; content: string }[]>([]);
   const [chatLoading, setChatLoading] = React.useState(false);
+  const chatScrollRef = React.useRef<HTMLDivElement | null>(null);
 
   React.useEffect(() => {
     void (async () => {
       const hotelId = getActiveHotelId();
-      const [{ data: h }, { data: e }] = await Promise.all([
+      const [{ data: h }, { data: e }, { data: p }] = await Promise.all([
         supabase.from("hotels").select("*").eq("id", hotelId).maybeSingle(),
         supabase
           .from("monthly_entries")
@@ -90,9 +95,15 @@ function SimpleInsightsPage() {
           .eq("hotel_id", hotelId)
           .order("year", { ascending: true })
           .order("month", { ascending: true }),
+        supabase
+          .from("user_profiles")
+          .select("*")
+          .eq("id", DEMO_PROFILE_ID)
+          .maybeSingle(),
       ]);
       setHotel(h as Hotel | null);
       setEntries((e as MonthlyEntry[]) ?? []);
+      setProfile((p as UserProfile) ?? null);
       setLoading(false);
     })();
   }, []);
@@ -105,6 +116,28 @@ function SimpleInsightsPage() {
       .catch(() => setInsights([]))
       .finally(() => setInsightsLoading(false));
   }, [loading]);
+
+  const firstName = (profile?.display_name?.split(" ")[0] || "there").trim();
+
+  React.useEffect(() => {
+    if (loading || !hotel) return;
+    setBriefingLoading(true);
+    callBriefing({
+      data: { firstName, todos: [], issues: [] },
+    })
+      .then((res) => {
+        if (res.ok) setBriefing(res.briefing);
+      })
+      .catch(() => {})
+      .finally(() => setBriefingLoading(false));
+  }, [loading, hotel, callBriefing, firstName]);
+
+  React.useEffect(() => {
+    chatScrollRef.current?.scrollTo({
+      top: chatScrollRef.current.scrollHeight,
+      behavior: "smooth",
+    });
+  }, [chatHistory, chatLoading]);
 
   const sorted = [...entries].sort((a, b) =>
     a.year !== b.year ? a.year - b.year : a.month - b.month
