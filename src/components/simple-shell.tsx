@@ -108,16 +108,53 @@ export function SimpleShell({ children, title, subtitle, showBack, help }: Simpl
       <main className="mx-auto w-full max-w-3xl px-5 pb-32 pt-6 md:pt-10">
         {/* Page header */}
         <div className="mb-6 md:mb-10">
-          {showBack && (
-            <button
-              type="button"
-              onClick={() => navigate({ to: "/simple" })}
-              className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              Back to home
-            </button>
-          )}
+          {(() => {
+            const current = NAV.find((n) => isNavActive(n.to, location.pathname));
+            const isHome = current?.to === "/simple";
+            if (showBack || !current) {
+              return (
+                showBack && (
+                  <button
+                    type="button"
+                    onClick={() => navigate({ to: "/simple" })}
+                    className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                    Back to home
+                  </button>
+                )
+              );
+            }
+            const Icon = current.icon;
+            return (
+              <nav
+                aria-label="Breadcrumb"
+                className="mb-4 flex items-center gap-1.5 text-[11px] uppercase tracking-[0.16em] text-muted-foreground"
+              >
+                {isHome ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-primary">
+                    <Icon className="h-3.5 w-3.5" />
+                    {current.label}
+                  </span>
+                ) : (
+                  <>
+                    <Link
+                      to="/simple"
+                      className="inline-flex items-center gap-1 rounded-full px-2 py-1 transition-colors hover:bg-muted hover:text-foreground"
+                    >
+                      <Home className="h-3 w-3" />
+                      Simple
+                    </Link>
+                    <span aria-hidden className="text-muted-foreground/50">/</span>
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-primary">
+                      <Icon className="h-3.5 w-3.5" />
+                      {current.label}
+                    </span>
+                  </>
+                )}
+              </nav>
+            );
+          })()}
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <h1 className="font-serif text-3xl font-semibold leading-tight text-foreground md:text-4xl">
