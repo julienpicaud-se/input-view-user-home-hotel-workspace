@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import * as React from "react";
 import {
   Sparkles,
@@ -11,15 +11,21 @@ import {
   Loader2,
   ArrowRight,
   MessageCircle,
-  BarChart3,
   Users,
   Send,
+  CalendarRange,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveHotelId, type Hotel, type MonthlyEntry } from "@/lib/hotel";
 import { MONTH_NAMES, MONTH_SHORT, formatNumber, pctChange, formatPct, calculateCO2e } from "@/lib/format";
-import { getPeerStats, getPeerRank, type Utility } from "@/lib/peer-benchmarks";
+import {
+  getPeerStats,
+  getPeerRank,
+  getPeerCohortSize,
+  type Utility,
+  type PeerStats,
+} from "@/lib/peer-benchmarks";
 import { SimpleShell } from "@/components/simple-shell";
 import {
   generateInsights,
