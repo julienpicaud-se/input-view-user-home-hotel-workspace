@@ -361,22 +361,99 @@ function SimpleInsightsPage() {
             )}
           </section>
 
-          {/* Deep links to classic */}
-          <section className="mb-10 grid gap-3 sm:grid-cols-2">
-            <DeepLink
-              href="/workspace"
-              search={{ tab: "analyze" } as never}
-              icon={BarChart3}
-              title="See the full charts"
-              subtitle="Switches to the Classic view, just for this page."
-            />
-            <DeepLink
-              href="/workspace"
-              search={{ tab: "benchmarks" } as never}
-              icon={Users}
-              title="Compare to peers"
-              subtitle="Detailed peer cohort and trend lines."
-            />
+          {/* Inline peer comparison detail (replaces the old deep links to Classic) */}
+          <section className="mb-10 rounded-3xl border border-border/60 bg-card p-5 md:p-6">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                  <Users className="h-3.5 w-3.5 text-primary" />
+                  Compare to peers
+                </div>
+                <h2 className="mt-1 font-serif text-xl font-semibold text-foreground">
+                  How you stack up
+                </h2>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  vs {cohortSize} similar {hotel?.size_band ?? ""} hotels
+                  {hotel?.region ? ` in ${hotel.region}` : ""} ·{" "}
+                  {hotel?.star_rating ?? 4}★
+                </p>
+              </div>
+            </div>
+            {latest?.occupied_room_nights ? (
+              <ul className="space-y-3">
+                {summaries.map((s) => (
+                  <PeerCompareRow key={s.key} summary={s} />
+                ))}
+              </ul>
+            ) : (
+              <p className="rounded-2xl border border-dashed border-border/60 bg-background p-4 text-sm text-muted-foreground">
+                Add the room-nights for {monthLabel} so we can compare you per
+                guest. Without occupancy we can only show totals.
+              </p>
+            )}
+          </section>
+
+          {/* Last 6 months — text-first recap so users don't need to hop to Classic for charts */}
+          <section className="mb-10 rounded-3xl border border-border/60 bg-card p-5 md:p-6">
+            <div className="mb-4 flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+              <CalendarRange className="h-3.5 w-3.5 text-primary" />
+              Last few months
+            </div>
+            {recentEntries.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                We'll show your trend here once you've logged a couple of months.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {recentEntries.map((e, i) => {
+                  const next = recentEntries[i + 1];
+                  const co2 = calculateCO2e(e);
+                  const co2Prev = next ? calculateCO2e(next) : null;
+                  const change = pctChange(co2 || null, co2Prev);
+                  return (
+                    <li
+                      key={e.id}
+                      className="flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-background px-4 py-3"
+                    >
+                      <div>
+                        <div className="font-serif text-sm font-medium text-foreground">
+                          {MONTH_SHORT[e.month - 1]} {e.year}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {formatNumber(Math.round(co2))} kg CO₂e
+                        </div>
+                      </div>
+                      {change !== null && (
+                        <div
+                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
+                            change < 0
+                              ? "bg-success/15 text-success"
+                              : "bg-warning/15 text-warning"
+                          }`}
+                        >
+                          {change < 0 ? (
+                            <TrendingDown className="h-3.5 w-3.5" />
+                          ) : (
+                            <TrendingUp className="h-3.5 w-3.5" />
+                          )}
+                          {formatPct(change)}
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+            <p className="mt-3 text-center text-[11px] text-muted-foreground">
+              Want to fix a number?{" "}
+              <Link
+                to="/simple/settings"
+                className="text-primary underline-offset-2 hover:underline"
+              >
+                Edit past months
+              </Link>{" "}
+              in settings.
+            </p>
           </section>
         </>
       )}
