@@ -637,6 +637,7 @@ function SimpleInsightsPage() {
                 onClick={() =>
                   askSeraAbout(
                     `How do I compare to similar ${hotel?.size_band ?? ""} hotels${hotel?.region ? ` in ${hotel.region}` : ""}? Where am I doing well and where am I behind?`,
+                    "Sera on peer comparison",
                   )
                 }
                 className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-background px-3 py-1.5 text-xs font-medium text-primary transition hover:bg-primary/5"
