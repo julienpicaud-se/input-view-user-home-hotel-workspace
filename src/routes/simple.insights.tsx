@@ -735,7 +735,7 @@ function UtilityRow({
 }: {
   summary: UtilitySummary;
   monthLabel: string;
-  onAsk: (prompt: string) => void;
+  onAsk: (prompt: string, title?: string) => void;
 }) {
   const { Icon, label, value, prev, unit, rank } = summary;
   const change = pctChange(value, prev);
