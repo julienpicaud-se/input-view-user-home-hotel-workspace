@@ -328,31 +328,46 @@ function FieldRow({
   );
 }
 
-function ShortcutCard({
+function ToolToggle({
   icon: Icon,
   title,
   subtitle,
+  active,
   onClick,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   title: string;
   subtitle: string;
+  active: boolean;
   onClick: () => void;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="group flex w-full items-start gap-3 rounded-2xl border border-border/60 bg-card p-4 text-left transition-all hover:border-primary/40 hover:shadow-sm"
+      aria-pressed={active}
+      className={`group flex w-full items-start gap-3 rounded-2xl border p-4 text-left transition-all ${
+        active
+          ? "border-primary bg-primary/10 shadow-sm"
+          : "border-border/60 bg-card hover:border-primary/40 hover:shadow-sm"
+      }`}
     >
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+      <div
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+          active ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary"
+        }`}
+      >
         <Icon className="h-5 w-5" />
       </div>
       <div className="min-w-0 flex-1">
         <div className="text-sm font-semibold text-foreground">{title}</div>
         <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>
       </div>
-      <ChevronRight className="mt-2 h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+      <ChevronDown
+        className={`mt-2 h-4 w-4 shrink-0 text-muted-foreground transition-transform ${
+          active ? "rotate-180 text-primary" : ""
+        }`}
+      />
     </button>
   );
 }
