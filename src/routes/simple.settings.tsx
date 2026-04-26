@@ -3,15 +3,13 @@ import * as React from "react";
 import {
   Building2,
   UserCircle2,
-  History,
   Settings2,
   ChevronDown,
   Loader2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import type { Hotel, MonthlyEntry } from "@/lib/hotel";
+import type { Hotel } from "@/lib/hotel";
 import { SimpleShell } from "@/components/simple-shell";
-import { SimpleHistoryEditor } from "@/components/simple-history-editor";
 import { SimpleHotelEditor } from "@/components/simple-hotel-editor";
 import { SimpleProfileEditor } from "@/components/simple-profile-editor";
 
@@ -33,23 +31,17 @@ type Section = "hotels" | "history" | "profile";
 
 function SimpleSettingsPage() {
   const [hotels, setHotels] = React.useState<Hotel[]>([]);
-  const [entries, setEntries] = React.useState<MonthlyEntry[]>([]);
   const [activeHotelId, setActiveHotelId] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [open, setOpen] = React.useState<Section | null>("hotels");
 
   const reload = React.useCallback(async () => {
-    const [{ data: hs }, { data: es }] = await Promise.all([
-      supabase.from("hotels").select("*").order("name", { ascending: true }),
-      supabase
-        .from("monthly_entries")
-        .select("*")
-        .order("year", { ascending: true })
-        .order("month", { ascending: true }),
-    ]);
+    const { data: hs } = await supabase
+      .from("hotels")
+      .select("*")
+      .order("name", { ascending: true });
     const list = (hs as Hotel[] | null) ?? [];
     setHotels(list);
-    setEntries((es as MonthlyEntry[] | null) ?? []);
     setActiveHotelId((prev) => prev ?? list[0]?.id ?? null);
     setLoading(false);
   }, []);
@@ -59,10 +51,6 @@ function SimpleSettingsPage() {
   }, [reload]);
 
   const activeHotel = hotels.find((h) => h.id === activeHotelId) ?? null;
-  const activeHotelEntries = React.useMemo(
-    () => entries.filter((e) => e.hotel_id === activeHotelId),
-    [entries, activeHotelId],
-  );
 
   return (
     <SimpleShell
@@ -123,32 +111,6 @@ function SimpleSettingsPage() {
                   />
                 )}
               </>
-            )}
-          </SectionDisclosure>
-
-          {/* PAST MONTHS */}
-          <SectionDisclosure
-            icon={History}
-            title="Past months"
-            subtitle={
-              activeHotel
-                ? `Edit older entries for ${activeHotel.name}.`
-                : "Pick a hotel above first."
-            }
-            open={open === "history"}
-            onToggle={() =>
-              setOpen((v) => (v === "history" ? null : "history"))
-            }
-          >
-            {activeHotel ? (
-              <SimpleHistoryEditor
-                entries={activeHotelEntries}
-                onChanged={() => void reload()}
-              />
-            ) : (
-              <div className="rounded-3xl border border-dashed border-border/60 bg-card p-6 text-center text-sm text-muted-foreground">
-                Select a hotel above to see its past months.
-              </div>
             )}
           </SectionDisclosure>
 
