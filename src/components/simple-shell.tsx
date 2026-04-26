@@ -191,25 +191,39 @@ export function SimpleShell({ children, title, subtitle, showBack, help }: Simpl
       </main>
 
       {/* Bottom nav for mobile */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border/60 bg-background/95 backdrop-blur md:hidden">
+      <nav
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-border/60 bg-background/95 backdrop-blur md:hidden"
+        aria-label="Simple view sections"
+      >
         <div className="mx-auto flex w-full max-w-5xl items-stretch justify-around px-2 py-1.5">
           {NAV.map((item) => {
-            const active =
-              item.to === "/simple"
-                ? location.pathname === "/simple"
-                : location.pathname.startsWith(item.to);
+            const active = isNavActive(item.to, location.pathname);
             const Icon = item.icon;
             return (
               <Link
                 key={item.to}
                 to={item.to}
+                aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl px-2 py-2 text-[10px] font-medium transition-colors",
-                  active ? "text-primary" : "text-muted-foreground"
+                  "relative flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl px-2 py-2 text-[10px] font-medium transition-colors",
+                  active ? "text-primary" : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                <Icon className="h-5 w-5" />
-                <span className="truncate">{item.label}</span>
+                {active && (
+                  <span
+                    aria-hidden
+                    className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-primary"
+                  />
+                )}
+                <span
+                  className={cn(
+                    "flex h-7 w-7 items-center justify-center rounded-full transition-colors",
+                    active ? "bg-primary/15" : "bg-transparent"
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                </span>
+                <span className="truncate">{item.shortLabel ?? item.label}</span>
               </Link>
             );
           })}
