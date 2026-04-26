@@ -91,6 +91,15 @@ function SimpleInsightsPage() {
   const [chatLoading, setChatLoading] = React.useState(false);
   const chatScrollRef = React.useRef<HTMLDivElement | null>(null);
 
+  // Side-panel "Ask Sera" state — used by per-utility / per-tip / per-card buttons
+  // so users get an inline answer without losing their place on the page.
+  const [panelOpen, setPanelOpen] = React.useState(false);
+  const [panelTitle, setPanelTitle] = React.useState<string>("Sera");
+  const [panelPrompt, setPanelPrompt] = React.useState<string>("");
+  const [panelAnswer, setPanelAnswer] = React.useState<string | null>(null);
+  const [panelLoading, setPanelLoading] = React.useState(false);
+  const [panelError, setPanelError] = React.useState<string | null>(null);
+
   React.useEffect(() => {
     void (async () => {
       const hotelId = getActiveHotelId();
