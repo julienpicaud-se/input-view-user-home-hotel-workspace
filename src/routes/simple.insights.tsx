@@ -191,11 +191,12 @@ function SimpleInsightsPage() {
     [sorted],
   );
 
-  async function sendChat() {
-    const msg = chatInput.trim();
+  async function sendChat(preset?: string) {
+    const msg = (preset ?? chatInput).trim();
     if (!msg || chatLoading) return;
-    setChatInput("");
-    setChatHistory((h) => [...h, { role: "user", content: msg }]);
+    if (!preset) setChatInput("");
+    const newHistory = [...chatHistory, { role: "user" as const, content: msg }];
+    setChatHistory(newHistory);
     setChatLoading(true);
     try {
       const res = await callAssistant({
@@ -215,6 +216,15 @@ function SimpleInsightsPage() {
     } finally {
       setChatLoading(false);
     }
+  }
+
+  // Scroll to chat & send a contextual prompt — used by per-utility "Ask Sera" buttons.
+  function askSeraAbout(prompt: string) {
+    void sendChat(prompt);
+    // Smooth-scroll the page so the user sees Sera answering.
+    requestAnimationFrame(() => {
+      document.getElementById("ask-sera")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   }
 
   return (
