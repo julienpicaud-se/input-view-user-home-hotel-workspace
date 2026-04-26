@@ -197,26 +197,47 @@ function SimpleLogPage() {
       showBack
       help="You don't have to fill in every field at once. Whatever you save here goes to the same place as the Classic view, so you can switch between the two whenever you want."
     >
-      {/* Quick-entry shortcuts */}
-      <section className="mb-8 grid gap-3 sm:grid-cols-3">
-        <ShortcutCard
-          icon={Upload}
-          title="Upload bills"
-          subtitle="We'll read the numbers for you."
-          onClick={() => void navigate({ to: "/workspace", search: { tab: "log" } })}
-        />
-        <ShortcutCard
-          icon={Mic}
-          title="Read it out"
-          subtitle="Speak the numbers, we'll fill the form."
-          onClick={() => void navigate({ to: "/workspace", search: { tab: "log" } })}
-        />
-        <ShortcutCard
-          icon={Wand2}
-          title="Paste from email"
-          subtitle="Drop your supplier's text and we'll parse."
-          onClick={() => void navigate({ to: "/workspace", search: { tab: "log" } })}
-        />
+      {/* Quick-entry shortcuts (inline disclosure — keeps the user inside Simple) */}
+      <section className="mb-8">
+        <div className="mb-2 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+          Faster ways to fill this in
+        </div>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <ToolToggle
+            icon={Upload}
+            title="Upload bills"
+            subtitle="We'll read the numbers for you."
+            active={openTool === "upload"}
+            onClick={() => setOpenTool((t) => (t === "upload" ? null : "upload"))}
+          />
+          <ToolToggle
+            icon={Mic}
+            title="Read it out"
+            subtitle="Speak the numbers, we'll fill the form."
+            active={openTool === "voice"}
+            onClick={() => setOpenTool((t) => (t === "voice" ? null : "voice"))}
+          />
+          <ToolToggle
+            icon={Wand2}
+            title="Paste from email"
+            subtitle="Drop your supplier's text and we'll parse."
+            active={openTool === "paste"}
+            onClick={() => setOpenTool((t) => (t === "paste" ? null : "paste"))}
+          />
+        </div>
+        {openTool && (
+          <div className="mt-4 rounded-3xl border border-border/60 bg-card p-4 md:p-5">
+            {openTool === "upload" && (
+              <InvoiceUploadCard entries={allEntries} onSaved={() => void reload()} />
+            )}
+            {openTool === "voice" && (
+              <VoiceLogCard entries={allEntries} onSaved={() => void reload()} />
+            )}
+            {openTool === "paste" && (
+              <SmartPasteCard entries={allEntries} onSaved={() => void reload()} />
+            )}
+          </div>
+        )}
       </section>
 
       {/* The form */}
