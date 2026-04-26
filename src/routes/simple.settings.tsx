@@ -126,32 +126,6 @@ function SimpleSettingsPage() {
             )}
           </SectionDisclosure>
 
-          {/* PAST MONTHS */}
-          <SectionDisclosure
-            icon={History}
-            title="Past months"
-            subtitle={
-              activeHotel
-                ? `Edit older entries for ${activeHotel.name}.`
-                : "Pick a hotel above first."
-            }
-            open={open === "history"}
-            onToggle={() =>
-              setOpen((v) => (v === "history" ? null : "history"))
-            }
-          >
-            {activeHotel ? (
-              <SimpleHistoryEditor
-                entries={activeHotelEntries}
-                onChanged={() => void reload()}
-              />
-            ) : (
-              <div className="rounded-3xl border border-dashed border-border/60 bg-card p-6 text-center text-sm text-muted-foreground">
-                Select a hotel above to see its past months.
-              </div>
-            )}
-          </SectionDisclosure>
-
           {/* PROFILE */}
           <SectionDisclosure
             icon={UserCircle2}
