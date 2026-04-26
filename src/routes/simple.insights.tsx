@@ -534,33 +534,101 @@ function UtilityRow({ summary }: { summary: UtilitySummary }) {
   );
 }
 
-function DeepLink({
-  href,
-  search,
-  icon: Icon,
-  title,
-  subtitle,
-}: {
-  href: "/workspace";
-  search: never;
-  icon: React.ComponentType<{ className?: string }>;
-  title: string;
-  subtitle: string;
-}) {
+/**
+ * Plain-language peer comparison row: shows your intensity, the peer median
+ * and the best-in-class as small CSS bars (no chart library needed).
+ */
+function PeerCompareRow({ summary }: { summary: UtilitySummary }) {
+  const { Icon, label, intensity, unit, stats, rank } = summary;
+  if (!stats || intensity === null) {
+    return (
+      <li className="flex items-center gap-3 rounded-2xl border border-border/60 bg-background p-4 text-sm text-muted-foreground">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground">
+          <Icon className="h-4 w-4" />
+        </div>
+        <div>{label} — not enough data to compare yet.</div>
+      </li>
+    );
+  }
+  const max = Math.max(intensity, stats.p90) * 1.05;
+  const yourPct = (intensity / max) * 100;
+  const medianPct = (stats.median / max) * 100;
+  const bestPct = (stats.bestInClass / max) * 100;
+  const bucket: "top" | "average" | "bottom" =
+    rank !== null && rank <= 30
+      ? "top"
+      : rank !== null && rank <= 65
+        ? "average"
+        : "bottom";
+  const youColor =
+    bucket === "top"
+      ? "bg-success"
+      : bucket === "average"
+        ? "bg-primary"
+        : "bg-warning";
+  const verdict =
+    bucket === "top"
+      ? "Better than most peers"
+      : bucket === "average"
+        ? "About average"
+        : "Above average — room to save";
+
   return (
-    <Link
-      to={href}
-      search={search}
-      className="group flex items-start gap-3 rounded-2xl border border-border/60 bg-card p-4 transition-all hover:border-primary/40 hover:shadow-sm"
-    >
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground">
-        <Icon className="h-5 w-5" />
+    <li className="rounded-2xl border border-border/60 bg-background p-4">
+      <div className="flex items-center gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground">
+          <Icon className="h-4 w-4" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-semibold text-foreground">{label}</div>
+          <div className="text-xs text-muted-foreground">{verdict}</div>
+        </div>
+        <div className="text-right text-xs text-muted-foreground">
+          <span className="block font-semibold text-foreground">
+            {intensity.toFixed(2)} {unit}/night
+          </span>
+          <span>
+            peer median {stats.median.toFixed(2)} · best {stats.bestInClass.toFixed(2)}
+          </span>
+        </div>
       </div>
-      <div className="min-w-0 flex-1">
-        <div className="text-sm font-semibold text-foreground">{title}</div>
-        <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>
+      {/* Three stacked bars: best-in-class | peer median | you */}
+      <div className="mt-3 space-y-1.5">
+        <BarRow label="Best 10%" widthPct={bestPct} color="bg-success/60" />
+        <BarRow label="Peer median" widthPct={medianPct} color="bg-muted-foreground/40" />
+        <BarRow label="You" widthPct={yourPct} color={youColor} bold />
       </div>
-      <ArrowRight className="mt-2 h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-    </Link>
+    </li>
   );
 }
+
+function BarRow({
+  label,
+  widthPct,
+  color,
+  bold,
+}: {
+  label: string;
+  widthPct: number;
+  color: string;
+  bold?: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <span
+        className={`w-20 shrink-0 text-[10px] uppercase tracking-wider ${
+          bold ? "font-semibold text-foreground" : "text-muted-foreground"
+        }`}
+      >
+        {label}
+      </span>
+      <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+        <div
+          className={`h-full rounded-full ${color}`}
+          style={{ width: `${Math.min(100, Math.max(2, widthPct))}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
