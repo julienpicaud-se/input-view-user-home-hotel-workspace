@@ -724,6 +724,61 @@ function SimpleInsightsPage() {
           </section>
         </>
       )}
+
+      {/* Sera answer side panel — keeps the user in place when they click any
+          "Ask Sera about X" button. The same prompt + answer that the chat
+          would show, but inline beside the page. */}
+      <Sheet open={panelOpen} onOpenChange={setPanelOpen}>
+        <SheetContent
+          side="right"
+          className="flex w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-md"
+        >
+          <SheetHeader className="border-b border-border/60 bg-gradient-to-br from-primary/8 via-card to-card px-5 py-4 text-left">
+            <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              Sera · Answer
+            </div>
+            <SheetTitle className="font-serif text-lg font-semibold text-foreground">
+              {panelTitle}
+            </SheetTitle>
+            {panelPrompt && (
+              <SheetDescription className="text-xs text-muted-foreground">
+                You asked: <span className="text-foreground">{panelPrompt}</span>
+              </SheetDescription>
+            )}
+          </SheetHeader>
+          <div className="flex-1 overflow-y-auto px-5 py-4">
+            {panelLoading && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Sera is reading your numbers…
+              </div>
+            )}
+            {!panelLoading && panelError && (
+              <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                {panelError}
+              </div>
+            )}
+            {!panelLoading && panelAnswer && (
+              <div className="prose prose-sm max-w-none prose-p:my-2 prose-p:text-foreground prose-strong:text-foreground prose-li:my-0.5 prose-ul:my-2 prose-ol:my-2 prose-headings:font-serif prose-headings:text-foreground">
+                <ReactMarkdown>{panelAnswer}</ReactMarkdown>
+              </div>
+            )}
+          </div>
+          {!panelLoading && (panelAnswer || panelError) && (
+            <div className="border-t border-border/60 bg-card px-5 py-3">
+              <button
+                type="button"
+                onClick={() => askSeraAbout(panelPrompt, panelTitle)}
+                className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-background px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/5"
+              >
+                <Sparkles className="h-3 w-3" />
+                Ask again
+              </button>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </SimpleShell>
   );
 }
