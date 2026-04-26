@@ -476,6 +476,7 @@ function SimpleInsightsPage() {
                             onClick={() =>
                               askSeraAbout(
                                 `Tell me more about this tip: "${ins.title}". How would I actually do it at ${hotel?.name ?? "my hotel"} this month, step by step?`,
+                                `Sera · ${ins.title}`,
                               )
                             }
                             className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
