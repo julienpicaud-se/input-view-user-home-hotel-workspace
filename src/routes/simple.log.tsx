@@ -13,12 +13,15 @@ import {
   Mic,
   Upload,
   Wand2,
-  ChevronRight,
+  ChevronDown,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveHotelId, type Hotel, type MonthlyEntry } from "@/lib/hotel";
 import { MONTH_NAMES } from "@/lib/format";
 import { SimpleShell } from "@/components/simple-shell";
+import { InvoiceUploadCard } from "@/components/invoice-upload-card";
+import { VoiceLogCard } from "@/components/voice-log-card";
+import { SmartPasteCard } from "@/components/smart-paste-card";
 
 export const Route = createFileRoute("/simple/log")({
   head: () => ({
@@ -94,9 +97,11 @@ type Values = Record<FieldDef["key"], string>;
 function SimpleLogPage() {
   const navigate = useNavigate();
   const [hotel, setHotel] = React.useState<Hotel | null>(null);
+  const [allEntries, setAllEntries] = React.useState<MonthlyEntry[]>([]);
   const [existing, setExisting] = React.useState<MonthlyEntry | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
+  const [openTool, setOpenTool] = React.useState<null | "upload" | "voice" | "paste">(null);
   const [values, setValues] = React.useState<Values>({
     electricity_kwh: "",
     gas_kwh: "",
@@ -108,33 +113,38 @@ function SimpleLogPage() {
   const expected = expectedReportingPeriod();
   const monthLabel = `${MONTH_NAMES[expected.month - 1]} ${expected.year}`;
 
+  const reload = React.useCallback(async () => {
+    const hotelId = getActiveHotelId();
+    const [{ data: h }, { data: list }] = await Promise.all([
+      supabase.from("hotels").select("*").eq("id", hotelId).maybeSingle(),
+      supabase
+        .from("monthly_entries")
+        .select("*")
+        .eq("hotel_id", hotelId)
+        .order("year", { ascending: true })
+        .order("month", { ascending: true }),
+    ]);
+    setHotel(h as Hotel | null);
+    const entries = (list as MonthlyEntry[] | null) ?? [];
+    setAllEntries(entries);
+    const entry =
+      entries.find((e) => e.year === expected.year && e.month === expected.month) ??
+      null;
+    setExisting(entry);
+    if (entry) {
+      setValues({
+        electricity_kwh: entry.electricity_kwh?.toString() ?? "",
+        gas_kwh: entry.gas_kwh?.toString() ?? "",
+        water_m3: entry.water_m3?.toString() ?? "",
+        waste_kg: entry.waste_kg?.toString() ?? "",
+        occupied_room_nights: entry.occupied_room_nights?.toString() ?? "",
+      });
+    }
+    setLoading(false);
+  }, [expected.year, expected.month]);
+
   React.useEffect(() => {
-    void (async () => {
-      const hotelId = getActiveHotelId();
-      const [{ data: h }, { data: e }] = await Promise.all([
-        supabase.from("hotels").select("*").eq("id", hotelId).maybeSingle(),
-        supabase
-          .from("monthly_entries")
-          .select("*")
-          .eq("hotel_id", hotelId)
-          .eq("year", expected.year)
-          .eq("month", expected.month)
-          .maybeSingle(),
-      ]);
-      setHotel(h as Hotel | null);
-      const entry = e as MonthlyEntry | null;
-      setExisting(entry);
-      if (entry) {
-        setValues({
-          electricity_kwh: entry.electricity_kwh?.toString() ?? "",
-          gas_kwh: entry.gas_kwh?.toString() ?? "",
-          water_m3: entry.water_m3?.toString() ?? "",
-          waste_kg: entry.waste_kg?.toString() ?? "",
-          occupied_room_nights: entry.occupied_room_nights?.toString() ?? "",
-        });
-      }
-      setLoading(false);
-    })();
+    void reload();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -187,26 +197,47 @@ function SimpleLogPage() {
       showBack
       help="You don't have to fill in every field at once. Whatever you save here goes to the same place as the Classic view, so you can switch between the two whenever you want."
     >
-      {/* Quick-entry shortcuts */}
-      <section className="mb-8 grid gap-3 sm:grid-cols-3">
-        <ShortcutCard
-          icon={Upload}
-          title="Upload bills"
-          subtitle="We'll read the numbers for you."
-          onClick={() => void navigate({ to: "/workspace", search: { tab: "log" } })}
-        />
-        <ShortcutCard
-          icon={Mic}
-          title="Read it out"
-          subtitle="Speak the numbers, we'll fill the form."
-          onClick={() => void navigate({ to: "/workspace", search: { tab: "log" } })}
-        />
-        <ShortcutCard
-          icon={Wand2}
-          title="Paste from email"
-          subtitle="Drop your supplier's text and we'll parse."
-          onClick={() => void navigate({ to: "/workspace", search: { tab: "log" } })}
-        />
+      {/* Quick-entry shortcuts (inline disclosure — keeps the user inside Simple) */}
+      <section className="mb-8">
+        <div className="mb-2 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+          Faster ways to fill this in
+        </div>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <ToolToggle
+            icon={Upload}
+            title="Upload bills"
+            subtitle="We'll read the numbers for you."
+            active={openTool === "upload"}
+            onClick={() => setOpenTool((t) => (t === "upload" ? null : "upload"))}
+          />
+          <ToolToggle
+            icon={Mic}
+            title="Read it out"
+            subtitle="Speak the numbers, we'll fill the form."
+            active={openTool === "voice"}
+            onClick={() => setOpenTool((t) => (t === "voice" ? null : "voice"))}
+          />
+          <ToolToggle
+            icon={Wand2}
+            title="Paste from email"
+            subtitle="Drop your supplier's text and we'll parse."
+            active={openTool === "paste"}
+            onClick={() => setOpenTool((t) => (t === "paste" ? null : "paste"))}
+          />
+        </div>
+        {openTool && (
+          <div className="mt-4 rounded-3xl border border-border/60 bg-card p-4 md:p-5">
+            {openTool === "upload" && (
+              <InvoiceUploadCard entries={allEntries} onSaved={() => void reload()} />
+            )}
+            {openTool === "voice" && (
+              <VoiceLogCard entries={allEntries} onSaved={() => void reload()} />
+            )}
+            {openTool === "paste" && (
+              <SmartPasteCard entries={allEntries} onSaved={() => void reload()} />
+            )}
+          </div>
+        )}
       </section>
 
       {/* The form */}
@@ -297,31 +328,46 @@ function FieldRow({
   );
 }
 
-function ShortcutCard({
+function ToolToggle({
   icon: Icon,
   title,
   subtitle,
+  active,
   onClick,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   title: string;
   subtitle: string;
+  active: boolean;
   onClick: () => void;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="group flex w-full items-start gap-3 rounded-2xl border border-border/60 bg-card p-4 text-left transition-all hover:border-primary/40 hover:shadow-sm"
+      aria-pressed={active}
+      className={`group flex w-full items-start gap-3 rounded-2xl border p-4 text-left transition-all ${
+        active
+          ? "border-primary bg-primary/10 shadow-sm"
+          : "border-border/60 bg-card hover:border-primary/40 hover:shadow-sm"
+      }`}
     >
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+      <div
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+          active ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary"
+        }`}
+      >
         <Icon className="h-5 w-5" />
       </div>
       <div className="min-w-0 flex-1">
         <div className="text-sm font-semibold text-foreground">{title}</div>
         <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>
       </div>
-      <ChevronRight className="mt-2 h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+      <ChevronDown
+        className={`mt-2 h-4 w-4 shrink-0 text-muted-foreground transition-transform ${
+          active ? "rotate-180 text-primary" : ""
+        }`}
+      />
     </button>
   );
 }

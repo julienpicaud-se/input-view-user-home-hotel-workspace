@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import * as React from "react";
 import {
   Sparkles,
@@ -11,15 +11,21 @@ import {
   Loader2,
   ArrowRight,
   MessageCircle,
-  BarChart3,
   Users,
   Send,
+  CalendarRange,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveHotelId, type Hotel, type MonthlyEntry } from "@/lib/hotel";
 import { MONTH_NAMES, MONTH_SHORT, formatNumber, pctChange, formatPct, calculateCO2e } from "@/lib/format";
-import { getPeerStats, getPeerRank, type Utility } from "@/lib/peer-benchmarks";
+import {
+  getPeerStats,
+  getPeerRank,
+  getPeerCohortSize,
+  type Utility,
+  type PeerStats,
+} from "@/lib/peer-benchmarks";
 import { SimpleShell } from "@/components/simple-shell";
 import {
   generateInsights,
@@ -51,6 +57,7 @@ interface UtilitySummary {
   prev: number | null;
   intensity: number | null;
   rank: ReturnType<typeof getPeerRank> | null;
+  stats: PeerStats | null;
 }
 
 function SimpleInsightsPage() {
@@ -128,6 +135,7 @@ function SimpleInsightsPage() {
         prev: pv,
         intensity,
         rank,
+        stats,
       };
     });
   }, [latest, prev, filters]);
@@ -136,6 +144,11 @@ function SimpleInsightsPage() {
   const co2eLatest = latest ? calculateCO2e(latest) : 0;
   const co2ePrev = prev ? calculateCO2e(prev) : 0;
   const co2Change = pctChange(co2eLatest || null, co2ePrev || null);
+  const cohortSize = React.useMemo(() => getPeerCohortSize(filters), [filters]);
+  const recentEntries = React.useMemo(
+    () => [...sorted].reverse().slice(0, 6),
+    [sorted],
+  );
 
   async function sendChat() {
     const msg = chatInput.trim();
@@ -348,22 +361,99 @@ function SimpleInsightsPage() {
             )}
           </section>
 
-          {/* Deep links to classic */}
-          <section className="mb-10 grid gap-3 sm:grid-cols-2">
-            <DeepLink
-              href="/workspace"
-              search={{ tab: "analyze" } as never}
-              icon={BarChart3}
-              title="See the full charts"
-              subtitle="Switches to the Classic view, just for this page."
-            />
-            <DeepLink
-              href="/workspace"
-              search={{ tab: "benchmarks" } as never}
-              icon={Users}
-              title="Compare to peers"
-              subtitle="Detailed peer cohort and trend lines."
-            />
+          {/* Inline peer comparison detail (replaces the old deep links to Classic) */}
+          <section className="mb-10 rounded-3xl border border-border/60 bg-card p-5 md:p-6">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                  <Users className="h-3.5 w-3.5 text-primary" />
+                  Compare to peers
+                </div>
+                <h2 className="mt-1 font-serif text-xl font-semibold text-foreground">
+                  How you stack up
+                </h2>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  vs {cohortSize} similar {hotel?.size_band ?? ""} hotels
+                  {hotel?.region ? ` in ${hotel.region}` : ""} ·{" "}
+                  {hotel?.star_rating ?? 4}★
+                </p>
+              </div>
+            </div>
+            {latest?.occupied_room_nights ? (
+              <ul className="space-y-3">
+                {summaries.map((s) => (
+                  <PeerCompareRow key={s.key} summary={s} />
+                ))}
+              </ul>
+            ) : (
+              <p className="rounded-2xl border border-dashed border-border/60 bg-background p-4 text-sm text-muted-foreground">
+                Add the room-nights for {monthLabel} so we can compare you per
+                guest. Without occupancy we can only show totals.
+              </p>
+            )}
+          </section>
+
+          {/* Last 6 months — text-first recap so users don't need to hop to Classic for charts */}
+          <section className="mb-10 rounded-3xl border border-border/60 bg-card p-5 md:p-6">
+            <div className="mb-4 flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+              <CalendarRange className="h-3.5 w-3.5 text-primary" />
+              Last few months
+            </div>
+            {recentEntries.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                We'll show your trend here once you've logged a couple of months.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {recentEntries.map((e, i) => {
+                  const next = recentEntries[i + 1];
+                  const co2 = calculateCO2e(e);
+                  const co2Prev = next ? calculateCO2e(next) : null;
+                  const change = pctChange(co2 || null, co2Prev);
+                  return (
+                    <li
+                      key={e.id}
+                      className="flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-background px-4 py-3"
+                    >
+                      <div>
+                        <div className="font-serif text-sm font-medium text-foreground">
+                          {MONTH_SHORT[e.month - 1]} {e.year}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {formatNumber(Math.round(co2))} kg CO₂e
+                        </div>
+                      </div>
+                      {change !== null && (
+                        <div
+                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
+                            change < 0
+                              ? "bg-success/15 text-success"
+                              : "bg-warning/15 text-warning"
+                          }`}
+                        >
+                          {change < 0 ? (
+                            <TrendingDown className="h-3.5 w-3.5" />
+                          ) : (
+                            <TrendingUp className="h-3.5 w-3.5" />
+                          )}
+                          {formatPct(change)}
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+            <p className="mt-3 text-center text-[11px] text-muted-foreground">
+              Want to fix a number?{" "}
+              <Link
+                to="/simple/settings"
+                className="text-primary underline-offset-2 hover:underline"
+              >
+                Edit past months
+              </Link>{" "}
+              in settings.
+            </p>
           </section>
         </>
       )}
@@ -444,33 +534,101 @@ function UtilityRow({ summary }: { summary: UtilitySummary }) {
   );
 }
 
-function DeepLink({
-  href,
-  search,
-  icon: Icon,
-  title,
-  subtitle,
-}: {
-  href: "/workspace";
-  search: never;
-  icon: React.ComponentType<{ className?: string }>;
-  title: string;
-  subtitle: string;
-}) {
+/**
+ * Plain-language peer comparison row: shows your intensity, the peer median
+ * and the best-in-class as small CSS bars (no chart library needed).
+ */
+function PeerCompareRow({ summary }: { summary: UtilitySummary }) {
+  const { Icon, label, intensity, unit, stats, rank } = summary;
+  if (!stats || intensity === null) {
+    return (
+      <li className="flex items-center gap-3 rounded-2xl border border-border/60 bg-background p-4 text-sm text-muted-foreground">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground">
+          <Icon className="h-4 w-4" />
+        </div>
+        <div>{label} — not enough data to compare yet.</div>
+      </li>
+    );
+  }
+  const max = Math.max(intensity, stats.p90) * 1.05;
+  const yourPct = (intensity / max) * 100;
+  const medianPct = (stats.median / max) * 100;
+  const bestPct = (stats.bestInClass / max) * 100;
+  const bucket: "top" | "average" | "bottom" =
+    rank !== null && rank <= 30
+      ? "top"
+      : rank !== null && rank <= 65
+        ? "average"
+        : "bottom";
+  const youColor =
+    bucket === "top"
+      ? "bg-success"
+      : bucket === "average"
+        ? "bg-primary"
+        : "bg-warning";
+  const verdict =
+    bucket === "top"
+      ? "Better than most peers"
+      : bucket === "average"
+        ? "About average"
+        : "Above average — room to save";
+
   return (
-    <Link
-      to={href}
-      search={search}
-      className="group flex items-start gap-3 rounded-2xl border border-border/60 bg-card p-4 transition-all hover:border-primary/40 hover:shadow-sm"
-    >
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground">
-        <Icon className="h-5 w-5" />
+    <li className="rounded-2xl border border-border/60 bg-background p-4">
+      <div className="flex items-center gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground">
+          <Icon className="h-4 w-4" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-semibold text-foreground">{label}</div>
+          <div className="text-xs text-muted-foreground">{verdict}</div>
+        </div>
+        <div className="text-right text-xs text-muted-foreground">
+          <span className="block font-semibold text-foreground">
+            {intensity.toFixed(2)} {unit}/night
+          </span>
+          <span>
+            peer median {stats.median.toFixed(2)} · best {stats.bestInClass.toFixed(2)}
+          </span>
+        </div>
       </div>
-      <div className="min-w-0 flex-1">
-        <div className="text-sm font-semibold text-foreground">{title}</div>
-        <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>
+      {/* Three stacked bars: best-in-class | peer median | you */}
+      <div className="mt-3 space-y-1.5">
+        <BarRow label="Best 10%" widthPct={bestPct} color="bg-success/60" />
+        <BarRow label="Peer median" widthPct={medianPct} color="bg-muted-foreground/40" />
+        <BarRow label="You" widthPct={yourPct} color={youColor} bold />
       </div>
-      <ArrowRight className="mt-2 h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-    </Link>
+    </li>
   );
 }
+
+function BarRow({
+  label,
+  widthPct,
+  color,
+  bold,
+}: {
+  label: string;
+  widthPct: number;
+  color: string;
+  bold?: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <span
+        className={`w-20 shrink-0 text-[10px] uppercase tracking-wider ${
+          bold ? "font-semibold text-foreground" : "text-muted-foreground"
+        }`}
+      >
+        {label}
+      </span>
+      <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+        <div
+          className={`h-full rounded-full ${color}`}
+          style={{ width: `${Math.min(100, Math.max(2, widthPct))}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+

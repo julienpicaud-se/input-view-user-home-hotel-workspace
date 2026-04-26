@@ -1,9 +1,19 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import * as React from "react";
-import { Building2, UserCircle2, History, ArrowRight, Settings2 } from "lucide-react";
+import {
+  Building2,
+  UserCircle2,
+  History,
+  Settings2,
+  ChevronDown,
+  Loader2,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import type { Hotel } from "@/lib/hotel";
+import type { Hotel, MonthlyEntry } from "@/lib/hotel";
 import { SimpleShell } from "@/components/simple-shell";
+import { SimpleHistoryEditor } from "@/components/simple-history-editor";
+import { SimpleHotelEditor } from "@/components/simple-hotel-editor";
+import { SimpleProfileEditor } from "@/components/simple-profile-editor";
 
 export const Route = createFileRoute("/simple/settings")({
   head: () => ({
@@ -11,142 +21,208 @@ export const Route = createFileRoute("/simple/settings")({
       { title: "Settings — RA+ (Simple)" },
       {
         name: "description",
-        content: "Manage your hotels, profile and view history.",
+        content:
+          "Edit your hotel details, profile, and past months — all in one calm place.",
       },
     ],
   }),
   component: SimpleSettingsPage,
 });
 
+type Section = "hotels" | "history" | "profile";
+
 function SimpleSettingsPage() {
   const [hotels, setHotels] = React.useState<Hotel[]>([]);
+  const [entries, setEntries] = React.useState<MonthlyEntry[]>([]);
+  const [activeHotelId, setActiveHotelId] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(true);
+  const [open, setOpen] = React.useState<Section | null>("hotels");
+
+  const reload = React.useCallback(async () => {
+    const [{ data: hs }, { data: es }] = await Promise.all([
+      supabase.from("hotels").select("*").order("name", { ascending: true }),
+      supabase
+        .from("monthly_entries")
+        .select("*")
+        .order("year", { ascending: true })
+        .order("month", { ascending: true }),
+    ]);
+    const list = (hs as Hotel[] | null) ?? [];
+    setHotels(list);
+    setEntries((es as MonthlyEntry[] | null) ?? []);
+    setActiveHotelId((prev) => prev ?? list[0]?.id ?? null);
+    setLoading(false);
+  }, []);
 
   React.useEffect(() => {
-    void (async () => {
-      const { data } = await supabase
-        .from("hotels")
-        .select("*")
-        .order("name", { ascending: true });
-      setHotels((data as Hotel[]) ?? []);
-      setLoading(false);
-    })();
-  }, []);
+    void reload();
+  }, [reload]);
+
+  const activeHotel = hotels.find((h) => h.id === activeHotelId) ?? null;
+  const activeHotelEntries = React.useMemo(
+    () => entries.filter((e) => e.hotel_id === activeHotelId),
+    [entries, activeHotelId],
+  );
 
   return (
     <SimpleShell
       title="Settings"
-      subtitle="Manage your hotels, profile, and look back at older months."
+      subtitle="Hotel details, profile, and a place to fix older months."
       showBack
-      help="Anything you change here applies to both Simple and Classic views — they share the same data."
+      help="Anything you change here applies everywhere — Simple, Classic and the AI views all share the same data."
     >
-      {/* Hotels */}
-      <section className="mb-10">
-        <h2 className="mb-4 font-serif text-xl font-semibold text-foreground md:text-2xl">
-          Your hotels
-        </h2>
-        {loading ? (
-          <div className="space-y-3">
-            {[0, 1].map((i) => (
-              <div key={i} className="h-20 animate-pulse rounded-2xl bg-muted/40" />
-            ))}
-          </div>
-        ) : hotels.length === 0 ? (
-          <div className="rounded-3xl border border-dashed border-border/60 bg-card p-6 text-center text-sm text-muted-foreground">
-            No hotels yet. Open the full settings to add one.
-          </div>
-        ) : (
-          <ul className="space-y-3">
-            {hotels.map((h) => (
-              <li
-                key={h.id}
-                className="flex items-center gap-4 rounded-2xl border border-border/60 bg-card p-4"
-              >
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <Building2 className="h-5 w-5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="font-serif text-base font-semibold text-foreground">
-                    {h.name}
+      {loading ? (
+        <div className="flex justify-center py-16 text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin" />
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {/* HOTELS */}
+          <SectionDisclosure
+            icon={Building2}
+            title="Hotel details"
+            subtitle="Rooms, region, star rating and size band."
+            open={open === "hotels"}
+            onToggle={() =>
+              setOpen((v) => (v === "hotels" ? null : "hotels"))
+            }
+          >
+            {hotels.length === 0 ? (
+              <div className="rounded-3xl border border-dashed border-border/60 bg-card p-6 text-center text-sm text-muted-foreground">
+                No hotels yet.
+              </div>
+            ) : (
+              <>
+                {hotels.length > 1 && (
+                  <div className="mb-3 flex flex-wrap gap-1.5">
+                    {hotels.map((h) => (
+                      <button
+                        key={h.id}
+                        type="button"
+                        onClick={() => setActiveHotelId(h.id)}
+                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                          h.id === activeHotelId
+                            ? "bg-primary text-primary-foreground"
+                            : "border border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
+                        }`}
+                      >
+                        <Building2 className="h-3 w-3" />
+                        {h.name}
+                      </button>
+                    ))}
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    {h.region} · {h.rooms} rooms · {h.star_rating}★
-                  </p>
-                </div>
-                <Link
-                  to="/workspace"
-                  search={{ tab: "settings" } as never}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                >
-                  Edit
-                  <ArrowRight className="h-3 w-3" />
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+                )}
+                {activeHotel && (
+                  <SimpleHotelEditor
+                    hotel={activeHotel}
+                    onSaved={(h) =>
+                      setHotels((list) =>
+                        list.map((x) => (x.id === h.id ? h : x)),
+                      )
+                    }
+                  />
+                )}
+              </>
+            )}
+          </SectionDisclosure>
 
-      {/* Quick links to classic settings & history */}
-      <section className="grid gap-3 sm:grid-cols-2">
-        <SettingsLink
-          to="/profile"
-          icon={UserCircle2}
-          title="Your profile"
-          subtitle="Name, time zone, notifications."
-        />
-        <SettingsLink
-          to="/history"
-          icon={History}
-          title="Past months"
-          subtitle="Edit older entries or look back at your data."
-        />
-        <SettingsLink
-          to="/workspace"
-          search={{ tab: "settings" } as never}
-          icon={Settings2}
-          title="Hotel details"
-          subtitle="Size, region, star rating used for benchmarks."
-        />
-        <SettingsLink
-          to="/workspace"
-          search={{ tab: "log" } as never}
-          icon={Building2}
-          title="Power tools"
-          subtitle="Bill upload, voice logging, smart paste."
-        />
-      </section>
+          {/* PAST MONTHS */}
+          <SectionDisclosure
+            icon={History}
+            title="Past months"
+            subtitle={
+              activeHotel
+                ? `Edit older entries for ${activeHotel.name}.`
+                : "Pick a hotel above first."
+            }
+            open={open === "history"}
+            onToggle={() =>
+              setOpen((v) => (v === "history" ? null : "history"))
+            }
+          >
+            {activeHotel ? (
+              <SimpleHistoryEditor
+                entries={activeHotelEntries}
+                onChanged={() => void reload()}
+              />
+            ) : (
+              <div className="rounded-3xl border border-dashed border-border/60 bg-card p-6 text-center text-sm text-muted-foreground">
+                Select a hotel above to see its past months.
+              </div>
+            )}
+          </SectionDisclosure>
+
+          {/* PROFILE */}
+          <SectionDisclosure
+            icon={UserCircle2}
+            title="Your profile"
+            subtitle="Name, time zone, units and reminders."
+            open={open === "profile"}
+            onToggle={() =>
+              setOpen((v) => (v === "profile" ? null : "profile"))
+            }
+          >
+            <SimpleProfileEditor />
+          </SectionDisclosure>
+
+          {/* Footer note about other modes */}
+          <p className="px-2 pt-2 text-center text-xs text-muted-foreground">
+            <Settings2 className="mr-1 inline h-3 w-3 align-[-1px]" />
+            Looking for power-user knobs? Switch to Classic from the top-right.
+          </p>
+        </div>
+      )}
     </SimpleShell>
   );
 }
 
-function SettingsLink({
-  to,
-  search,
+function SectionDisclosure({
   icon: Icon,
   title,
   subtitle,
+  open,
+  onToggle,
+  children,
 }: {
-  to: "/profile" | "/history" | "/workspace";
-  search?: never;
   icon: React.ComponentType<{ className?: string }>;
   title: string;
   subtitle: string;
+  open: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
 }) {
-  const props = search ? { to, search } : { to };
   return (
-    <Link
-      {...(props as { to: "/profile" | "/history" | "/workspace" })}
-      className="group flex items-start gap-3 rounded-2xl border border-border/60 bg-card p-4 transition-all hover:border-primary/40 hover:shadow-sm"
-    >
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground">
-        <Icon className="h-5 w-5" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="text-sm font-semibold text-foreground">{title}</div>
-        <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>
-      </div>
-      <ArrowRight className="mt-2 h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-    </Link>
+    <section className="overflow-hidden rounded-3xl border border-border/60 bg-card">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="flex w-full items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-muted/40"
+      >
+        <div
+          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${
+            open ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary"
+          }`}
+        >
+          <Icon className="h-5 w-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="font-serif text-lg font-semibold text-foreground">
+            {title}
+          </div>
+          <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>
+        </div>
+        <ChevronDown
+          className={`h-5 w-5 shrink-0 text-muted-foreground transition-transform ${
+            open ? "rotate-180" : ""
+          }`}
+        />
+      </button>
+      {open && (
+        <div className="border-t border-border/60 bg-background/50 p-4 md:p-5">
+          {children}
+        </div>
+      )}
+    </section>
   );
 }
