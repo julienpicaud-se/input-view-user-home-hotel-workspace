@@ -21,7 +21,7 @@ import { MONTH_NAMES, calculateCO2e, formatNumber } from "@/lib/format";
 import { SimpleShell } from "@/components/simple-shell";
 import { generateBriefing, type BriefingPayload } from "@/server/assistant.functions";
 
-export const Route = createFileRoute("/simple")({
+export const Route = createFileRoute("/simple/")({
   head: () => ({
     meta: [
       { title: "Home — RA+ (Simple)" },
