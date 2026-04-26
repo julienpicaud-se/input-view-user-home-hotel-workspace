@@ -389,10 +389,10 @@ function SimpleInsightsPage() {
             </ul>
           </section>
 
-          {/* AI insights */}
+          {/* AI insights — toned cards with per-tip "ask Sera more" */}
           <section className="mb-10 rounded-3xl border border-border/60 bg-card p-5 md:p-6">
             <div className="mb-4 flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              <Lightbulb className="h-3.5 w-3.5 text-primary" />
               Tips from Sera
             </div>
             {insightsLoading ? (
@@ -406,42 +406,127 @@ function SimpleInsightsPage() {
               </p>
             ) : (
               <ul className="space-y-3">
-                {insights.slice(0, 4).map((ins, i) => (
-                  <li
-                    key={i}
-                    className="rounded-2xl border border-border/60 bg-background p-4"
-                  >
-                    <div className="text-sm font-semibold text-foreground">
-                      {ins.title}
-                    </div>
-                    <p className="mt-1 text-sm text-muted-foreground">{ins.body}</p>
-                  </li>
-                ))}
+                {insights.slice(0, 4).map((ins, i) => {
+                  const toneStyles =
+                    ins.tone === "positive"
+                      ? "border-success/30 bg-success/5"
+                      : ins.tone === "warning"
+                        ? "border-warning/40 bg-warning/5"
+                        : "border-border/60 bg-background";
+                  const ToneIcon =
+                    ins.tone === "positive"
+                      ? CheckCircle2
+                      : ins.tone === "warning"
+                        ? AlertTriangle
+                        : Lightbulb;
+                  const toneIconColor =
+                    ins.tone === "positive"
+                      ? "text-success"
+                      : ins.tone === "warning"
+                        ? "text-warning"
+                        : "text-primary";
+                  return (
+                    <li key={i} className={`rounded-2xl border p-4 ${toneStyles}`}>
+                      <div className="flex items-start gap-2.5">
+                        <ToneIcon className={`mt-0.5 h-4 w-4 shrink-0 ${toneIconColor}`} />
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-semibold text-foreground">
+                            {ins.title}
+                          </div>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {ins.body}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              askSeraAbout(
+                                `Tell me more about this tip: "${ins.title}". How would I actually do it at ${hotel?.name ?? "my hotel"} this month, step by step?`,
+                              )
+                            }
+                            className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                          >
+                            <Sparkles className="h-3 w-3" />
+                            Ask Sera how to do this
+                          </button>
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </section>
 
-          {/* Ask Sera mini-chat */}
-          <section className="mb-10 rounded-3xl border border-border/60 bg-card p-5 md:p-6">
-            <div className="mb-3 flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-              <MessageCircle className="h-3.5 w-3.5 text-primary" />
-              Ask Sera anything
+          {/* Ask Sera mini-chat — feels like a real conversation */}
+          <section
+            id="ask-sera"
+            className="mb-10 overflow-hidden rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/5 via-card to-card p-5 md:p-6"
+          >
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                  <Sparkles className="h-4 w-4" />
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                    Sera · Chat
+                  </div>
+                  <div className="font-serif text-base font-semibold text-foreground">
+                    Ask anything about your hotel
+                  </div>
+                </div>
+              </div>
+              {chatHistory.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setChatHistory([])}
+                  className="text-[11px] text-muted-foreground hover:text-foreground"
+                >
+                  Clear
+                </button>
+              )}
             </div>
 
-            {chatHistory.length > 0 && (
-              <div className="mb-4 space-y-2 max-h-80 overflow-y-auto pr-1">
+            {chatHistory.length === 0 && !chatLoading && (
+              <div className="mb-3 rounded-2xl border border-border/50 bg-background/60 p-3 text-sm text-muted-foreground">
+                Hi {firstName} — ask me anything about your numbers,
+                comparisons or what to try next. I'll explain in plain English.
+              </div>
+            )}
+
+            {(chatHistory.length > 0 || chatLoading) && (
+              <div
+                ref={chatScrollRef}
+                className="mb-4 max-h-96 space-y-3 overflow-y-auto rounded-2xl border border-border/50 bg-background/40 p-3"
+              >
                 {chatHistory.map((m, i) => (
                   <div
                     key={i}
-                    className={
-                      m.role === "user"
-                        ? "ml-auto max-w-[85%] rounded-2xl bg-primary px-3 py-2 text-sm text-primary-foreground"
-                        : "max-w-[85%] rounded-2xl border border-border/60 bg-background px-3 py-2 text-sm text-foreground"
-                    }
+                    className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
                   >
-                    {m.content}
+                    <div
+                      className={
+                        m.role === "user"
+                          ? "max-w-[85%] rounded-2xl bg-primary px-3 py-2 text-sm text-primary-foreground whitespace-pre-wrap"
+                          : "max-w-[88%] rounded-2xl border border-border/60 bg-card px-3 py-2 text-sm text-foreground"
+                      }
+                    >
+                      {m.role === "user" ? (
+                        m.content
+                      ) : (
+                        <div className="prose prose-sm max-w-none prose-p:my-1.5 prose-p:text-foreground prose-strong:text-foreground prose-li:my-0.5 prose-ul:my-1.5">
+                          <ReactMarkdown>{m.content}</ReactMarkdown>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ))}
+                {chatLoading && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Sera is thinking…
+                  </div>
+                )}
               </div>
             )}
 
@@ -474,294 +559,23 @@ function SimpleInsightsPage() {
               </button>
             </div>
 
-            {chatHistory.length === 0 && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {[
-                  "How can I lower electricity?",
-                  "How do I compare to similar hotels?",
-                  "What's my biggest opportunity?",
-                ].map((p) => (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => setChatInput(p)}
-                    className="rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
-            )}
-          </section>
-
-          {/* Inline peer comparison detail (replaces the old deep links to Classic) */}
-          <section className="mb-10 rounded-3xl border border-border/60 bg-card p-5 md:p-6">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <div>
-                <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-                  <Users className="h-3.5 w-3.5 text-primary" />
-                  Compare to peers
-                </div>
-                <h2 className="mt-1 font-serif text-xl font-semibold text-foreground">
-                  How you stack up
-                </h2>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  vs {cohortSize} similar {hotel?.size_band ?? ""} hotels
-                  {hotel?.region ? ` in ${hotel.region}` : ""} ·{" "}
-                  {hotel?.star_rating ?? 4}★
-                </p>
-              </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {[
+                "What's my biggest savings opportunity?",
+                "How do I compare to similar hotels?",
+                "Which utility should I focus on first?",
+                "Suggest 3 quick wins for next month",
+              ].map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => askSeraAbout(p)}
+                  disabled={chatLoading}
+                  className="rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {p}
+                </button>
+              ))}
             </div>
-            {latest?.occupied_room_nights ? (
-              <ul className="space-y-3">
-                {summaries.map((s) => (
-                  <PeerCompareRow key={s.key} summary={s} />
-                ))}
-              </ul>
-            ) : (
-              <p className="rounded-2xl border border-dashed border-border/60 bg-background p-4 text-sm text-muted-foreground">
-                Add the room-nights for {monthLabel} so we can compare you per
-                guest. Without occupancy we can only show totals.
-              </p>
-            )}
           </section>
-
-          {/* Last 6 months — text-first recap so users don't need to hop to Classic for charts */}
-          <section className="mb-10 rounded-3xl border border-border/60 bg-card p-5 md:p-6">
-            <div className="mb-4 flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-              <CalendarRange className="h-3.5 w-3.5 text-primary" />
-              Last few months
-            </div>
-            {recentEntries.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                We'll show your trend here once you've logged a couple of months.
-              </p>
-            ) : (
-              <ul className="space-y-2">
-                {recentEntries.map((e, i) => {
-                  const next = recentEntries[i + 1];
-                  const co2 = calculateCO2e(e);
-                  const co2Prev = next ? calculateCO2e(next) : null;
-                  const change = pctChange(co2 || null, co2Prev);
-                  return (
-                    <li
-                      key={e.id}
-                      className="flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-background px-4 py-3"
-                    >
-                      <div>
-                        <div className="font-serif text-sm font-medium text-foreground">
-                          {MONTH_SHORT[e.month - 1]} {e.year}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {formatNumber(Math.round(co2))} kg CO₂e
-                        </div>
-                      </div>
-                      {change !== null && (
-                        <div
-                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
-                            change < 0
-                              ? "bg-success/15 text-success"
-                              : "bg-warning/15 text-warning"
-                          }`}
-                        >
-                          {change < 0 ? (
-                            <TrendingDown className="h-3.5 w-3.5" />
-                          ) : (
-                            <TrendingUp className="h-3.5 w-3.5" />
-                          )}
-                          {formatPct(change)}
-                        </div>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-            <p className="mt-3 text-center text-[11px] text-muted-foreground">
-              Want to fix a number?{" "}
-              <Link
-                to="/simple/settings"
-                className="text-primary underline-offset-2 hover:underline"
-              >
-                Edit past months
-              </Link>{" "}
-              in settings.
-            </p>
-          </section>
-        </>
-      )}
-    </SimpleShell>
-  );
-}
-
-function UtilityRow({ summary }: { summary: UtilitySummary }) {
-  const { Icon, label, value, prev, unit, rank } = summary;
-  const change = pctChange(value, prev);
-  // rank is a percentile where lower = better.
-  const bucket: "top" | "average" | "bottom" | null =
-    rank === null
-      ? null
-      : rank <= 30
-        ? "top"
-        : rank <= 65
-          ? "average"
-          : "bottom";
-  const tone =
-    bucket === "top" ? "good" : bucket === "average" ? "ok" : bucket === "bottom" ? "bad" : "neutral";
-
-  const toneStyles =
-    tone === "good"
-      ? "border-success/30 bg-success/5"
-      : tone === "ok"
-        ? "border-border/60 bg-card"
-        : tone === "bad"
-          ? "border-warning/40 bg-warning/5"
-          : "border-border/60 bg-card";
-
-  const dotStyles =
-    tone === "good"
-      ? "bg-success/15 text-success"
-      : tone === "bad"
-        ? "bg-warning/15 text-warning"
-        : "bg-primary/10 text-primary";
-
-  return (
-    <li className={`flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:gap-4 ${toneStyles}`}>
-      <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${dotStyles}`}>
-        <Icon className="h-5 w-5" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-baseline gap-2">
-          <span className="text-sm font-semibold text-foreground">{label}</span>
-          {bucket && (
-            <span className="text-xs text-muted-foreground">
-              {bucket === "top"
-                ? "Better than most peers"
-                : bucket === "average"
-                  ? "About average"
-                  : "Above average — room to save"}
-            </span>
-          )}
-        </div>
-        <div className="mt-0.5 text-xs text-muted-foreground">
-          {value !== null
-            ? `${formatNumber(value)} ${unit}${prev !== null ? ` · last month ${formatNumber(prev)} ${unit}` : ""}`
-            : "Not logged"}
-        </div>
-      </div>
-      {change !== null && (
-        <div
-          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
-            change < 0 ? "bg-success/15 text-success" : "bg-warning/15 text-warning"
-          }`}
-        >
-          {change < 0 ? (
-            <TrendingDown className="h-3.5 w-3.5" />
-          ) : (
-            <TrendingUp className="h-3.5 w-3.5" />
-          )}
-          {formatPct(change)}
-        </div>
-      )}
-    </li>
-  );
-}
-
-/**
- * Plain-language peer comparison row: shows your intensity, the peer median
- * and the best-in-class as small CSS bars (no chart library needed).
- */
-function PeerCompareRow({ summary }: { summary: UtilitySummary }) {
-  const { Icon, label, intensity, unit, stats, rank } = summary;
-  if (!stats || intensity === null) {
-    return (
-      <li className="flex items-center gap-3 rounded-2xl border border-border/60 bg-background p-4 text-sm text-muted-foreground">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground">
-          <Icon className="h-4 w-4" />
-        </div>
-        <div>{label} — not enough data to compare yet.</div>
-      </li>
-    );
-  }
-  const max = Math.max(intensity, stats.p90) * 1.05;
-  const yourPct = (intensity / max) * 100;
-  const medianPct = (stats.median / max) * 100;
-  const bestPct = (stats.bestInClass / max) * 100;
-  const bucket: "top" | "average" | "bottom" =
-    rank !== null && rank <= 30
-      ? "top"
-      : rank !== null && rank <= 65
-        ? "average"
-        : "bottom";
-  const youColor =
-    bucket === "top"
-      ? "bg-success"
-      : bucket === "average"
-        ? "bg-primary"
-        : "bg-warning";
-  const verdict =
-    bucket === "top"
-      ? "Better than most peers"
-      : bucket === "average"
-        ? "About average"
-        : "Above average — room to save";
-
-  return (
-    <li className="rounded-2xl border border-border/60 bg-background p-4">
-      <div className="flex items-center gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground">
-          <Icon className="h-4 w-4" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="text-sm font-semibold text-foreground">{label}</div>
-          <div className="text-xs text-muted-foreground">{verdict}</div>
-        </div>
-        <div className="text-right text-xs text-muted-foreground">
-          <span className="block font-semibold text-foreground">
-            {intensity.toFixed(2)} {unit}/night
-          </span>
-          <span>
-            peer median {stats.median.toFixed(2)} · best {stats.bestInClass.toFixed(2)}
-          </span>
-        </div>
-      </div>
-      {/* Three stacked bars: best-in-class | peer median | you */}
-      <div className="mt-3 space-y-1.5">
-        <BarRow label="Best 10%" widthPct={bestPct} color="bg-success/60" />
-        <BarRow label="Peer median" widthPct={medianPct} color="bg-muted-foreground/40" />
-        <BarRow label="You" widthPct={yourPct} color={youColor} bold />
-      </div>
-    </li>
-  );
-}
-
-function BarRow({
-  label,
-  widthPct,
-  color,
-  bold,
-}: {
-  label: string;
-  widthPct: number;
-  color: string;
-  bold?: boolean;
-}) {
-  return (
-    <div className="flex items-center gap-2">
-      <span
-        className={`w-20 shrink-0 text-[10px] uppercase tracking-wider ${
-          bold ? "font-semibold text-foreground" : "text-muted-foreground"
-        }`}
-      >
-        {label}
-      </span>
-      <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
-        <div
-          className={`h-full rounded-full ${color}`}
-          style={{ width: `${Math.min(100, Math.max(2, widthPct))}%` }}
-        />
-      </div>
-    </div>
-  );
-}
 
