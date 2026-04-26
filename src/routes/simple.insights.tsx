@@ -34,6 +34,13 @@ import {
 } from "@/lib/peer-benchmarks";
 import { SimpleShell } from "@/components/simple-shell";
 import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import {
   generateBriefing,
   generateInsights,
   sendAssistantMessage,
