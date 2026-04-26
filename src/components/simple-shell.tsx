@@ -69,27 +69,34 @@ export function SimpleShell({ children, title, subtitle, showBack, help }: Simpl
         </div>
 
         {/* Bottom nav strip on desktop, hidden on small screens (mobile uses bottom bar) */}
-        <nav className="hidden border-t border-border/40 bg-background/60 md:block">
+        <nav
+          className="hidden border-t border-border/40 bg-background/60 md:block"
+          aria-label="Simple view sections"
+        >
           <div className="mx-auto flex w-full max-w-5xl items-center gap-1 px-5 py-2">
             {NAV.map((item) => {
-              const active =
-                item.to === "/simple"
-                  ? location.pathname === "/simple"
-                  : location.pathname.startsWith(item.to);
+              const active = isNavActive(item.to, location.pathname);
               const Icon = item.icon;
               return (
                 <Link
                   key={item.to}
                   to={item.to}
+                  aria-current={active ? "page" : undefined}
                   className={cn(
-                    "inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors",
+                    "relative inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all",
                     active
-                      ? "bg-primary text-primary-foreground"
+                      ? "bg-primary text-primary-foreground shadow-sm shadow-primary/30 ring-1 ring-primary/40"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground"
                   )}
                 >
                   <Icon className="h-4 w-4" />
                   {item.label}
+                  {active && (
+                    <span
+                      aria-hidden
+                      className="absolute -bottom-[9px] left-1/2 h-[3px] w-8 -translate-x-1/2 rounded-full bg-primary"
+                    />
+                  )}
                 </Link>
               );
             })}
