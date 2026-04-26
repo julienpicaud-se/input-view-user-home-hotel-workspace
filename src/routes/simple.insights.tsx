@@ -234,13 +234,31 @@ function SimpleInsightsPage() {
     }
   }
 
-  // Scroll to chat & send a contextual prompt — used by per-utility "Ask Sera" buttons.
-  function askSeraAbout(prompt: string) {
-    void sendChat(prompt);
-    // Smooth-scroll the page so the user sees Sera answering.
-    requestAnimationFrame(() => {
-      document.getElementById("ask-sera")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
+  // Open the side panel and ask Sera a contextual question. Used by all the
+  // small "Ask Sera about X" buttons across the page so the answer appears
+  // beside the content the user clicked from instead of forcing them to scroll.
+  async function askSeraAbout(prompt: string, title?: string) {
+    setPanelTitle(title ?? "Sera");
+    setPanelPrompt(prompt);
+    setPanelAnswer(null);
+    setPanelError(null);
+    setPanelOpen(true);
+    setPanelLoading(true);
+    try {
+      const res = await callAssistant({
+        data: {
+          message: prompt,
+          hotelId: getActiveHotelId(),
+          history: [],
+        },
+      });
+      if (res.ok) setPanelAnswer(res.content);
+      else setPanelError(res.error ?? "Sera couldn't answer just now.");
+    } catch {
+      setPanelError("Couldn't reach Sera. Please try again.");
+    } finally {
+      setPanelLoading(false);
+    }
   }
 
   return (
