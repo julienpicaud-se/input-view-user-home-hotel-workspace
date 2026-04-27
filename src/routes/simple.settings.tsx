@@ -57,7 +57,7 @@ function SimpleSettingsPage() {
       title="Settings"
       subtitle="Hotel details, profile, and a place to fix older months."
       showBack
-      help="Anything you change here applies everywhere — Simple, Classic and the AI views all share the same data."
+      help="Anything you change here applies everywhere — Simple, Standard and the AI views all share the same data."
     >
       {loading ? (
         <div className="flex justify-center py-16 text-muted-foreground">
@@ -130,7 +130,7 @@ function SimpleSettingsPage() {
           {/* Footer note about other modes */}
           <p className="px-2 pt-2 text-center text-xs text-muted-foreground">
             <Settings2 className="mr-1 inline h-3 w-3 align-[-1px]" />
-            Looking for power-user knobs? Switch to Classic from the top-right.
+            Looking for power-user knobs? Switch to Standard from the top-right.
           </p>
         </div>
       )}

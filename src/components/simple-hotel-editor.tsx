@@ -17,7 +17,7 @@ const STAR_OPTIONS = [3, 4, 5];
 
 /**
  * Calm, Simple-skin form to edit a single hotel's details.
- * Mirrors the fields available in the Classic hotel-settings tab,
+ * Mirrors the fields available in the Standard hotel-settings tab,
  * minus the power-user knobs (year built, total surface, etc.).
  */
 export function SimpleHotelEditor({

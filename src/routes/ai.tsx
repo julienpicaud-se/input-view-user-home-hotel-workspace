@@ -424,12 +424,12 @@ function AIFirstPage() {
             <SuggestionChip
               icon={Camera}
               label="Upload a bill"
-              onClick={() => toast("Bill upload available in Classic › Workspace › Upload bill.")}
+              onClick={() => toast("Bill upload available in Standard › Workspace › Upload bill.")}
             />
             <SuggestionChip
               icon={Mic}
               label="Voice"
-              onClick={() => toast("Voice logging available in Classic › Workspace › Voice.")}
+              onClick={() => toast("Voice logging available in Standard › Workspace › Voice.")}
             />
           </div>
 

@@ -615,7 +615,7 @@ function SimpleInsightsPage() {
             </div>
           </section>
 
-          {/* Inline peer comparison detail (replaces the old deep links to Classic) */}
+          {/* Inline peer comparison detail (replaces the old deep links to Standard) */}
           <section className="mb-10 rounded-3xl border border-border/60 bg-card p-5 md:p-6">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
@@ -660,7 +660,7 @@ function SimpleInsightsPage() {
             )}
           </section>
 
-          {/* Last 6 months — text-first recap so users don't need to hop to Classic for charts */}
+          {/* Last 6 months — text-first recap so users don't need to hop to Standard for charts */}
           <section className="mb-10 rounded-3xl border border-border/60 bg-card p-5 md:p-6">
             <div className="mb-4 flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
               <CalendarRange className="h-3.5 w-3.5 text-primary" />

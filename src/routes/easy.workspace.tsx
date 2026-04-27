@@ -102,7 +102,7 @@ function ExtraSimpleWorkspacePage() {
   const [insights, setInsights] = React.useState<Insight[]>([]);
   const [insightsLoading, setInsightsLoading] = React.useState(false);
 
-  // Quick-entry tools (parity with Classic view).
+  // Quick-entry tools (parity with Standard view).
   const [openTool, setOpenTool] = React.useState<null | "upload" | "voice" | "paste">(null);
 
   // Side-panel "Ask Sera" — used by per-tip and CO₂ buttons.
@@ -419,7 +419,7 @@ function ExtraSimpleWorkspacePage() {
               </div>
             </section>
 
-            {/* Faster ways to fill in — parity with Classic view */}
+            {/* Faster ways to fill in — parity with Standard view */}
             <section className="mb-10">
               <h2 className="mb-1 font-serif text-xl font-semibold text-foreground">
                 Faster ways to fill this in
