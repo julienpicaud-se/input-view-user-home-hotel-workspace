@@ -463,9 +463,9 @@ function ExtraSimplePage() {
                   {briefing.focus}
                 </p>
               )}
-              {briefing.followUps && briefing.followUps.length > 0 && (
+              {briefing.questions && briefing.questions.length > 0 && (
                 <div className="flex flex-wrap gap-2 pt-1">
-                  {briefing.followUps.slice(0, 3).map((q) => (
+                  {briefing.questions.slice(0, 3).map((q: string) => (
                     <button
                       key={q}
                       type="button"
