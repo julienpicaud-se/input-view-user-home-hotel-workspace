@@ -16,6 +16,7 @@ import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as LogRouteImport } from './routes/log'
 import { Route as HotelRouteImport } from './routes/hotel'
 import { Route as HistoryRouteImport } from './routes/history'
+import { Route as EasyRouteImport } from './routes/easy'
 import { Route as BenchmarksRouteImport } from './routes/benchmarks'
 import { Route as AssistantRouteImport } from './routes/assistant'
 import { Route as AiRouteImport } from './routes/ai'
@@ -65,6 +66,11 @@ const HistoryRoute = HistoryRouteImport.update({
   path: '/history',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EasyRoute = EasyRouteImport.update({
+  id: '/easy',
+  path: '/easy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BenchmarksRoute = BenchmarksRouteImport.update({
   id: '/benchmarks',
   path: '/benchmarks',
@@ -91,9 +97,9 @@ const SimpleIndexRoute = SimpleIndexRouteImport.update({
   getParentRoute: () => SimpleRoute,
 } as any)
 const EasyIndexRoute = EasyIndexRouteImport.update({
-  id: '/easy/',
-  path: '/easy/',
-  getParentRoute: () => rootRouteImport,
+  id: '/',
+  path: '/',
+  getParentRoute: () => EasyRoute,
 } as any)
 const TheoryWorkspaceRoute = TheoryWorkspaceRouteImport.update({
   id: '/workspace',
@@ -136,6 +142,7 @@ export interface FileRoutesByFullPath {
   '/ai': typeof AiRouteWithChildren
   '/assistant': typeof AssistantRoute
   '/benchmarks': typeof BenchmarksRoute
+  '/easy': typeof EasyRouteWithChildren
   '/history': typeof HistoryRoute
   '/hotel': typeof HotelRoute
   '/log': typeof LogRoute
@@ -180,6 +187,7 @@ export interface FileRoutesById {
   '/ai': typeof AiRouteWithChildren
   '/assistant': typeof AssistantRoute
   '/benchmarks': typeof BenchmarksRoute
+  '/easy': typeof EasyRouteWithChildren
   '/history': typeof HistoryRoute
   '/hotel': typeof HotelRoute
   '/log': typeof LogRoute
@@ -204,6 +212,7 @@ export interface FileRouteTypes {
     | '/ai'
     | '/assistant'
     | '/benchmarks'
+    | '/easy'
     | '/history'
     | '/hotel'
     | '/log'
@@ -247,6 +256,7 @@ export interface FileRouteTypes {
     | '/ai'
     | '/assistant'
     | '/benchmarks'
+    | '/easy'
     | '/history'
     | '/hotel'
     | '/log'
@@ -270,6 +280,7 @@ export interface RootRouteChildren {
   AiRoute: typeof AiRouteWithChildren
   AssistantRoute: typeof AssistantRoute
   BenchmarksRoute: typeof BenchmarksRoute
+  EasyRoute: typeof EasyRouteWithChildren
   HistoryRoute: typeof HistoryRoute
   HotelRoute: typeof HotelRoute
   LogRoute: typeof LogRoute
@@ -277,7 +288,6 @@ export interface RootRouteChildren {
   SimpleRoute: typeof SimpleRouteWithChildren
   TheoryRoute: typeof TheoryRouteWithChildren
   WorkspaceRoute: typeof WorkspaceRoute
-  EasyIndexRoute: typeof EasyIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -331,6 +341,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HistoryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/easy': {
+      id: '/easy'
+      path: '/easy'
+      fullPath: '/easy'
+      preLoaderRoute: typeof EasyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/benchmarks': {
       id: '/benchmarks'
       path: '/benchmarks'
@@ -368,10 +385,10 @@ declare module '@tanstack/react-router' {
     }
     '/easy/': {
       id: '/easy/'
-      path: '/easy'
+      path: '/'
       fullPath: '/easy/'
       preLoaderRoute: typeof EasyIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof EasyRoute
     }
     '/theory/workspace': {
       id: '/theory/workspace'
@@ -435,6 +452,18 @@ const AiRouteChildren: AiRouteChildren = {
 
 const AiRouteWithChildren = AiRoute._addFileChildren(AiRouteChildren)
 
+interface EasyRouteChildren {
+  EasyWorkspaceRoute: typeof EasyWorkspaceRoute
+  EasyIndexRoute: typeof EasyIndexRoute
+}
+
+const EasyRouteChildren: EasyRouteChildren = {
+  EasyWorkspaceRoute: EasyWorkspaceRoute,
+  EasyIndexRoute: EasyIndexRoute,
+}
+
+const EasyRouteWithChildren = EasyRoute._addFileChildren(EasyRouteChildren)
+
 interface SimpleRouteChildren {
   SimpleInsightsRoute: typeof SimpleInsightsRoute
   SimpleLogRoute: typeof SimpleLogRoute
@@ -470,6 +499,7 @@ const rootRouteChildren: RootRouteChildren = {
   AiRoute: AiRouteWithChildren,
   AssistantRoute: AssistantRoute,
   BenchmarksRoute: BenchmarksRoute,
+  EasyRoute: EasyRouteWithChildren,
   HistoryRoute: HistoryRoute,
   HotelRoute: HotelRoute,
   LogRoute: LogRoute,
@@ -477,7 +507,6 @@ const rootRouteChildren: RootRouteChildren = {
   SimpleRoute: SimpleRouteWithChildren,
   TheoryRoute: TheoryRouteWithChildren,
   WorkspaceRoute: WorkspaceRoute,
-  EasyIndexRoute: EasyIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
