@@ -463,6 +463,21 @@ function ExtraSimplePage() {
                   {briefing.focus}
                 </p>
               )}
+              {briefing.followUps && briefing.followUps.length > 0 && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {briefing.followUps.slice(0, 3).map((q) => (
+                    <button
+                      key={q}
+                      type="button"
+                      onClick={() => void askSeraAbout(q, "Sera")}
+                      className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition hover:border-primary/60 hover:bg-primary/5"
+                    >
+                      <Sparkles className="h-3 w-3 text-primary" />
+                      {q}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">
@@ -470,6 +485,71 @@ function ExtraSimplePage() {
             </p>
           )}
         </section>
+
+        {/* Quick-entry capabilities — restore parity with the Classic view:
+            upload bills, dictate, or paste from email. Same components as Simple. */}
+        {!loading && totalHotels > 0 && (
+          <section className="mb-12">
+            <h2 className="mb-1 font-serif text-2xl font-semibold text-foreground md:text-3xl">
+              Faster ways to fill this in
+            </h2>
+            <p className="mb-5 text-sm text-muted-foreground">
+              Skip the typing — let Sera read your bills, listen to you, or parse a
+              supplier email.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <ToolToggle
+                icon={Upload}
+                title="Upload bills"
+                subtitle="We'll read the numbers."
+                active={openTool === "upload"}
+                onClick={() =>
+                  setOpenTool((t) => (t === "upload" ? null : "upload"))
+                }
+              />
+              <ToolToggle
+                icon={Mic}
+                title="Read it out"
+                subtitle="Speak the numbers."
+                active={openTool === "voice"}
+                onClick={() =>
+                  setOpenTool((t) => (t === "voice" ? null : "voice"))
+                }
+              />
+              <ToolToggle
+                icon={Wand2}
+                title="Paste from email"
+                subtitle="We'll parse the text."
+                active={openTool === "paste"}
+                onClick={() =>
+                  setOpenTool((t) => (t === "paste" ? null : "paste"))
+                }
+              />
+            </div>
+            {openTool && (
+              <div className="mt-4 rounded-3xl border border-border/60 bg-card p-4 md:p-5">
+                {openTool === "upload" && (
+                  <InvoiceUploadCard
+                    entries={allEntries}
+                    onSaved={() => void reload()}
+                  />
+                )}
+                {openTool === "voice" && (
+                  <VoiceLogCard
+                    entries={allEntries}
+                    onSaved={() => void reload()}
+                  />
+                )}
+                {openTool === "paste" && (
+                  <SmartPasteCard
+                    entries={allEntries}
+                    onSaved={() => void reload()}
+                  />
+                )}
+              </div>
+            )}
+          </section>
+        )}
 
         {/* Inline log section — one card per hotel, no clicks needed to start */}
         <section className="mb-12">
