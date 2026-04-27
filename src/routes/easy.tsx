@@ -372,25 +372,36 @@ function ExtraSimplePage() {
     }
   }
 
+  // Open the side panel and ask Sera a contextual question. Used by per-utility,
+  // per-tip and CO₂ "Ask Sera" buttons so users get a focused answer without
+  // losing their place on the long page.
+  async function askSeraAbout(prompt: string, title?: string, hotelId?: string | null) {
+    setPanelTitle(title ?? "Sera");
+    setPanelPrompt(prompt);
+    setPanelAnswer(null);
+    setPanelError(null);
+    setPanelOpen(true);
+    setPanelLoading(true);
+    try {
+      const res = await callAssistant({
+        data: {
+          message: prompt,
+          hotelId: hotelId ?? activeChatHotelId ?? undefined,
+          history: [],
+        },
+      });
+      if (res.ok) setPanelAnswer(res.content);
+      else setPanelError("Sera couldn't answer just now.");
+    } catch {
+      setPanelError("Couldn't reach Sera.");
+    } finally {
+      setPanelLoading(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[var(--background)]">
-      {/* Slim sticky header — only the switcher and a logo */}
-      <header className="sticky top-0 z-30 border-b border-border/50 bg-background/90 backdrop-blur-md">
-        <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-3 px-5 py-3">
-          <Link to="/easy" className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-success/15 text-success">
-              <Sun className="h-4 w-4" />
-            </div>
-            <div className="leading-tight">
-              <div className="font-serif text-lg">RA+</div>
-              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-                Extra simple
-              </div>
-            </div>
-          </Link>
-          <DesignModeSwitcher />
-        </div>
-      </header>
+      <EasyHeader />
 
       <main className="mx-auto w-full max-w-3xl px-5 pb-24 pt-8">
         {/* Hero greeting */}
