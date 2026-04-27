@@ -419,6 +419,28 @@ function ExtraSimpleWorkspacePage() {
               </div>
             </section>
 
+            {/* Faster ways to fill in — parity with Classic view */}
+            <section className="mb-10">
+              <h2 className="mb-1 font-serif text-xl font-semibold text-foreground">
+                Faster ways to fill this in
+              </h2>
+              <p className="mb-4 text-sm text-muted-foreground">
+                Upload a bill, dictate, or paste from email — Sera does the typing.
+              </p>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <ToolToggle icon={Upload} title="Upload bills" subtitle="We'll read the numbers." active={openTool === "upload"} onClick={() => setOpenTool((t) => (t === "upload" ? null : "upload"))} />
+                <ToolToggle icon={Mic} title="Read it out" subtitle="Speak the numbers." active={openTool === "voice"} onClick={() => setOpenTool((t) => (t === "voice" ? null : "voice"))} />
+                <ToolToggle icon={Wand2} title="Paste from email" subtitle="We'll parse the text." active={openTool === "paste"} onClick={() => setOpenTool((t) => (t === "paste" ? null : "paste"))} />
+              </div>
+              {openTool && (
+                <div className="mt-4 rounded-3xl border border-border/60 bg-card p-4 md:p-5">
+                  {openTool === "upload" && <InvoiceUploadCard entries={entries} onSaved={() => void reload()} />}
+                  {openTool === "voice" && <VoiceLogCard entries={entries} onSaved={() => void reload()} />}
+                  {openTool === "paste" && <SmartPasteCard entries={entries} onSaved={() => void reload()} />}
+                </div>
+              )}
+            </section>
+
             {/* Tips */}
             <section className="mb-10 rounded-3xl border border-border/60 bg-card p-5 md:p-6">
               <div className="mb-3 flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
@@ -437,22 +459,117 @@ function ExtraSimpleWorkspacePage() {
               ) : (
                 <ul className="space-y-2.5">
                   {insights.slice(0, 3).map((ins, i) => (
-                    <li
-                      key={i}
-                      className="rounded-2xl border border-border/60 bg-background p-3.5"
-                    >
-                      <div className="text-sm font-semibold text-foreground">
-                        {ins.title}
-                      </div>
+                    <li key={i} className="rounded-2xl border border-border/60 bg-background p-3.5">
+                      <div className="text-sm font-semibold text-foreground">{ins.title}</div>
                       <p className="mt-1 text-sm text-muted-foreground">{ins.body}</p>
+                      <button
+                        type="button"
+                        onClick={() => void askSeraAbout(`Walk me through how to do this for ${hotel?.name ?? "my hotel"}, step by step in plain language: "${ins.title}". Keep it under 6 short bullets.`, `How to: ${ins.title}`)}
+                        className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+                      >
+                        <Lightbulb className="h-3 w-3" />
+                        Tell me how
+                      </button>
                     </li>
                   ))}
                 </ul>
               )}
             </section>
+
+            {/* Ask Sera prompt */}
+            {hotel && (
+              <section className="mb-10 rounded-3xl border border-primary/20 bg-primary/5 p-5">
+                <div className="mb-3 flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                  Ask Sera about {hotel.name}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    `Why might my CO₂ have changed at ${hotel.name} this month?`,
+                    `What's the single biggest opportunity at ${hotel.name}?`,
+                    `How do I compare to similar ${hotel.star_rating}★ hotels in ${hotel.region}?`,
+                  ].map((q) => (
+                    <button
+                      key={q}
+                      type="button"
+                      onClick={() => void askSeraAbout(q, "Sera")}
+                      className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition hover:border-primary/60 hover:bg-primary/5"
+                    >
+                      <Sparkles className="h-3 w-3 text-primary" />
+                      {q}
+                    </button>
+                  ))}
+                </div>
+              </section>
+            )}
           </>
         )}
       </main>
+
+      {/* Side panel for contextual Sera answers */}
+      <Sheet open={panelOpen} onOpenChange={setPanelOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2 font-serif">
+              <Sparkles className="h-4 w-4 text-primary" />
+              {panelTitle}
+            </SheetTitle>
+            {panelPrompt && (
+              <SheetDescription className="text-xs italic">
+                "{panelPrompt}"
+              </SheetDescription>
+            )}
+          </SheetHeader>
+          <div className="mt-5">
+            {panelLoading ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Sera is thinking…
+              </div>
+            ) : panelError ? (
+              <p className="text-sm text-destructive">{panelError}</p>
+            ) : panelAnswer ? (
+              <div className="prose prose-sm max-w-none text-sm leading-relaxed text-foreground prose-p:my-2 prose-li:my-0.5 prose-strong:text-foreground">
+                <ReactMarkdown>{panelAnswer}</ReactMarkdown>
+              </div>
+            ) : null}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
+  );
+}
+
+function ToolToggle({
+  icon: Icon,
+  title,
+  subtitle,
+  active,
+  onClick,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  subtitle: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`group flex w-full items-start gap-3 rounded-2xl border p-4 text-left transition-all ${
+        active ? "border-primary bg-primary/10 shadow-sm" : "border-border/60 bg-card hover:border-primary/40 hover:shadow-sm"
+      }`}
+    >
+      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${active ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary"}`}>
+        <Icon className="h-5 w-5" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="text-sm font-semibold text-foreground">{title}</div>
+        <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>
+      </div>
+      <ChevronDown className={`mt-2 h-4 w-4 shrink-0 text-muted-foreground transition-transform ${active ? "rotate-180 text-primary" : ""}`} />
+    </button>
   );
 }
