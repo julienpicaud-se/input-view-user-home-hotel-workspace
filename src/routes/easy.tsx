@@ -136,6 +136,20 @@ function ExtraSimplePage() {
   const [chatLoading, setChatLoading] = React.useState(false);
   const [activeChatHotelId, setActiveChatHotelId] = React.useState<string | null>(null);
 
+  // Quick-entry tools (upload bills, voice, paste) — same components as the
+  // Simple/Classic views so we don't lose any capability here.
+  const [openTool, setOpenTool] = React.useState<null | "upload" | "voice" | "paste">(null);
+  const [allEntries, setAllEntries] = React.useState<MonthlyEntry[]>([]);
+
+  // Side-panel "Ask Sera" state — used by per-utility / per-tip buttons so
+  // users get a contextual answer without scrolling away or losing their place.
+  const [panelOpen, setPanelOpen] = React.useState(false);
+  const [panelTitle, setPanelTitle] = React.useState("Sera");
+  const [panelPrompt, setPanelPrompt] = React.useState("");
+  const [panelAnswer, setPanelAnswer] = React.useState<string | null>(null);
+  const [panelLoading, setPanelLoading] = React.useState(false);
+  const [panelError, setPanelError] = React.useState<string | null>(null);
+
   const expected = expectedReportingPeriod();
   const monthLabel = `${MONTH_NAMES[expected.month - 1]} ${expected.year}`;
 
