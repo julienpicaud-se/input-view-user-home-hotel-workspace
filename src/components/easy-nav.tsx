@@ -1,33 +1,58 @@
 import * as React from "react";
 import { Link, useLocation } from "@tanstack/react-router";
-import { Sun, Building2, Sparkles } from "lucide-react";
+import { Sun, Building2, Sparkles, LayoutGrid, Hotel } from "lucide-react";
 import { DesignModeSwitcher } from "@/components/design-mode-switcher";
 import { cn } from "@/lib/utils";
 
 /**
- * Slim sticky header used on every /easy screen.
- * Gives the user two clear destinations — "Home" (the long page)
- * and "Hotel" (the focused workspace) — so capabilities are not hidden.
+ * Sticky header for /easy with a prominent two-way toggle between
+ * "Portfolio Home" (overview of all hotels) and "Hotel Workspace"
+ * (focused single-hotel view). The active view is unmistakable.
  */
-const NAV: {
-  to: "/easy" | "/easy/workspace";
+type EasyView = "/easy" | "/easy/workspace";
+
+const VIEWS: {
+  to: EasyView;
   label: string;
+  short: string;
   icon: React.ComponentType<{ className?: string }>;
+  description: string;
 }[] = [
-  { to: "/easy", label: "Home", icon: Sun },
-  { to: "/easy/workspace", label: "Hotel", icon: Building2 },
+  {
+    to: "/easy",
+    label: "Portfolio Home",
+    short: "Portfolio",
+    icon: LayoutGrid,
+    description: "Overview of all your hotels",
+  },
+  {
+    to: "/easy/workspace",
+    label: "Hotel Workspace",
+    short: "Workspace",
+    icon: Hotel,
+    description: "Log & analyze one hotel",
+  },
 ];
 
-function isActive(navTo: string, pathname: string) {
+function isActive(navTo: EasyView, pathname: string) {
   if (navTo === "/easy") return pathname === "/easy" || pathname === "/easy/";
   return pathname === navTo || pathname.startsWith(`${navTo}/`);
 }
 
+function useActiveView(): (typeof VIEWS)[number] {
+  const location = useLocation();
+  return VIEWS.find((v) => isActive(v.to, location.pathname)) ?? VIEWS[0];
+}
+
 export function EasyHeader() {
   const location = useLocation();
+  const active = useActiveView();
+  const ActiveIcon = active.icon;
+
   return (
     <header className="sticky top-0 z-30 border-b border-border/50 bg-background/90 backdrop-blur-md">
-      <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-3 px-5 py-3">
+      {/* Top row: brand + utilities */}
+      <div className="mx-auto flex w-full max-w-4xl items-center justify-between gap-3 px-5 py-3">
         <Link to="/easy" className="flex items-center gap-2.5">
           <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-success/15 text-success">
             <Sun className="h-4 w-4" />
@@ -39,82 +64,86 @@ export function EasyHeader() {
             </div>
           </div>
         </Link>
+
         <div className="flex items-center gap-2">
-          <nav
-            aria-label="Extra simple sections"
-            className="hidden rounded-full border border-border/60 bg-card/70 p-1 sm:flex"
-          >
-            {NAV.map((item) => {
-              const active = isActive(item.to, location.pathname);
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  aria-current={active ? "page" : undefined}
-                  className={cn(
-                    "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
-                    active
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                  )}
-                >
-                  <Icon className="h-3.5 w-3.5" />
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
           <DesignModeSwitcher />
         </div>
       </div>
 
-      {/* Mobile nav strip — visible under the logo so the two destinations are obvious */}
-      <nav
-        aria-label="Extra simple sections"
-        className="border-t border-border/40 bg-background/70 sm:hidden"
-      >
-        <div className="mx-auto flex w-full max-w-3xl items-center gap-1 px-3 py-1.5">
-          {NAV.map((item) => {
-            const active = isActive(item.to, location.pathname);
-            const Icon = item.icon;
+      {/* Toggle row: the main switcher between the two views */}
+      <div className="mx-auto w-full max-w-4xl px-5 pb-3">
+        <div
+          role="tablist"
+          aria-label="Switch view"
+          className="grid grid-cols-2 gap-1 rounded-2xl border border-border/60 bg-muted/40 p-1"
+        >
+          {VIEWS.map((view) => {
+            const isOn = isActive(view.to, location.pathname);
+            const Icon = view.icon;
             return (
               <Link
-                key={item.to}
-                to={item.to}
-                aria-current={active ? "page" : undefined}
+                key={view.to}
+                to={view.to}
+                role="tab"
+                aria-selected={isOn}
+                aria-current={isOn ? "page" : undefined}
                 className={cn(
-                  "inline-flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
-                  active
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  "group flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition-all sm:justify-start sm:px-4",
+                  isOn
+                    ? "bg-card text-foreground shadow-sm ring-1 ring-primary/30"
+                    : "text-muted-foreground hover:bg-card/60 hover:text-foreground",
                 )}
               >
-                <Icon className="h-3.5 w-3.5" />
-                {item.label}
+                <span
+                  className={cn(
+                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors",
+                    isOn
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground group-hover:bg-card",
+                  )}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                </span>
+                <span className="flex flex-col items-start leading-tight">
+                  <span className="text-[13px] font-semibold">
+                    <span className="sm:hidden">{view.short}</span>
+                    <span className="hidden sm:inline">{view.label}</span>
+                  </span>
+                  <span className="hidden text-[10.5px] font-normal text-muted-foreground sm:block">
+                    {view.description}
+                  </span>
+                </span>
               </Link>
             );
           })}
         </div>
-      </nav>
+
+        {/* Contextual sub-bar — confirms the active view in plain language */}
+        <div className="mt-2 flex items-center gap-2 px-1 text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+          <ActiveIcon className="h-3 w-3" />
+          <span>
+            You are viewing:{" "}
+            <span className="font-semibold text-foreground">{active.label}</span>
+          </span>
+        </div>
+      </div>
     </header>
   );
 }
 
 /**
- * Small inline component used in the body of /easy pages to invite the user
- * into the hotel workspace (or back to home), in addition to the header nav.
+ * Optional inline cross-link used inside page bodies (e.g. row CTAs).
  */
 export function EasyCrossLink({
   to,
   label,
   hint,
 }: {
-  to: "/easy" | "/easy/workspace";
+  to: EasyView;
   label: string;
   hint: string;
 }) {
-  const Icon = to === "/easy" ? Sun : Building2;
+  const Icon = to === "/easy" ? LayoutGrid : Building2;
   return (
     <Link
       to={to}
