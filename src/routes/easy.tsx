@@ -607,7 +607,7 @@ function ExtraSimplePage() {
               {cards
                 .filter((c) => c.entry || c.prevEntry)
                 .map((c) => (
-                  <PerformanceCard key={c.hotel.id} card={c} />
+                  <PerformanceCard key={c.hotel.id} card={c} onAsk={askSeraAbout} />
                 ))}
             </div>
           )}
@@ -981,7 +981,13 @@ function InlineHotelCard({
   );
 }
 
-function PerformanceCard({ card }: { card: HotelCardData }) {
+function PerformanceCard({
+  card,
+  onAsk,
+}: {
+  card: HotelCardData;
+  onAsk: (prompt: string, title?: string, hotelId?: string | null) => void;
+}) {
   const { hotel, entry, prevEntry } = card;
   const latest = entry ?? prevEntry;
   if (!latest) return null;
@@ -1023,12 +1029,23 @@ function PerformanceCard({ card }: { card: HotelCardData }) {
           </p>
         </div>
         {co2Change !== null && (
-          <div
-            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
+          <button
+            type="button"
+            onClick={() =>
+              onAsk(
+                co2Change < 0
+                  ? `My CO₂ went down ${formatPct(co2Change)} vs last month at ${hotel.name}. In plain language, what likely drove that and how do I keep the trend?`
+                  : `My CO₂ went up ${formatPct(co2Change)} vs last month at ${hotel.name}. What likely caused it and what should I check first?`,
+                `Sera on ${hotel.name} CO₂`,
+                hotel.id,
+              )
+            }
+            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition hover:opacity-80 ${
               co2Change < 0
                 ? "bg-success/15 text-success"
                 : "bg-warning/15 text-warning"
             }`}
+            title="Ask Sera why"
           >
             {co2Change < 0 ? (
               <TrendingDown className="h-3.5 w-3.5" />
@@ -1036,7 +1053,8 @@ function PerformanceCard({ card }: { card: HotelCardData }) {
               <TrendingUp className="h-3.5 w-3.5" />
             )}
             {formatPct(co2Change)} CO₂
-          </div>
+            <Sparkles className="h-3 w-3" />
+          </button>
         )}
       </div>
 
@@ -1069,6 +1087,12 @@ function PerformanceCard({ card }: { card: HotelCardData }) {
                 : bucket === "bottom"
                   ? "Room to save"
                   : "No data";
+          const askPrompt =
+            bucket === "bottom"
+              ? `My ${u.label.toLowerCase()} use at ${hotel.name} is higher than similar hotels. What are the most common causes and the first 2-3 things I should check?`
+              : bucket === "top"
+                ? `My ${u.label.toLowerCase()} use at ${hotel.name} is lower than peers. What's likely working well, and how do I keep it that way?`
+                : `Tell me how my ${u.label.toLowerCase()} use at ${hotel.name} compares to peers and one thing I could try this month.`;
           return (
             <li
               key={u.key}
@@ -1079,6 +1103,16 @@ function PerformanceCard({ card }: { card: HotelCardData }) {
                 {u.label}
               </div>
               <div className="text-[11px]">{label}</div>
+              <button
+                type="button"
+                onClick={() =>
+                  onAsk(askPrompt, `Sera on ${u.label}`, hotel.id)
+                }
+                className="mt-1 inline-flex items-center gap-1 text-[10px] font-medium text-primary hover:underline"
+              >
+                <Sparkles className="h-2.5 w-2.5" />
+                Ask Sera
+              </button>
             </li>
           );
         })}
