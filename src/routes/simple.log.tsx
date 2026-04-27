@@ -195,7 +195,7 @@ function SimpleLogPage() {
             : "Pick a hotel from the top, then add this month's data."
       }
       showBack
-      help="You don't have to fill in every field at once. Whatever you save here goes to the same place as the Classic view, so you can switch between the two whenever you want."
+      help="You don't have to fill in every field at once. Whatever you save here goes to the same place as the Standard view, so you can switch between the two whenever you want."
     >
       {/* Quick-entry shortcuts (inline disclosure — keeps the user inside Simple) */}
       <section className="mb-8">

@@ -282,7 +282,7 @@ function ExtraSimpleHomePage() {
             {loading
               ? "Pulling your hotels together…"
               : totalHotels === 0
-                ? "Add your first hotel from Classic to get started."
+                ? "Add your first hotel from Standard to get started."
                 : allDone
                   ? `All ${totalHotels} hotels are logged for ${monthLabel}. See how the portfolio is doing below.`
                   : `${completedHotels} of ${totalHotels} hotels logged ${monthLabel}. Pick a hotel below to keep going.`}
@@ -408,7 +408,7 @@ function ExtraSimpleHomePage() {
             <div className="rounded-3xl border border-dashed border-border/60 bg-card p-8 text-center">
               <h3 className="font-serif text-lg text-foreground">No hotels yet</h3>
               <p className="mt-2 text-sm text-muted-foreground">
-                Switch to Classic view from the top-right to add your first hotel.
+                Switch to Standard view from the top-right to add your first hotel.
               </p>
             </div>
           ) : (

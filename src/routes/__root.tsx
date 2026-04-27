@@ -198,7 +198,7 @@ function ModeAwareShell() {
       <AppSidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <MobileTopBar />
-        {/* Floating switcher so the user can flip from Classic too. */}
+        {/* Floating switcher so the user can flip from Standard too. */}
         <div className="pointer-events-none fixed right-4 top-3 z-40 hidden md:block">
           <div className="pointer-events-auto">
             <DesignModeSwitcher />

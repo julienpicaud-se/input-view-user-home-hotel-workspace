@@ -400,12 +400,12 @@ function TheoryHomePage() {
         thinking={seraThinking}
         onAsk={askSera}
         onUploadBill={() =>
-          toast("Bill upload available in Classic › Workspace › Upload bill.", {
+          toast("Bill upload available in Standard › Workspace › Upload bill.", {
             style: { background: "#1a1230", color: "#fff", border: "1px solid rgba(255,255,255,0.1)" },
           })
         }
         onVoice={() =>
-          toast("Voice capture available in Classic › Workspace › Voice.", {
+          toast("Voice capture available in Standard › Workspace › Voice.", {
             style: { background: "#1a1230", color: "#fff", border: "1px solid rgba(255,255,255,0.1)" },
           })
         }
