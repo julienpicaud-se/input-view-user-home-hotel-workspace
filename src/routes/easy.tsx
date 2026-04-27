@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import * as React from "react";
 import { toast } from "sonner";
+import ReactMarkdown from "react-markdown";
 import {
   Sparkles,
   Bolt,
@@ -15,9 +16,13 @@ import {
   TrendingUp,
   Leaf,
   ArrowRight,
-  Sun,
   Building2,
   HelpCircle,
+  Upload,
+  Mic,
+  Wand2,
+  ChevronDown,
+  Lightbulb,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,7 +40,17 @@ import {
   calculateCO2e,
 } from "@/lib/format";
 import { getPeerStats, getPeerRank, type Utility } from "@/lib/peer-benchmarks";
-import { DesignModeSwitcher } from "@/components/design-mode-switcher";
+import { EasyHeader, EasyCrossLink } from "@/components/easy-nav";
+import { InvoiceUploadCard } from "@/components/invoice-upload-card";
+import { VoiceLogCard } from "@/components/voice-log-card";
+import { SmartPasteCard } from "@/components/smart-paste-card";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import {
   generateBriefing,
   generateInsights,
