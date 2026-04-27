@@ -379,6 +379,11 @@ function ExtraSimpleHomePage() {
           )}
         </section>
 
+        {/* What to do next — checklist of hotels with missing numbers */}
+        {!loading && totalHotels > 0 && (
+          <TodoChecklist rows={rows} monthLabel={monthLabel} />
+        )}
+
         {/* Hotels table — the heart of the home page. Each row goes to its workspace. */}
         <section className="mb-10">
           <div className="mb-4 flex items-baseline justify-between gap-3">
