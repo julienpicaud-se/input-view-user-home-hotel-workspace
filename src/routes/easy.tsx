@@ -652,6 +652,19 @@ function ExtraSimplePage() {
                     {ins.title}
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">{ins.body}</p>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void askSeraAbout(
+                        `Walk me through how to do this, step by step, in plain language: "${ins.title}". Use my hotel's data and keep it under 6 short bullets.`,
+                        `How to: ${ins.title}`,
+                      )
+                    }
+                    className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+                  >
+                    <Lightbulb className="h-3 w-3" />
+                    Tell me how
+                  </button>
                 </li>
               ))}
             </ul>
