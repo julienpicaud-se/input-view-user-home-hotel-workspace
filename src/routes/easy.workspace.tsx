@@ -92,6 +92,7 @@ const EMPTY: Values = {
 
 function ExtraSimpleWorkspacePage() {
   const callInsights = useServerFn(generateInsights);
+  const callAssistant = useServerFn(sendAssistantMessage);
   const [loading, setLoading] = React.useState(true);
   const [hotels, setHotels] = React.useState<Hotel[]>([]);
   const [activeId, setActiveId] = React.useState<string | null>(null);
@@ -101,29 +102,62 @@ function ExtraSimpleWorkspacePage() {
   const [insights, setInsights] = React.useState<Insight[]>([]);
   const [insightsLoading, setInsightsLoading] = React.useState(false);
 
+  // Quick-entry tools (parity with Classic view).
+  const [openTool, setOpenTool] = React.useState<null | "upload" | "voice" | "paste">(null);
+
+  // Side-panel "Ask Sera" — used by per-tip and CO₂ buttons.
+  const [panelOpen, setPanelOpen] = React.useState(false);
+  const [panelTitle, setPanelTitle] = React.useState("Sera");
+  const [panelPrompt, setPanelPrompt] = React.useState("");
+  const [panelAnswer, setPanelAnswer] = React.useState<string | null>(null);
+  const [panelLoading, setPanelLoading] = React.useState(false);
+  const [panelError, setPanelError] = React.useState<string | null>(null);
+
   const expected = expectedReportingPeriod();
   const monthLabel = `${MONTH_NAMES[expected.month - 1]} ${expected.year}`;
 
-  React.useEffect(() => {
-    void (async () => {
-      const [{ data: hotelsData }, { data: entriesData }] = await Promise.all([
-        supabase.from("hotels").select("*").order("name", { ascending: true }),
-        supabase
-          .from("monthly_entries")
-          .select("*")
-          .order("year", { ascending: true })
-          .order("month", { ascending: true }),
-      ]);
-      const hs = (hotelsData as Hotel[] | null) ?? [];
-      setHotels(hs);
-      setEntries((entriesData as MonthlyEntry[] | null) ?? []);
-      const stored = getActiveHotelId();
-      const initial = hs.find((h) => h.id === stored)?.id ?? hs[0]?.id ?? null;
-      setActiveId(initial);
-      if (initial) setActiveHotelId(initial);
-      setLoading(false);
-    })();
+  const reload = React.useCallback(async () => {
+    const [{ data: hotelsData }, { data: entriesData }] = await Promise.all([
+      supabase.from("hotels").select("*").order("name", { ascending: true }),
+      supabase
+        .from("monthly_entries")
+        .select("*")
+        .order("year", { ascending: true })
+        .order("month", { ascending: true }),
+    ]);
+    const hs = (hotelsData as Hotel[] | null) ?? [];
+    setHotels(hs);
+    setEntries((entriesData as MonthlyEntry[] | null) ?? []);
+    const stored = getActiveHotelId();
+    setActiveId((prev) => prev ?? hs.find((h) => h.id === stored)?.id ?? hs[0]?.id ?? null);
+    const initial = hs.find((h) => h.id === stored)?.id ?? hs[0]?.id ?? null;
+    if (initial) setActiveHotelId(initial);
+    setLoading(false);
   }, []);
+
+  React.useEffect(() => {
+    void reload();
+  }, [reload]);
+
+  async function askSeraAbout(prompt: string, title?: string) {
+    setPanelTitle(title ?? "Sera");
+    setPanelPrompt(prompt);
+    setPanelAnswer(null);
+    setPanelError(null);
+    setPanelOpen(true);
+    setPanelLoading(true);
+    try {
+      const res = await callAssistant({
+        data: { message: prompt, hotelId: activeId ?? undefined, history: [] },
+      });
+      if (res.ok) setPanelAnswer(res.content);
+      else setPanelError("Sera couldn't answer just now.");
+    } catch {
+      setPanelError("Couldn't reach Sera.");
+    } finally {
+      setPanelLoading(false);
+    }
+  }
 
   const hotel = hotels.find((h) => h.id === activeId) ?? null;
   const thisMonth =
