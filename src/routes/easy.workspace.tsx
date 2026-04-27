@@ -1,10 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import * as React from "react";
 import { toast } from "sonner";
+import ReactMarkdown from "react-markdown";
 import {
   ArrowLeft,
   Building2,
-  Sun,
   Loader2,
   Sparkles,
   Bolt,
@@ -16,6 +16,11 @@ import {
   Leaf,
   TrendingDown,
   TrendingUp,
+  Upload,
+  Mic,
+  Wand2,
+  ChevronDown,
+  Lightbulb,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,9 +36,20 @@ import {
   formatNumber,
   pctChange,
 } from "@/lib/format";
-import { DesignModeSwitcher } from "@/components/design-mode-switcher";
+import { EasyHeader } from "@/components/easy-nav";
+import { InvoiceUploadCard } from "@/components/invoice-upload-card";
+import { VoiceLogCard } from "@/components/voice-log-card";
+import { SmartPasteCard } from "@/components/smart-paste-card";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import {
   generateInsights,
+  sendAssistantMessage,
   type Insight,
 } from "@/server/assistant.functions";
 
@@ -76,6 +92,7 @@ const EMPTY: Values = {
 
 function ExtraSimpleWorkspacePage() {
   const callInsights = useServerFn(generateInsights);
+  const callAssistant = useServerFn(sendAssistantMessage);
   const [loading, setLoading] = React.useState(true);
   const [hotels, setHotels] = React.useState<Hotel[]>([]);
   const [activeId, setActiveId] = React.useState<string | null>(null);
@@ -85,29 +102,62 @@ function ExtraSimpleWorkspacePage() {
   const [insights, setInsights] = React.useState<Insight[]>([]);
   const [insightsLoading, setInsightsLoading] = React.useState(false);
 
+  // Quick-entry tools (parity with Classic view).
+  const [openTool, setOpenTool] = React.useState<null | "upload" | "voice" | "paste">(null);
+
+  // Side-panel "Ask Sera" — used by per-tip and CO₂ buttons.
+  const [panelOpen, setPanelOpen] = React.useState(false);
+  const [panelTitle, setPanelTitle] = React.useState("Sera");
+  const [panelPrompt, setPanelPrompt] = React.useState("");
+  const [panelAnswer, setPanelAnswer] = React.useState<string | null>(null);
+  const [panelLoading, setPanelLoading] = React.useState(false);
+  const [panelError, setPanelError] = React.useState<string | null>(null);
+
   const expected = expectedReportingPeriod();
   const monthLabel = `${MONTH_NAMES[expected.month - 1]} ${expected.year}`;
 
-  React.useEffect(() => {
-    void (async () => {
-      const [{ data: hotelsData }, { data: entriesData }] = await Promise.all([
-        supabase.from("hotels").select("*").order("name", { ascending: true }),
-        supabase
-          .from("monthly_entries")
-          .select("*")
-          .order("year", { ascending: true })
-          .order("month", { ascending: true }),
-      ]);
-      const hs = (hotelsData as Hotel[] | null) ?? [];
-      setHotels(hs);
-      setEntries((entriesData as MonthlyEntry[] | null) ?? []);
-      const stored = getActiveHotelId();
-      const initial = hs.find((h) => h.id === stored)?.id ?? hs[0]?.id ?? null;
-      setActiveId(initial);
-      if (initial) setActiveHotelId(initial);
-      setLoading(false);
-    })();
+  const reload = React.useCallback(async () => {
+    const [{ data: hotelsData }, { data: entriesData }] = await Promise.all([
+      supabase.from("hotels").select("*").order("name", { ascending: true }),
+      supabase
+        .from("monthly_entries")
+        .select("*")
+        .order("year", { ascending: true })
+        .order("month", { ascending: true }),
+    ]);
+    const hs = (hotelsData as Hotel[] | null) ?? [];
+    setHotels(hs);
+    setEntries((entriesData as MonthlyEntry[] | null) ?? []);
+    const stored = getActiveHotelId();
+    setActiveId((prev) => prev ?? hs.find((h) => h.id === stored)?.id ?? hs[0]?.id ?? null);
+    const initial = hs.find((h) => h.id === stored)?.id ?? hs[0]?.id ?? null;
+    if (initial) setActiveHotelId(initial);
+    setLoading(false);
   }, []);
+
+  React.useEffect(() => {
+    void reload();
+  }, [reload]);
+
+  async function askSeraAbout(prompt: string, title?: string) {
+    setPanelTitle(title ?? "Sera");
+    setPanelPrompt(prompt);
+    setPanelAnswer(null);
+    setPanelError(null);
+    setPanelOpen(true);
+    setPanelLoading(true);
+    try {
+      const res = await callAssistant({
+        data: { message: prompt, hotelId: activeId ?? undefined, history: [] },
+      });
+      if (res.ok) setPanelAnswer(res.content);
+      else setPanelError("Sera couldn't answer just now.");
+    } catch {
+      setPanelError("Couldn't reach Sera.");
+    } finally {
+      setPanelLoading(false);
+    }
+  }
 
   const hotel = hotels.find((h) => h.id === activeId) ?? null;
   const thisMonth =
@@ -210,22 +260,7 @@ function ExtraSimpleWorkspacePage() {
 
   return (
     <div className="min-h-screen bg-[var(--background)]">
-      <header className="sticky top-0 z-30 border-b border-border/50 bg-background/90 backdrop-blur-md">
-        <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-3 px-5 py-3">
-          <Link to="/easy" className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-success/15 text-success">
-              <Sun className="h-4 w-4" />
-            </div>
-            <div className="leading-tight">
-              <div className="font-serif text-lg">RA+</div>
-              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-                Extra simple · Workspace
-              </div>
-            </div>
-          </Link>
-          <DesignModeSwitcher />
-        </div>
-      </header>
+      <EasyHeader />
 
       <main className="mx-auto w-full max-w-3xl px-5 pb-24 pt-6">
         <Link
@@ -384,6 +419,28 @@ function ExtraSimpleWorkspacePage() {
               </div>
             </section>
 
+            {/* Faster ways to fill in — parity with Classic view */}
+            <section className="mb-10">
+              <h2 className="mb-1 font-serif text-xl font-semibold text-foreground">
+                Faster ways to fill this in
+              </h2>
+              <p className="mb-4 text-sm text-muted-foreground">
+                Upload a bill, dictate, or paste from email — Sera does the typing.
+              </p>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <ToolToggle icon={Upload} title="Upload bills" subtitle="We'll read the numbers." active={openTool === "upload"} onClick={() => setOpenTool((t) => (t === "upload" ? null : "upload"))} />
+                <ToolToggle icon={Mic} title="Read it out" subtitle="Speak the numbers." active={openTool === "voice"} onClick={() => setOpenTool((t) => (t === "voice" ? null : "voice"))} />
+                <ToolToggle icon={Wand2} title="Paste from email" subtitle="We'll parse the text." active={openTool === "paste"} onClick={() => setOpenTool((t) => (t === "paste" ? null : "paste"))} />
+              </div>
+              {openTool && (
+                <div className="mt-4 rounded-3xl border border-border/60 bg-card p-4 md:p-5">
+                  {openTool === "upload" && <InvoiceUploadCard entries={entries} onSaved={() => void reload()} />}
+                  {openTool === "voice" && <VoiceLogCard entries={entries} onSaved={() => void reload()} />}
+                  {openTool === "paste" && <SmartPasteCard entries={entries} onSaved={() => void reload()} />}
+                </div>
+              )}
+            </section>
+
             {/* Tips */}
             <section className="mb-10 rounded-3xl border border-border/60 bg-card p-5 md:p-6">
               <div className="mb-3 flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
@@ -402,22 +459,117 @@ function ExtraSimpleWorkspacePage() {
               ) : (
                 <ul className="space-y-2.5">
                   {insights.slice(0, 3).map((ins, i) => (
-                    <li
-                      key={i}
-                      className="rounded-2xl border border-border/60 bg-background p-3.5"
-                    >
-                      <div className="text-sm font-semibold text-foreground">
-                        {ins.title}
-                      </div>
+                    <li key={i} className="rounded-2xl border border-border/60 bg-background p-3.5">
+                      <div className="text-sm font-semibold text-foreground">{ins.title}</div>
                       <p className="mt-1 text-sm text-muted-foreground">{ins.body}</p>
+                      <button
+                        type="button"
+                        onClick={() => void askSeraAbout(`Walk me through how to do this for ${hotel?.name ?? "my hotel"}, step by step in plain language: "${ins.title}". Keep it under 6 short bullets.`, `How to: ${ins.title}`)}
+                        className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+                      >
+                        <Lightbulb className="h-3 w-3" />
+                        Tell me how
+                      </button>
                     </li>
                   ))}
                 </ul>
               )}
             </section>
+
+            {/* Ask Sera prompt */}
+            {hotel && (
+              <section className="mb-10 rounded-3xl border border-primary/20 bg-primary/5 p-5">
+                <div className="mb-3 flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                  Ask Sera about {hotel.name}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    `Why might my CO₂ have changed at ${hotel.name} this month?`,
+                    `What's the single biggest opportunity at ${hotel.name}?`,
+                    `How do I compare to similar ${hotel.star_rating}★ hotels in ${hotel.region}?`,
+                  ].map((q) => (
+                    <button
+                      key={q}
+                      type="button"
+                      onClick={() => void askSeraAbout(q, "Sera")}
+                      className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition hover:border-primary/60 hover:bg-primary/5"
+                    >
+                      <Sparkles className="h-3 w-3 text-primary" />
+                      {q}
+                    </button>
+                  ))}
+                </div>
+              </section>
+            )}
           </>
         )}
       </main>
+
+      {/* Side panel for contextual Sera answers */}
+      <Sheet open={panelOpen} onOpenChange={setPanelOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2 font-serif">
+              <Sparkles className="h-4 w-4 text-primary" />
+              {panelTitle}
+            </SheetTitle>
+            {panelPrompt && (
+              <SheetDescription className="text-xs italic">
+                "{panelPrompt}"
+              </SheetDescription>
+            )}
+          </SheetHeader>
+          <div className="mt-5">
+            {panelLoading ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Sera is thinking…
+              </div>
+            ) : panelError ? (
+              <p className="text-sm text-destructive">{panelError}</p>
+            ) : panelAnswer ? (
+              <div className="prose prose-sm max-w-none text-sm leading-relaxed text-foreground prose-p:my-2 prose-li:my-0.5 prose-strong:text-foreground">
+                <ReactMarkdown>{panelAnswer}</ReactMarkdown>
+              </div>
+            ) : null}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
+  );
+}
+
+function ToolToggle({
+  icon: Icon,
+  title,
+  subtitle,
+  active,
+  onClick,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  subtitle: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`group flex w-full items-start gap-3 rounded-2xl border p-4 text-left transition-all ${
+        active ? "border-primary bg-primary/10 shadow-sm" : "border-border/60 bg-card hover:border-primary/40 hover:shadow-sm"
+      }`}
+    >
+      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${active ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary"}`}>
+        <Icon className="h-5 w-5" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="text-sm font-semibold text-foreground">{title}</div>
+        <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>
+      </div>
+      <ChevronDown className={`mt-2 h-4 w-4 shrink-0 text-muted-foreground transition-transform ${active ? "rotate-180 text-primary" : ""}`} />
+    </button>
   );
 }

@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import * as React from "react";
 import { toast } from "sonner";
+import ReactMarkdown from "react-markdown";
 import {
   Sparkles,
   Bolt,
@@ -15,9 +16,13 @@ import {
   TrendingUp,
   Leaf,
   ArrowRight,
-  Sun,
   Building2,
   HelpCircle,
+  Upload,
+  Mic,
+  Wand2,
+  ChevronDown,
+  Lightbulb,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,7 +40,17 @@ import {
   calculateCO2e,
 } from "@/lib/format";
 import { getPeerStats, getPeerRank, type Utility } from "@/lib/peer-benchmarks";
-import { DesignModeSwitcher } from "@/components/design-mode-switcher";
+import { EasyHeader, EasyCrossLink } from "@/components/easy-nav";
+import { InvoiceUploadCard } from "@/components/invoice-upload-card";
+import { VoiceLogCard } from "@/components/voice-log-card";
+import { SmartPasteCard } from "@/components/smart-paste-card";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import {
   generateBriefing,
   generateInsights,
@@ -121,73 +136,91 @@ function ExtraSimplePage() {
   const [chatLoading, setChatLoading] = React.useState(false);
   const [activeChatHotelId, setActiveChatHotelId] = React.useState<string | null>(null);
 
+  // Quick-entry tools (upload bills, voice, paste) — same components as the
+  // Simple/Classic views so we don't lose any capability here.
+  const [openTool, setOpenTool] = React.useState<null | "upload" | "voice" | "paste">(null);
+  const [allEntries, setAllEntries] = React.useState<MonthlyEntry[]>([]);
+
+  // Side-panel "Ask Sera" state — used by per-utility / per-tip buttons so
+  // users get a contextual answer without scrolling away or losing their place.
+  const [panelOpen, setPanelOpen] = React.useState(false);
+  const [panelTitle, setPanelTitle] = React.useState("Sera");
+  const [panelPrompt, setPanelPrompt] = React.useState("");
+  const [panelAnswer, setPanelAnswer] = React.useState<string | null>(null);
+  const [panelLoading, setPanelLoading] = React.useState(false);
+  const [panelError, setPanelError] = React.useState<string | null>(null);
+
   const expected = expectedReportingPeriod();
   const monthLabel = `${MONTH_NAMES[expected.month - 1]} ${expected.year}`;
 
-  // Initial load
+  // Initial load (extracted to reload so the upload/voice/paste tools can refresh us)
+  const reload = React.useCallback(async () => {
+    const [{ data: profileData }, { data: hotelsData }, { data: entriesData }] =
+      await Promise.all([
+        supabase
+          .from("user_profiles")
+          .select("*")
+          .eq("id", DEMO_PROFILE_ID)
+          .maybeSingle(),
+        supabase.from("hotels").select("*").order("name", { ascending: true }),
+        supabase
+          .from("monthly_entries")
+          .select("*")
+          .order("year", { ascending: true })
+          .order("month", { ascending: true }),
+      ]);
+
+    const hotels = (hotelsData as Hotel[] | null) ?? [];
+    const entries = (entriesData as MonthlyEntry[] | null) ?? [];
+
+    const cards: HotelCardData[] = hotels.map((h) => {
+      const entry =
+        entries.find(
+          (e) =>
+            e.hotel_id === h.id &&
+            e.year === expected.year &&
+            e.month === expected.month,
+        ) ?? null;
+      // previous month
+      const prevDate = new Date(expected.year, expected.month - 2, 1);
+      const py = prevDate.getFullYear();
+      const pm = prevDate.getMonth() + 1;
+      const prevEntry =
+        entries.find(
+          (e) => e.hotel_id === h.id && e.year === py && e.month === pm,
+        ) ?? null;
+
+      const values: Values = entry
+        ? {
+            electricity_kwh: entry.electricity_kwh?.toString() ?? "",
+            gas_kwh: entry.gas_kwh?.toString() ?? "",
+            water_m3: entry.water_m3?.toString() ?? "",
+            waste_kg: entry.waste_kg?.toString() ?? "",
+            occupied_room_nights:
+              entry.occupied_room_nights?.toString() ?? "",
+          }
+        : { ...EMPTY_VALUES };
+
+      return {
+        hotel: h,
+        entry,
+        prevEntry,
+        values,
+        saving: false,
+        saved: !!entry && allFilled(values),
+      };
+    });
+
+    setProfile((profileData as UserProfile) ?? null);
+    setAllEntries(entries);
+    setCards(cards);
+    setActiveChatHotelId((prev) => prev ?? cards[0]?.hotel.id ?? null);
+    setLoading(false);
+  }, [expected.year, expected.month]);
+
   React.useEffect(() => {
-    void (async () => {
-      const [{ data: profileData }, { data: hotelsData }, { data: entriesData }] =
-        await Promise.all([
-          supabase
-            .from("user_profiles")
-            .select("*")
-            .eq("id", DEMO_PROFILE_ID)
-            .maybeSingle(),
-          supabase.from("hotels").select("*").order("name", { ascending: true }),
-          supabase
-            .from("monthly_entries")
-            .select("*")
-            .order("year", { ascending: true })
-            .order("month", { ascending: true }),
-        ]);
-
-      const hotels = (hotelsData as Hotel[] | null) ?? [];
-      const entries = (entriesData as MonthlyEntry[] | null) ?? [];
-
-      const cards: HotelCardData[] = hotels.map((h) => {
-        const entry =
-          entries.find(
-            (e) =>
-              e.hotel_id === h.id &&
-              e.year === expected.year &&
-              e.month === expected.month
-          ) ?? null;
-        // previous month
-        const prevDate = new Date(expected.year, expected.month - 2, 1);
-        const py = prevDate.getFullYear();
-        const pm = prevDate.getMonth() + 1;
-        const prevEntry =
-          entries.find(
-            (e) => e.hotel_id === h.id && e.year === py && e.month === pm
-          ) ?? null;
-
-        const values: Values = entry
-          ? {
-              electricity_kwh: entry.electricity_kwh?.toString() ?? "",
-              gas_kwh: entry.gas_kwh?.toString() ?? "",
-              water_m3: entry.water_m3?.toString() ?? "",
-              waste_kg: entry.waste_kg?.toString() ?? "",
-              occupied_room_nights:
-                entry.occupied_room_nights?.toString() ?? "",
-            }
-          : { ...EMPTY_VALUES };
-
-        return {
-          hotel: h,
-          entry,
-          prevEntry,
-          values,
-          saving: false,
-          saved: !!entry && allFilled(values),
-        };
-      });
-
-      setProfile((profileData as UserProfile) ?? null);
-      setCards(cards);
-      setActiveChatHotelId(cards[0]?.hotel.id ?? null);
-      setLoading(false);
-    })();
+    void reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const firstName = (profile?.display_name?.split(" ")[0] || "there").trim();
@@ -339,25 +372,36 @@ function ExtraSimplePage() {
     }
   }
 
+  // Open the side panel and ask Sera a contextual question. Used by per-utility,
+  // per-tip and CO₂ "Ask Sera" buttons so users get a focused answer without
+  // losing their place on the long page.
+  async function askSeraAbout(prompt: string, title?: string, hotelId?: string | null) {
+    setPanelTitle(title ?? "Sera");
+    setPanelPrompt(prompt);
+    setPanelAnswer(null);
+    setPanelError(null);
+    setPanelOpen(true);
+    setPanelLoading(true);
+    try {
+      const res = await callAssistant({
+        data: {
+          message: prompt,
+          hotelId: hotelId ?? activeChatHotelId ?? undefined,
+          history: [],
+        },
+      });
+      if (res.ok) setPanelAnswer(res.content);
+      else setPanelError("Sera couldn't answer just now.");
+    } catch {
+      setPanelError("Couldn't reach Sera.");
+    } finally {
+      setPanelLoading(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[var(--background)]">
-      {/* Slim sticky header — only the switcher and a logo */}
-      <header className="sticky top-0 z-30 border-b border-border/50 bg-background/90 backdrop-blur-md">
-        <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-3 px-5 py-3">
-          <Link to="/easy" className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-success/15 text-success">
-              <Sun className="h-4 w-4" />
-            </div>
-            <div className="leading-tight">
-              <div className="font-serif text-lg">RA+</div>
-              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-                Extra simple
-              </div>
-            </div>
-          </Link>
-          <DesignModeSwitcher />
-        </div>
-      </header>
+      <EasyHeader />
 
       <main className="mx-auto w-full max-w-3xl px-5 pb-24 pt-8">
         {/* Hero greeting */}
@@ -419,6 +463,21 @@ function ExtraSimplePage() {
                   {briefing.focus}
                 </p>
               )}
+              {briefing.questions && briefing.questions.length > 0 && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {briefing.questions.slice(0, 3).map((q: string) => (
+                    <button
+                      key={q}
+                      type="button"
+                      onClick={() => void askSeraAbout(q, "Sera")}
+                      className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition hover:border-primary/60 hover:bg-primary/5"
+                    >
+                      <Sparkles className="h-3 w-3 text-primary" />
+                      {q}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">
@@ -426,6 +485,71 @@ function ExtraSimplePage() {
             </p>
           )}
         </section>
+
+        {/* Quick-entry capabilities — restore parity with the Classic view:
+            upload bills, dictate, or paste from email. Same components as Simple. */}
+        {!loading && totalHotels > 0 && (
+          <section className="mb-12">
+            <h2 className="mb-1 font-serif text-2xl font-semibold text-foreground md:text-3xl">
+              Faster ways to fill this in
+            </h2>
+            <p className="mb-5 text-sm text-muted-foreground">
+              Skip the typing — let Sera read your bills, listen to you, or parse a
+              supplier email.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <ToolToggle
+                icon={Upload}
+                title="Upload bills"
+                subtitle="We'll read the numbers."
+                active={openTool === "upload"}
+                onClick={() =>
+                  setOpenTool((t) => (t === "upload" ? null : "upload"))
+                }
+              />
+              <ToolToggle
+                icon={Mic}
+                title="Read it out"
+                subtitle="Speak the numbers."
+                active={openTool === "voice"}
+                onClick={() =>
+                  setOpenTool((t) => (t === "voice" ? null : "voice"))
+                }
+              />
+              <ToolToggle
+                icon={Wand2}
+                title="Paste from email"
+                subtitle="We'll parse the text."
+                active={openTool === "paste"}
+                onClick={() =>
+                  setOpenTool((t) => (t === "paste" ? null : "paste"))
+                }
+              />
+            </div>
+            {openTool && (
+              <div className="mt-4 rounded-3xl border border-border/60 bg-card p-4 md:p-5">
+                {openTool === "upload" && (
+                  <InvoiceUploadCard
+                    entries={allEntries}
+                    onSaved={() => void reload()}
+                  />
+                )}
+                {openTool === "voice" && (
+                  <VoiceLogCard
+                    entries={allEntries}
+                    onSaved={() => void reload()}
+                  />
+                )}
+                {openTool === "paste" && (
+                  <SmartPasteCard
+                    entries={allEntries}
+                    onSaved={() => void reload()}
+                  />
+                )}
+              </div>
+            )}
+          </section>
+        )}
 
         {/* Inline log section — one card per hotel, no clicks needed to start */}
         <section className="mb-12">
@@ -483,7 +607,7 @@ function ExtraSimplePage() {
               {cards
                 .filter((c) => c.entry || c.prevEntry)
                 .map((c) => (
-                  <PerformanceCard key={c.hotel.id} card={c} />
+                  <PerformanceCard key={c.hotel.id} card={c} onAsk={askSeraAbout} />
                 ))}
             </div>
           )}
@@ -528,6 +652,19 @@ function ExtraSimplePage() {
                     {ins.title}
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">{ins.body}</p>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void askSeraAbout(
+                        `Walk me through how to do this, step by step, in plain language: "${ins.title}". Use my hotel's data and keep it under 6 short bullets.`,
+                        `How to: ${ins.title}`,
+                      )
+                    }
+                    className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+                  >
+                    <Lightbulb className="h-3 w-3" />
+                    Tell me how
+                  </button>
                 </li>
               ))}
             </ul>
@@ -628,14 +765,94 @@ function ExtraSimplePage() {
         </section>
 
         {/* Footer help */}
-        <footer className="mb-4 flex items-center justify-center gap-2 rounded-2xl border border-border/40 bg-muted/30 px-4 py-3 text-xs text-muted-foreground">
-          <HelpCircle className="h-3.5 w-3.5" />
-          Need older months or full charts? Switch to{" "}
-          <span className="font-medium text-foreground">Classic</span> in the
-          dropdown above.
+        <footer className="mb-4 flex flex-col items-center justify-center gap-3 rounded-2xl border border-border/40 bg-muted/30 px-4 py-3 text-xs text-muted-foreground sm:flex-row">
+          <div className="inline-flex items-center gap-2">
+            <HelpCircle className="h-3.5 w-3.5" />
+            Want to focus on one hotel?
+          </div>
+          <EasyCrossLink
+            to="/easy/workspace"
+            label="Open hotel workspace"
+            hint="one property at a time"
+          />
         </footer>
       </main>
+
+      {/* Side panel for contextual Sera answers */}
+      <Sheet open={panelOpen} onOpenChange={setPanelOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2 font-serif">
+              <Sparkles className="h-4 w-4 text-primary" />
+              {panelTitle}
+            </SheetTitle>
+            {panelPrompt && (
+              <SheetDescription className="text-xs italic">
+                "{panelPrompt}"
+              </SheetDescription>
+            )}
+          </SheetHeader>
+          <div className="mt-5">
+            {panelLoading ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Sera is thinking…
+              </div>
+            ) : panelError ? (
+              <p className="text-sm text-destructive">{panelError}</p>
+            ) : panelAnswer ? (
+              <div className="prose prose-sm max-w-none text-sm leading-relaxed text-foreground prose-p:my-2 prose-li:my-0.5 prose-strong:text-foreground">
+                <ReactMarkdown>{panelAnswer}</ReactMarkdown>
+              </div>
+            ) : null}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
+  );
+}
+
+function ToolToggle({
+  icon: Icon,
+  title,
+  subtitle,
+  active,
+  onClick,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  subtitle: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`group flex w-full items-start gap-3 rounded-2xl border p-4 text-left transition-all ${
+        active
+          ? "border-primary bg-primary/10 shadow-sm"
+          : "border-border/60 bg-card hover:border-primary/40 hover:shadow-sm"
+      }`}
+    >
+      <div
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+          active ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary"
+        }`}
+      >
+        <Icon className="h-5 w-5" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="text-sm font-semibold text-foreground">{title}</div>
+        <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>
+      </div>
+      <ChevronDown
+        className={`mt-2 h-4 w-4 shrink-0 text-muted-foreground transition-transform ${
+          active ? "rotate-180 text-primary" : ""
+        }`}
+      />
+    </button>
   );
 }
 
@@ -764,7 +981,13 @@ function InlineHotelCard({
   );
 }
 
-function PerformanceCard({ card }: { card: HotelCardData }) {
+function PerformanceCard({
+  card,
+  onAsk,
+}: {
+  card: HotelCardData;
+  onAsk: (prompt: string, title?: string, hotelId?: string | null) => void;
+}) {
   const { hotel, entry, prevEntry } = card;
   const latest = entry ?? prevEntry;
   if (!latest) return null;
@@ -806,12 +1029,23 @@ function PerformanceCard({ card }: { card: HotelCardData }) {
           </p>
         </div>
         {co2Change !== null && (
-          <div
-            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
+          <button
+            type="button"
+            onClick={() =>
+              onAsk(
+                co2Change < 0
+                  ? `My CO₂ went down ${formatPct(co2Change)} vs last month at ${hotel.name}. In plain language, what likely drove that and how do I keep the trend?`
+                  : `My CO₂ went up ${formatPct(co2Change)} vs last month at ${hotel.name}. What likely caused it and what should I check first?`,
+                `Sera on ${hotel.name} CO₂`,
+                hotel.id,
+              )
+            }
+            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition hover:opacity-80 ${
               co2Change < 0
                 ? "bg-success/15 text-success"
                 : "bg-warning/15 text-warning"
             }`}
+            title="Ask Sera why"
           >
             {co2Change < 0 ? (
               <TrendingDown className="h-3.5 w-3.5" />
@@ -819,7 +1053,8 @@ function PerformanceCard({ card }: { card: HotelCardData }) {
               <TrendingUp className="h-3.5 w-3.5" />
             )}
             {formatPct(co2Change)} CO₂
-          </div>
+            <Sparkles className="h-3 w-3" />
+          </button>
         )}
       </div>
 
@@ -852,6 +1087,12 @@ function PerformanceCard({ card }: { card: HotelCardData }) {
                 : bucket === "bottom"
                   ? "Room to save"
                   : "No data";
+          const askPrompt =
+            bucket === "bottom"
+              ? `My ${u.label.toLowerCase()} use at ${hotel.name} is higher than similar hotels. What are the most common causes and the first 2-3 things I should check?`
+              : bucket === "top"
+                ? `My ${u.label.toLowerCase()} use at ${hotel.name} is lower than peers. What's likely working well, and how do I keep it that way?`
+                : `Tell me how my ${u.label.toLowerCase()} use at ${hotel.name} compares to peers and one thing I could try this month.`;
           return (
             <li
               key={u.key}
@@ -862,6 +1103,16 @@ function PerformanceCard({ card }: { card: HotelCardData }) {
                 {u.label}
               </div>
               <div className="text-[11px]">{label}</div>
+              <button
+                type="button"
+                onClick={() =>
+                  onAsk(askPrompt, `Sera on ${u.label}`, hotel.id)
+                }
+                className="mt-1 inline-flex items-center gap-1 text-[10px] font-medium text-primary hover:underline"
+              >
+                <Sparkles className="h-2.5 w-2.5" />
+                Ask Sera
+              </button>
             </li>
           );
         })}
