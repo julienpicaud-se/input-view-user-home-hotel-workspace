@@ -153,70 +153,74 @@ function ExtraSimplePage() {
   const expected = expectedReportingPeriod();
   const monthLabel = `${MONTH_NAMES[expected.month - 1]} ${expected.year}`;
 
-  // Initial load
+  // Initial load (extracted to reload so the upload/voice/paste tools can refresh us)
+  const reload = React.useCallback(async () => {
+    const [{ data: profileData }, { data: hotelsData }, { data: entriesData }] =
+      await Promise.all([
+        supabase
+          .from("user_profiles")
+          .select("*")
+          .eq("id", DEMO_PROFILE_ID)
+          .maybeSingle(),
+        supabase.from("hotels").select("*").order("name", { ascending: true }),
+        supabase
+          .from("monthly_entries")
+          .select("*")
+          .order("year", { ascending: true })
+          .order("month", { ascending: true }),
+      ]);
+
+    const hotels = (hotelsData as Hotel[] | null) ?? [];
+    const entries = (entriesData as MonthlyEntry[] | null) ?? [];
+
+    const cards: HotelCardData[] = hotels.map((h) => {
+      const entry =
+        entries.find(
+          (e) =>
+            e.hotel_id === h.id &&
+            e.year === expected.year &&
+            e.month === expected.month,
+        ) ?? null;
+      // previous month
+      const prevDate = new Date(expected.year, expected.month - 2, 1);
+      const py = prevDate.getFullYear();
+      const pm = prevDate.getMonth() + 1;
+      const prevEntry =
+        entries.find(
+          (e) => e.hotel_id === h.id && e.year === py && e.month === pm,
+        ) ?? null;
+
+      const values: Values = entry
+        ? {
+            electricity_kwh: entry.electricity_kwh?.toString() ?? "",
+            gas_kwh: entry.gas_kwh?.toString() ?? "",
+            water_m3: entry.water_m3?.toString() ?? "",
+            waste_kg: entry.waste_kg?.toString() ?? "",
+            occupied_room_nights:
+              entry.occupied_room_nights?.toString() ?? "",
+          }
+        : { ...EMPTY_VALUES };
+
+      return {
+        hotel: h,
+        entry,
+        prevEntry,
+        values,
+        saving: false,
+        saved: !!entry && allFilled(values),
+      };
+    });
+
+    setProfile((profileData as UserProfile) ?? null);
+    setAllEntries(entries);
+    setCards(cards);
+    setActiveChatHotelId((prev) => prev ?? cards[0]?.hotel.id ?? null);
+    setLoading(false);
+  }, [expected.year, expected.month]);
+
   React.useEffect(() => {
-    void (async () => {
-      const [{ data: profileData }, { data: hotelsData }, { data: entriesData }] =
-        await Promise.all([
-          supabase
-            .from("user_profiles")
-            .select("*")
-            .eq("id", DEMO_PROFILE_ID)
-            .maybeSingle(),
-          supabase.from("hotels").select("*").order("name", { ascending: true }),
-          supabase
-            .from("monthly_entries")
-            .select("*")
-            .order("year", { ascending: true })
-            .order("month", { ascending: true }),
-        ]);
-
-      const hotels = (hotelsData as Hotel[] | null) ?? [];
-      const entries = (entriesData as MonthlyEntry[] | null) ?? [];
-
-      const cards: HotelCardData[] = hotels.map((h) => {
-        const entry =
-          entries.find(
-            (e) =>
-              e.hotel_id === h.id &&
-              e.year === expected.year &&
-              e.month === expected.month
-          ) ?? null;
-        // previous month
-        const prevDate = new Date(expected.year, expected.month - 2, 1);
-        const py = prevDate.getFullYear();
-        const pm = prevDate.getMonth() + 1;
-        const prevEntry =
-          entries.find(
-            (e) => e.hotel_id === h.id && e.year === py && e.month === pm
-          ) ?? null;
-
-        const values: Values = entry
-          ? {
-              electricity_kwh: entry.electricity_kwh?.toString() ?? "",
-              gas_kwh: entry.gas_kwh?.toString() ?? "",
-              water_m3: entry.water_m3?.toString() ?? "",
-              waste_kg: entry.waste_kg?.toString() ?? "",
-              occupied_room_nights:
-                entry.occupied_room_nights?.toString() ?? "",
-            }
-          : { ...EMPTY_VALUES };
-
-        return {
-          hotel: h,
-          entry,
-          prevEntry,
-          values,
-          saving: false,
-          saved: !!entry && allFilled(values),
-        };
-      });
-
-      setProfile((profileData as UserProfile) ?? null);
-      setCards(cards);
-      setActiveChatHotelId(cards[0]?.hotel.id ?? null);
-      setLoading(false);
-    })();
+    void reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const firstName = (profile?.display_name?.split(" ")[0] || "there").trim();
