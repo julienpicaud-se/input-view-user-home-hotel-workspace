@@ -101,6 +101,7 @@ interface PortfolioRow {
   thisMonth: MonthlyEntry | null;
   prevMonth: MonthlyEntry | null;
   filledCount: number;
+  missingFields: FieldKey[];
   co2eThis: number;
   co2ePrev: number;
   co2eChange: number | null;
@@ -169,6 +170,9 @@ function ExtraSimpleHomePage() {
         const filledCount = thisMonth
           ? FIELD_KEYS.filter((k) => thisMonth[k] != null).length
           : 0;
+        const missingFields: FieldKey[] = thisMonth
+          ? FIELD_KEYS.filter((k) => thisMonth[k] == null)
+          : [...FIELD_KEYS];
         const co2eThis = thisMonth ? calculateCO2e(thisMonth) : 0;
         const co2ePrev = prevMonth ? calculateCO2e(prevMonth) : 0;
         return {
@@ -176,6 +180,7 @@ function ExtraSimpleHomePage() {
           thisMonth,
           prevMonth,
           filledCount,
+          missingFields,
           co2eThis,
           co2ePrev,
           co2eChange: pctChange(co2eThis || null, co2ePrev || null),
