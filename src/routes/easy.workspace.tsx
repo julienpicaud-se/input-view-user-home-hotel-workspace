@@ -1,10 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import * as React from "react";
 import { toast } from "sonner";
+import ReactMarkdown from "react-markdown";
 import {
   ArrowLeft,
   Building2,
-  Sun,
   Loader2,
   Sparkles,
   Bolt,
@@ -16,6 +16,11 @@ import {
   Leaf,
   TrendingDown,
   TrendingUp,
+  Upload,
+  Mic,
+  Wand2,
+  ChevronDown,
+  Lightbulb,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,9 +36,20 @@ import {
   formatNumber,
   pctChange,
 } from "@/lib/format";
-import { DesignModeSwitcher } from "@/components/design-mode-switcher";
+import { EasyHeader } from "@/components/easy-nav";
+import { InvoiceUploadCard } from "@/components/invoice-upload-card";
+import { VoiceLogCard } from "@/components/voice-log-card";
+import { SmartPasteCard } from "@/components/smart-paste-card";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import {
   generateInsights,
+  sendAssistantMessage,
   type Insight,
 } from "@/server/assistant.functions";
 
