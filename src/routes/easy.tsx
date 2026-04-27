@@ -19,6 +19,8 @@ import {
   Circle,
   CalendarClock,
   Trophy,
+  ListChecks,
+  ChevronRight,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -68,16 +70,31 @@ function expectedReportingPeriod(): { year: number; month: number } {
   return { year: d.getFullYear(), month: d.getMonth() + 1 };
 }
 
-const FIELD_KEYS: (keyof Pick<
-  MonthlyEntry,
-  "electricity_kwh" | "gas_kwh" | "water_m3" | "waste_kg" | "occupied_room_nights"
->)[] = [
+type FieldKey =
+  | "electricity_kwh"
+  | "gas_kwh"
+  | "water_m3"
+  | "waste_kg"
+  | "occupied_room_nights";
+
+const FIELD_KEYS: FieldKey[] = [
   "electricity_kwh",
   "gas_kwh",
   "water_m3",
   "waste_kg",
   "occupied_room_nights",
 ];
+
+const FIELD_META: Record<
+  FieldKey,
+  { label: string; Icon: React.ComponentType<{ className?: string }> }
+> = {
+  electricity_kwh: { label: "Electricity", Icon: Bolt },
+  gas_kwh: { label: "Gas", Icon: Flame },
+  water_m3: { label: "Water", Icon: Droplets },
+  waste_kg: { label: "Waste", Icon: Trash2 },
+  occupied_room_nights: { label: "Room nights", Icon: BedDouble },
+};
 
 interface PortfolioRow {
   hotel: Hotel;
