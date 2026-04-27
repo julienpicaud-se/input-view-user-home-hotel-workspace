@@ -260,22 +260,7 @@ function ExtraSimpleWorkspacePage() {
 
   return (
     <div className="min-h-screen bg-[var(--background)]">
-      <header className="sticky top-0 z-30 border-b border-border/50 bg-background/90 backdrop-blur-md">
-        <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-3 px-5 py-3">
-          <Link to="/easy" className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-success/15 text-success">
-              <Sun className="h-4 w-4" />
-            </div>
-            <div className="leading-tight">
-              <div className="font-serif text-lg">RA+</div>
-              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-                Extra simple · Workspace
-              </div>
-            </div>
-          </Link>
-          <DesignModeSwitcher />
-        </div>
-      </header>
+      <EasyHeader />
 
       <main className="mx-auto w-full max-w-3xl px-5 pb-24 pt-6">
         <Link
