@@ -765,14 +765,94 @@ function ExtraSimplePage() {
         </section>
 
         {/* Footer help */}
-        <footer className="mb-4 flex items-center justify-center gap-2 rounded-2xl border border-border/40 bg-muted/30 px-4 py-3 text-xs text-muted-foreground">
-          <HelpCircle className="h-3.5 w-3.5" />
-          Need older months or full charts? Switch to{" "}
-          <span className="font-medium text-foreground">Classic</span> in the
-          dropdown above.
+        <footer className="mb-4 flex flex-col items-center justify-center gap-3 rounded-2xl border border-border/40 bg-muted/30 px-4 py-3 text-xs text-muted-foreground sm:flex-row">
+          <div className="inline-flex items-center gap-2">
+            <HelpCircle className="h-3.5 w-3.5" />
+            Want to focus on one hotel?
+          </div>
+          <EasyCrossLink
+            to="/easy/workspace"
+            label="Open hotel workspace"
+            hint="one property at a time"
+          />
         </footer>
       </main>
+
+      {/* Side panel for contextual Sera answers */}
+      <Sheet open={panelOpen} onOpenChange={setPanelOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2 font-serif">
+              <Sparkles className="h-4 w-4 text-primary" />
+              {panelTitle}
+            </SheetTitle>
+            {panelPrompt && (
+              <SheetDescription className="text-xs italic">
+                "{panelPrompt}"
+              </SheetDescription>
+            )}
+          </SheetHeader>
+          <div className="mt-5">
+            {panelLoading ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Sera is thinking…
+              </div>
+            ) : panelError ? (
+              <p className="text-sm text-destructive">{panelError}</p>
+            ) : panelAnswer ? (
+              <div className="prose prose-sm max-w-none text-sm leading-relaxed text-foreground prose-p:my-2 prose-li:my-0.5 prose-strong:text-foreground">
+                <ReactMarkdown>{panelAnswer}</ReactMarkdown>
+              </div>
+            ) : null}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
+  );
+}
+
+function ToolToggle({
+  icon: Icon,
+  title,
+  subtitle,
+  active,
+  onClick,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  subtitle: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`group flex w-full items-start gap-3 rounded-2xl border p-4 text-left transition-all ${
+        active
+          ? "border-primary bg-primary/10 shadow-sm"
+          : "border-border/60 bg-card hover:border-primary/40 hover:shadow-sm"
+      }`}
+    >
+      <div
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+          active ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary"
+        }`}
+      >
+        <Icon className="h-5 w-5" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="text-sm font-semibold text-foreground">{title}</div>
+        <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>
+      </div>
+      <ChevronDown
+        className={`mt-2 h-4 w-4 shrink-0 text-muted-foreground transition-transform ${
+          active ? "rotate-180 text-primary" : ""
+        }`}
+      />
+    </button>
   );
 }
 
