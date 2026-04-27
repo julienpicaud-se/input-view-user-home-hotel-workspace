@@ -45,7 +45,7 @@ export function DesignModeSwitcher() {
           ? "AI First"
           : mode === "ai-theory"
             ? "AI Theory"
-            : "Classic";
+            : "Standard";
   const Icon =
     mode === "simple"
       ? Sparkles
@@ -81,7 +81,7 @@ export function DesignModeSwitcher() {
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-medium">Classic</span>
+              <span className="text-sm font-medium">Standard</span>
               {mode === "classic" && <Check className="h-4 w-4 shrink-0 text-primary" />}
             </div>
             <p className="text-xs text-muted-foreground">
