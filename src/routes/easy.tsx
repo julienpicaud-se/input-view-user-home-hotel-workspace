@@ -720,3 +720,130 @@ function MoverCard({
     </div>
   );
 }
+
+function TodoChecklist({
+  rows,
+  monthLabel,
+}: {
+  rows: PortfolioRow[];
+  monthLabel: string;
+}) {
+  const todos = rows.filter((r) => r.missingFields.length > 0);
+  const completed = rows.length - todos.length;
+
+  if (todos.length === 0) {
+    return (
+      <section className="mb-10 rounded-3xl border border-success/30 bg-success/5 p-5 md:p-6">
+        <div className="mb-1 flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-success">
+          <CheckCircle2 className="h-3.5 w-3.5" />
+          What to do next
+        </div>
+        <h2 className="font-serif text-xl font-semibold text-foreground">
+          You're all caught up for {monthLabel}.
+        </h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Every hotel has its numbers in. Sera will keep watching for trends.
+        </p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="mb-10 rounded-3xl border border-primary/25 bg-primary/5 p-5 md:p-6">
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <div>
+          <div className="mb-1 flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-primary">
+            <ListChecks className="h-3.5 w-3.5" />
+            What to do next
+          </div>
+          <h2 className="font-serif text-xl font-semibold text-foreground md:text-2xl">
+            {todos.length} {todos.length === 1 ? "hotel needs" : "hotels need"} numbers for {monthLabel}
+          </h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Tap a hotel to jump straight into its workspace and finish logging.
+          </p>
+        </div>
+        <span className="hidden shrink-0 rounded-full border border-border/60 bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground sm:inline-flex">
+          {completed}/{rows.length} done
+        </span>
+      </div>
+
+      <ul className="space-y-2">
+        {todos.map((r) => (
+          <TodoChecklistRow key={r.hotel.id} row={r} />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function TodoChecklistRow({ row }: { row: PortfolioRow }) {
+  const { hotel, missingFields, filledCount } = row;
+  const total = FIELD_KEYS.length;
+  const isFresh = filledCount === 0;
+  const visible = missingFields.slice(0, 3);
+  const extra = missingFields.length - visible.length;
+
+  return (
+    <li>
+      <Link
+        to="/easy/workspace"
+        onClick={() => setActiveHotelId(hotel.id)}
+        aria-label={`Open ${hotel.name} workspace to add ${missingFields.length} missing fields`}
+        className="group flex items-center gap-3 rounded-2xl border border-border/60 bg-background p-3 transition hover:border-primary/50 hover:bg-card md:p-4"
+      >
+        <span
+          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 ${
+            isFresh
+              ? "border-muted-foreground/30 text-muted-foreground"
+              : "border-primary/40 text-primary"
+          }`}
+          aria-hidden
+        >
+          {isFresh ? (
+            <Circle className="h-3.5 w-3.5" />
+          ) : (
+            <span className="text-[10px] font-semibold tabular-nums">
+              {filledCount}/{total}
+            </span>
+          )}
+        </span>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="truncate font-medium text-foreground">{hotel.name}</span>
+            <span className="text-[11px] text-muted-foreground">
+              {isFresh ? "Nothing logged yet" : `${missingFields.length} missing`}
+            </span>
+          </div>
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+            {visible.map((k) => {
+              const meta = FIELD_META[k];
+              const Icon = meta.Icon;
+              return (
+                <span
+                  key={k}
+                  className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-card px-2 py-0.5 text-[10.5px] font-medium text-muted-foreground"
+                >
+                  <Icon className="h-3 w-3" />
+                  {meta.label}
+                </span>
+              );
+            })}
+            {extra > 0 && (
+              <span className="inline-flex items-center rounded-full border border-border/60 bg-card px-2 py-0.5 text-[10.5px] font-medium text-muted-foreground">
+                +{extra} more
+              </span>
+            )}
+          </div>
+        </div>
+
+        <span className="hidden shrink-0 items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-[11px] font-semibold text-primary-foreground transition group-hover:bg-primary/90 sm:inline-flex">
+          Log now
+          <ChevronRight className="h-3 w-3" />
+        </span>
+        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-foreground sm:hidden" />
+      </Link>
+    </li>
+  );
+}
