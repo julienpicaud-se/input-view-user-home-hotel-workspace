@@ -20,8 +20,8 @@ const VIEWS: {
 }[] = [
   {
     to: "/easy",
-    label: "Portfolio Home",
-    short: "Portfolio",
+    label: "Home",
+    short: "Home",
     icon: LayoutGrid,
     description: "Overview of all your hotels",
   },

@@ -53,7 +53,7 @@ import {
 export const Route = createFileRoute("/easy/")({
   head: () => ({
     meta: [
-      { title: "Your portfolio — RA+ (Extra Simple)" },
+      { title: "Your home — RA+ (Extra Simple)" },
       {
         name: "description",
         content:
@@ -273,7 +273,7 @@ function ExtraSimpleHomePage() {
         <section className="mb-8">
           <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-border/60 bg-card px-3 py-1 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
             <CalendarClock className="h-3 w-3" />
-            Portfolio overview · {monthLabel}
+            Home overview · {monthLabel}
           </div>
           <h1 className="font-serif text-3xl font-semibold leading-tight text-foreground md:text-5xl">
             Hi {firstName}.
