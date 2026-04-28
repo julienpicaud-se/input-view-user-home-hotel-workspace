@@ -346,6 +346,8 @@ Please:
               : `${scoreDelta > 0 ? "+" : ""}${scoreDelta.toFixed(1)} vs last month`
           }
           accent="primary"
+          to={buildDest("score") as never}
+          hint="Open the dashboard to see what drove the score"
         />
         <StatPill
           label="Occupied room-nights"
@@ -354,6 +356,8 @@ Please:
           trend={occMomPct === null ? null : occMomPct > 0 ? "up" : occMomPct < 0 ? "down" : "flat"}
           deltaText={occMomPct === null ? null : `${formatPct(occMomPct)} MoM`}
           accent="neutral"
+          to={buildDest("occupancy", { missing: occThis === null }) as never}
+          hint={occThis === null ? "Add occupancy for this period" : "Review occupancy entry"}
         />
         {bestRow && bestRow.position !== null ? (
           <StatPill
@@ -363,6 +367,8 @@ Please:
             trend="up"
             deltaText={bestRow.label}
             accent="positive"
+            to={buildDest(bestRow.key as Focus) as never}
+            hint={`Drill into ${bestRow.label.toLowerCase()}`}
           />
         ) : (
           <StatPill label="Best ranking" value="—" unit="" trend={null} deltaText={null} accent="neutral" />
@@ -375,6 +381,8 @@ Please:
             trend="down"
             deltaText={worstRow.label}
             accent="negative"
+            to={buildDest(worstRow.key as Focus) as never}
+            hint={`Drill into ${worstRow.label.toLowerCase()}`}
           />
         ) : (
           <StatPill label="Biggest gap" value="—" unit="" trend={null} deltaText={null} accent="neutral" />
