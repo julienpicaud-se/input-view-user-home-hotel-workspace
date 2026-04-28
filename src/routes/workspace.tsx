@@ -86,6 +86,7 @@ import { InvoiceUploadCard } from "@/components/invoice-upload-card";
 import { SmartPasteCard } from "@/components/smart-paste-card";
 import { VoiceLogCard } from "@/components/voice-log-card";
 import { AutopilotLogCard } from "@/components/autopilot-log-card";
+import { PastDataActivity } from "@/components/past-data-activity";
 
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
