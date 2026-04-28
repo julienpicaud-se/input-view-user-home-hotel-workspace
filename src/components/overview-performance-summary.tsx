@@ -405,17 +405,23 @@ Please:
           <tbody>
             {rows.map((r, i) => {
               const Icon = r.icon;
+              const focus = r.key as Focus;
+              const isMissing = r.value === null;
+              const rowDest = buildDest(focus, { missing: isMissing });
               return (
                 <tr
                   key={r.key}
-                  className={
-                    i < rows.length - 1
-                      ? "border-b border-border/50"
-                      : ""
-                  }
+                  className={`group transition-colors hover:bg-primary/5 ${
+                    i < rows.length - 1 ? "border-b border-border/50" : ""
+                  }`}
                 >
-                  <td className="sticky left-0 z-10 bg-card/95 px-4 py-3 backdrop-blur-sm">
-                    <div className="flex items-center gap-2">
+                  <td className="sticky left-0 z-10 bg-card/95 px-0 py-0 backdrop-blur-sm group-hover:bg-primary/5">
+                    <Link
+                      to={rowDest.to}
+                      search={rowDest.search as never}
+                      title={isMissing ? `Add ${r.label.toLowerCase()} for ${monthLabel}` : `Review ${r.label.toLowerCase()} for ${monthLabel}`}
+                      className="flex items-center gap-2 px-4 py-3 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    >
                       <div
                         className="flex h-7 w-7 items-center justify-center rounded-lg"
                         style={{
@@ -424,21 +430,35 @@ Please:
                       >
                         <Icon className="h-3.5 w-3.5" style={{ color: r.color }} />
                       </div>
-                      <span className="font-medium text-foreground">
+                      <span className="font-medium text-foreground underline-offset-2 group-hover:underline">
                         {r.label}
                       </span>
-                    </div>
+                      <span className="ml-1 text-[10px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
+                        {isMissing ? "Add data →" : "View →"}
+                      </span>
+                    </Link>
                   </td>
                   <td className="num px-3 py-3 text-right text-foreground">
                     {r.value !== null ? (
-                      <>
+                      <Link
+                        to={rowDest.to}
+                        search={rowDest.search as never}
+                        className="rounded px-1 py-0.5 hover:bg-primary/10"
+                      >
                         {formatNumber(r.value, 2)}
                         <span className="ml-1 text-[11px] text-muted-foreground">
                           {r.unit}
                         </span>
-                      </>
+                      </Link>
                     ) : (
-                      <span className="text-muted-foreground">—</span>
+                      <Link
+                        to={rowDest.to}
+                        search={rowDest.search as never}
+                        title={`Add ${r.label.toLowerCase()} for ${monthLabel}`}
+                        className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-700 hover:bg-amber-500/20 dark:text-amber-300"
+                      >
+                        — Add data
+                      </Link>
                     )}
                   </td>
                   <td className="px-3 py-3 text-right">
