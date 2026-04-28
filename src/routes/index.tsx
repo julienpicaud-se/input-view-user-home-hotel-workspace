@@ -39,6 +39,8 @@ import { SeraBriefingCard } from "@/components/sera-briefing-card";
 import { DataQualityCard } from "@/components/data-quality-card";
 import { buildDataQualityIssues, type DataQualityIssue } from "@/lib/data-quality";
 import { RoleHomeBanner } from "@/components/role-home-banner";
+import { useProfileType } from "@/lib/profile-type";
+import { ShieldCheck, Globe2, Hotel as HotelIcon, Activity, Database, BarChart3 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
