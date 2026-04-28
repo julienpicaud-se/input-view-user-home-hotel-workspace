@@ -307,12 +307,12 @@ export function InterestsProvider({ children }: { children: React.ReactNode }) {
       } catch {
         /* ignore */
       }
-      const payload: Record<string, unknown> = { interests: ids };
-      if (onbValue !== undefined) payload.interests_onboarded = onbValue;
-      void supabase
-        .from("user_profiles")
-        .update(payload)
-        .eq("id", DEMO_PROFILE_ID);
+      void (onbValue === undefined
+        ? supabase.from("user_profiles").update({ interests: ids }).eq("id", DEMO_PROFILE_ID)
+        : supabase
+            .from("user_profiles")
+            .update({ interests: ids, interests_onboarded: onbValue })
+            .eq("id", DEMO_PROFILE_ID));
     },
     [],
   );
