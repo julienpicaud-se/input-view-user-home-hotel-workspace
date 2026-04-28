@@ -14,6 +14,7 @@ import {
   useProfileType,
   type ProfileType,
 } from "@/lib/profile-type";
+import { PersonalizingTransition } from "@/components/personalizing-transition";
 
 /**
  * Two-step onboarding:
