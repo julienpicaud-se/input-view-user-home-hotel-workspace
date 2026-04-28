@@ -88,6 +88,7 @@ import { VoiceLogCard } from "@/components/voice-log-card";
 import { AutopilotLogCard } from "@/components/autopilot-log-card";
 import { PastDataActivity } from "@/components/past-data-activity";
 import { DashboardSection } from "@/components/dashboard-section";
+import { DashboardSectionNav } from "@/components/dashboard-section-nav";
 
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -551,6 +552,8 @@ function HomePage() {
 
         {/* ANALYZE — KPIs, multiple charts, peer benchmarks + Sera chart chat */}
         <TabsContent value="analyze" className="mt-0 space-y-6 focus-visible:outline-none">
+          {/* Sticky in-page nav for the interest-based sections below */}
+          <DashboardSectionNav />
           {/* AI summary (replaces previous Smart insights block) */}
           <MonthlyChangeSummary
             latest={latest}
