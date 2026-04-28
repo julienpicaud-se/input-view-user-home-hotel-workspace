@@ -764,6 +764,11 @@ function HomePage() {
                     </ResponsiveContainer>
                   </div>
                 </ChartCard>
+
+                {/* Additional operational chart blocks (RFP-aligned hotel cockpit) */}
+                <OpsIntensityTrend entries={entries} filters={dashFilters} />
+                <OpsVarianceDrivers entries={entries} filters={dashFilters} />
+                <OpsSustainabilityActions />
               </DashboardSection>
 
               {/* Section 2 — Energy & Water Performance */}
@@ -833,6 +838,16 @@ function HomePage() {
                     </ResponsiveContainer>
                   </div>
                 </ChartCard>
+
+                {/* Energy & Water thematic deep dive (RFP Lot 2a + optional Lot 2b) */}
+                <EnergyTrend entries={entries} filters={dashFilters} />
+                <WaterTrend entries={entries} filters={dashFilters} />
+                <EnergyMix entries={entries} filters={dashFilters} />
+                <AnomalyDetection entries={entries} filters={dashFilters} />
+                <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+                  <HourlyLoadProfile resource="energy" />
+                  <HourlyLoadProfile resource="water" />
+                </div>
               </DashboardSection>
 
               {/* Section 3 — Carbon Footprint */}
@@ -887,6 +902,13 @@ function HomePage() {
                     </ResponsiveContainer>
                   </div>
                 </ChartCard>
+
+                {/* Carbon trajectory and breakdown */}
+                <CarbonYoYTrend entries={entries} filters={dashFilters} />
+                <CarbonBreakdown entries={entries} />
+                <CarbonIntensityTrend entries={entries} filters={dashFilters} />
+                <CarbonContribution entries={entries} />
+                <CarbonTargetProgress entries={entries} />
               </DashboardSection>
 
               {/* Section 4 — Benchmarking & Peer Comparison */}
@@ -934,6 +956,15 @@ function HomePage() {
                     ))}
                   </div>
                 </ChartCard>
+
+                {/* Benchmarks deep dive */}
+                <div className="rounded-2xl border border-border/60 bg-card/50 p-3">
+                  <BenchmarkGroupFilter value={peerGroup} onChange={setPeerGroup} />
+                </div>
+                <PeerPercentileRank filters={dashFilters} />
+                <PeerDistribution />
+                <PeerOutliers />
+                <PeerRankOverTime />
               </DashboardSection>
 
               {/* Section 5 — Data Quality & Reporting Confidence */}
@@ -1011,6 +1042,14 @@ function HomePage() {
                     </div>
                   </div>
                 </div>
+
+                {/* Data quality deep dive (RFP Lot 2a — completion + prior campaign) */}
+                <CompletenessTimeline entries={entries} />
+                <MissingDataMatrix entries={entries} />
+                <FreshnessByMetric entries={entries} />
+                <FlaggedValues entries={entries} />
+                <PreviousCampaignCompare entries={entries} />
+                <OwnerResponsibilityFilter />
               </DashboardSection>
             </div>
 
