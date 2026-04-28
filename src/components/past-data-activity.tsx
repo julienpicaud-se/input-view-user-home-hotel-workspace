@@ -417,9 +417,10 @@ export function PastDataActivity({
       return;
     }
     setSaving(true);
+    const updates = { [openSubmission.metric]: val } as Partial<MonthlyEntry>;
     const { error } = await supabase
       .from("monthly_entries")
-      .update({ [openSubmission.metric]: val })
+      .update(updates)
       .eq("id", openSubmission.entryId);
     setSaving(false);
     if (error) {
