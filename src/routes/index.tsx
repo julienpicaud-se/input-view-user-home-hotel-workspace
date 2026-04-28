@@ -701,6 +701,48 @@ function HomePage() {
   const co2Down = co2Change !== null && co2Change < 0;
   const openTodos = visibleTodos.filter((t) => !t.done).length;
 
+  // ── Role-aware "Today's briefing" ─────────────────────────────────────────
+  const { profileType } = useProfileType();
+  const briefingHeader = React.useMemo(() => {
+    if (profileType === "hotel_user") {
+      return {
+        eyebrow: "Today's briefing",
+        title: "Your hotel at a glance",
+        icon: HotelIcon,
+      };
+    }
+    if (profileType === "vpo") {
+      return {
+        eyebrow: "Today's briefing",
+        title: "Your portfolio at a glance",
+        icon: Globe2,
+      };
+    }
+    return {
+      eyebrow: "Today's briefing",
+      title: "Program health at a glance",
+      icon: ShieldCheck,
+    };
+  }, [profileType]);
+
+  // Active hotel for the hotel_user lens
+  const activeHotelId = getActiveHotelId();
+  const activeHotel = hotels.find((h) => h.id === activeHotelId) ?? hotels[0];
+  const activeHotelEntries = React.useMemo(() => {
+    if (!activeHotel) return [] as MonthlyEntry[];
+    return entries
+      .filter((e) => e.hotel_id === activeHotel.id)
+      .sort((a, b) => (a.year !== b.year ? b.year - a.year : b.month - a.month));
+  }, [entries, activeHotel]);
+
+  const hotelLatest = activeHotelEntries[0];
+  const hotelPrev = activeHotelEntries[1];
+  const hotelLastYear = hotelLatest
+    ? activeHotelEntries.find(
+        (e) => e.year === hotelLatest.year - 1 && e.month === hotelLatest.month,
+      )
+    : undefined;
+
   // Action handlers
   function handleAction(todo: Todo) {
     if (todo.target.kind === "profile") {
