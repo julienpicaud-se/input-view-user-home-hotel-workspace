@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { INTERESTS, useInterests, type InterestId } from "@/lib/interests";
 import { PROFILE_TYPE_META, useProfileType, type ProfileType } from "@/lib/profile-type";
 import { PersonalizingTransition } from "@/components/personalizing-transition";
+import { useNavigate } from "@tanstack/react-router";
 
 /**
  * Two-step onboarding:
@@ -25,6 +26,7 @@ export function InterestsOnboarding() {
   const [pickedRole, setPickedRole] = React.useState<ProfileType | null>(null);
   const [transitioning, setTransitioning] = React.useState(false);
   const wasOnboardingOpen = React.useRef(false);
+  const navigate = useNavigate();
 
   React.useEffect(() => {
     if (showOnboarding && !wasOnboardingOpen.current) {
@@ -236,6 +238,7 @@ export function InterestsOnboarding() {
         onDone={() => {
           setTransitioning(false);
           markOnboarded();
+          navigate({ to: "/" });
         }}
       />
     </>
