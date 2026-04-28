@@ -183,20 +183,25 @@ export function RoleHomeBanner({ hotels, entries, activeHotelId }: Props) {
     return [
       {
         label: "Hotels onboarded",
-        value: `${Math.round((onboarded / Math.max(1, totalHotels)) * 100)}%`,
+        value: `${Math.round((onboarded / Math.max(1, totalHotels)) * 100)}`,
+        unit: "%",
         hint: `${onboarded} of ${totalHotels}`,
         tone: onboarded / Math.max(1, totalHotels) >= 0.8 ? "good" : "warn",
+        icon: Building2,
       },
       {
         label: "Data completeness",
-        value: `${completeness.toFixed(0)}%`,
+        value: `${completeness.toFixed(0)}`,
+        unit: "%",
         hint: `${filledFields} / ${expectedFields} fields`,
         tone: completeness >= 80 ? "good" : completeness >= 50 ? "neutral" : "warn",
+        icon: Database,
       },
       {
         label: "KPI coverage",
         value: `${entries.length}`,
         hint: "Total monthly entries logged",
+        icon: BarChart3,
       },
     ];
   }, [profileType, hotels, entries, activeHotelId]);
@@ -217,29 +222,136 @@ export function RoleHomeBanner({ hotels, entries, activeHotelId }: Props) {
 
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         {tiles.map((t) => (
-          <div
-            key={t.label}
-            className="rounded-2xl border border-border/60 bg-background p-4"
-          >
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-              {t.label}
-            </div>
-            <div
-              className={
-                "mt-1 font-serif text-2xl font-semibold num " +
-                (t.tone === "good"
-                  ? "text-success"
-                  : t.tone === "warn"
-                    ? "text-warning"
-                    : "text-foreground")
-              }
-            >
-              {t.value}
-            </div>
-            <div className="mt-0.5 text-xs text-muted-foreground">{t.hint}</div>
-          </div>
+          <KpiTile key={t.label} tile={t} />
         ))}
       </div>
     </section>
+  );
+}
+
+function toneTextClass(tone?: Tone) {
+  return tone === "good" ? "text-success" : tone === "warn" ? "text-warning" : "text-foreground";
+}
+
+function toneBarClass(tone?: Tone) {
+  return tone === "good" ? "bg-success" : tone === "warn" ? "bg-warning" : "bg-muted-foreground/40";
+}
+
+function KpiTile({ tile }: { tile: TileData }) {
+  const TileIcon = tile.icon;
+  const delta = tile.delta;
+  const hasDelta = delta !== null && delta !== undefined && Number.isFinite(delta);
+
+  // For "lower is better" KPIs (energy/water/CO2), down is good.
+  const ArrowIcon = !hasDelta
+    ? Minus
+    : delta! < -0.5
+      ? ArrowDown
+      : delta! > 0.5
+        ? ArrowUp
+        : Minus;
+
+  // micro-bar fill: clamp |delta| between 0 and 30 → 0-100%
+  const fillPct = hasDelta ? Math.min(100, Math.max(8, Math.abs(delta!) * 4 + 8)) : 0;
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-background p-4">
+      <div className="flex items-start justify-between gap-2">
+        <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+          {tile.label}
+        </div>
+        {TileIcon && (
+          <TileIcon className="h-4 w-4 shrink-0 text-muted-foreground/70" />
+        )}
+      </div>
+
+      <div className="mt-2 flex items-baseline gap-1.5">
+        {tile.isTrendCard && hasDelta && (
+          <ArrowIcon className={"h-6 w-6 " + toneTextClass(tile.tone)} />
+        )}
+        <span className={"font-serif text-2xl font-semibold num leading-none " + toneTextClass(tile.tone)}>
+          {tile.value}
+        </span>
+        {tile.unit && (
+          <span className="text-sm font-normal text-muted-foreground">{tile.unit}</span>
+        )}
+      </div>
+
+      {/* Sparkline for trend cards */}
+      {tile.isTrendCard && tile.spark && tile.spark.length >= 2 && (
+        <Sparkline data={tile.spark} tone={tile.tone} />
+      )}
+
+      {/* Micro performance bar for non-trend cards with a delta */}
+      {!tile.isTrendCard && hasDelta && (
+        <div className="mt-3">
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted/60">
+            <div
+              className={"h-full rounded-full transition-all " + toneBarClass(tile.tone)}
+              style={{ width: `${fillPct}%` }}
+            />
+          </div>
+          <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
+            <span className="inline-flex items-center gap-0.5">
+              <ArrowIcon className={"h-3 w-3 " + toneTextClass(tile.tone)} />
+              <span className={"num " + toneTextClass(tile.tone)}>
+                {delta! > 0 ? "+" : ""}{delta!.toFixed(0)}%
+              </span>
+              <span>vs last year</span>
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Footer: hint as muted text or status badge */}
+      <div className="mt-2">
+        {tile.tone === "good" || tile.tone === "warn" ? (
+          <span
+            className={
+              "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium " +
+              (tile.tone === "good"
+                ? "bg-success/10 text-success"
+                : "bg-warning/10 text-warning")
+            }
+          >
+            {tile.hint}
+          </span>
+        ) : (
+          <span className="text-xs text-muted-foreground">{tile.hint}</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Sparkline({ data, tone }: { data: number[]; tone?: Tone }) {
+  const w = 120;
+  const h = 28;
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+  const step = data.length > 1 ? w / (data.length - 1) : w;
+  const points = data
+    .map((v, i) => `${(i * step).toFixed(1)},${(h - ((v - min) / range) * h).toFixed(1)}`)
+    .join(" ");
+  const stroke =
+    tone === "good" ? "var(--success)" : tone === "warn" ? "var(--warning)" : "var(--muted-foreground)";
+  const fill =
+    tone === "good"
+      ? "color-mix(in oklab, var(--success) 18%, transparent)"
+      : tone === "warn"
+        ? "color-mix(in oklab, var(--warning) 18%, transparent)"
+        : "color-mix(in oklab, var(--muted-foreground) 14%, transparent)";
+  const areaPoints = `0,${h} ${points} ${w},${h}`;
+  return (
+    <svg
+      viewBox={`0 0 ${w} ${h}`}
+      className="mt-3 h-7 w-full"
+      preserveAspectRatio="none"
+      aria-hidden
+    >
+      <polygon points={areaPoints} fill={fill} />
+      <polyline points={points} fill="none" stroke={stroke} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
   );
 }
