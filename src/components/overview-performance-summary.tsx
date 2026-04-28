@@ -94,6 +94,7 @@ export function OverviewPerformanceSummary({
   scoreDelta: number | null;
   cohortSize: number;
 }) {
+  const { profileType } = useProfileType();
   const filters = {
     sizeBand: hotel.size_band,
     region: hotel.region,
