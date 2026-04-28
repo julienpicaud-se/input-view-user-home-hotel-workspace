@@ -178,6 +178,17 @@ function HomePage() {
   const [insightsLoading, setInsightsLoading] = React.useState(false);
   const [activeChart, setActiveChart] = React.useState<ChartId>("consumption");
   const [explainerChart, setExplainerChart] = React.useState<ChartId | null>(null);
+  const [dashSection, setDashSection] = React.useState<string>("ops");
+  const [dashDirection, setDashDirection] = React.useState<1 | -1>(1);
+  const SECTION_ORDER = React.useMemo(() => ["ops", "energy-water", "carbon", "benchmarks", "data-quality"], []);
+  const goToSection = React.useCallback((id: string) => {
+    setDashSection((prev) => {
+      const a = SECTION_ORDER.indexOf(prev);
+      const b = SECTION_ORDER.indexOf(id);
+      setDashDirection(b >= a ? 1 : -1);
+      return id;
+    });
+  }, [SECTION_ORDER]);
   const search = Route.useSearch();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = React.useState<string>(search.tab ?? "overview");
@@ -552,8 +563,6 @@ function HomePage() {
 
         {/* ANALYZE — KPIs, multiple charts, peer benchmarks + Sera chart chat */}
         <TabsContent value="analyze" className="mt-0 space-y-6 focus-visible:outline-none">
-          {/* Sticky in-page nav for the interest-based sections below */}
-          <DashboardSectionNav />
           {/* AI summary (replaces previous Smart insights block) */}
           <MonthlyChangeSummary
             latest={latest}
@@ -634,11 +643,14 @@ function HomePage() {
             ))}
           </div>
 
+          {/* Interest-based section nav (below KPI cards) */}
+          <DashboardSectionNav active={dashSection} onChange={goToSection} />
+
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
             {/* Charts column — organised into interest-based sections */}
             <div className="space-y-10 lg:col-span-3">
               {/* Section 1 — Hotel Operational Performance */}
-              <DashboardSection
+              <DashboardSection activeId={dashSection} direction={dashDirection}
                 id="ops"
                 title="Hotel operational performance"
                 subtitle="Your full activity footprint at a glance — utilities and CO₂e in one view."
@@ -712,7 +724,7 @@ function HomePage() {
               </DashboardSection>
 
               {/* Section 2 — Energy & Water Performance */}
-              <DashboardSection
+              <DashboardSection activeId={dashSection} direction={dashDirection}
                 id="energy-water"
                 title="Energy & water performance"
                 subtitle="Trends over time, normalised by activity — spot drift early."
@@ -781,7 +793,7 @@ function HomePage() {
               </DashboardSection>
 
               {/* Section 3 — Carbon Footprint */}
-              <DashboardSection
+              <DashboardSection activeId={dashSection} direction={dashDirection}
                 id="carbon"
                 title="Carbon footprint"
                 subtitle="CO₂e trajectory and the energy mix behind it."
@@ -835,7 +847,7 @@ function HomePage() {
               </DashboardSection>
 
               {/* Section 4 — Benchmarking & Peer Comparison */}
-              <DashboardSection
+              <DashboardSection activeId={dashSection} direction={dashDirection}
                 id="benchmarks"
                 title="Benchmarking & peer comparison"
                 subtitle={`How this hotel compares with ${cohortSize} similar Mediterranean hotels.`}
@@ -882,7 +894,7 @@ function HomePage() {
               </DashboardSection>
 
               {/* Section 5 — Data Quality & Reporting Confidence */}
-              <DashboardSection
+              <DashboardSection activeId={dashSection} direction={dashDirection}
                 id="data-quality"
                 title="Data quality & reporting confidence"
                 subtitle="Whether you can trust the numbers above — and what's still missing."

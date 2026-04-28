@@ -29,6 +29,8 @@ export function DashboardSection({
   subtitle,
   help,
   children,
+  activeId,
+  direction = 1,
 }: {
   id: string;
   title: string;
@@ -38,9 +40,22 @@ export function DashboardSection({
     items: SectionHelpItem[];
   };
   children: React.ReactNode;
+  /** When set, the section only renders if `id === activeId`. */
+  activeId?: string;
+  /** +1 → slide in from right, -1 → slide in from left. */
+  direction?: 1 | -1;
 }) {
+  if (activeId !== undefined && activeId !== id) return null;
+  const slideClass =
+    direction === -1
+      ? "animate-[sectionSwipeLeft_0.32s_ease-out]"
+      : "animate-[sectionSwipeRight_0.32s_ease-out]";
   return (
-    <section id={`section-${id}`} className="scroll-mt-20">
+    <section
+      id={`section-${id}`}
+      key={`${id}-${direction}`}
+      className={`scroll-mt-20 ${activeId !== undefined ? slideClass : ""}`}
+    >
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 className="font-serif text-lg font-semibold text-foreground sm:text-xl">
@@ -96,3 +111,4 @@ export function DashboardSection({
     </section>
   );
 }
+
