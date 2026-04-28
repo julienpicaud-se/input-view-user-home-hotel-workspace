@@ -87,6 +87,7 @@ import { SmartPasteCard } from "@/components/smart-paste-card";
 import { VoiceLogCard } from "@/components/voice-log-card";
 import { AutopilotLogCard } from "@/components/autopilot-log-card";
 import { PastDataActivity } from "@/components/past-data-activity";
+import { DashboardSection } from "@/components/dashboard-section";
 
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
