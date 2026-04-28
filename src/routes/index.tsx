@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import { setActiveHotelId, type Hotel, type MonthlyEntry } from "@/lib/hotel";
+import { setActiveHotelId, getActiveHotelId, type Hotel, type MonthlyEntry } from "@/lib/hotel";
 import { DEMO_PROFILE_ID, type UserProfile } from "@/lib/user-profile";
 import {
   MONTH_NAMES,
@@ -39,7 +39,6 @@ import { SeraBriefingCard } from "@/components/sera-briefing-card";
 import { DataQualityCard } from "@/components/data-quality-card";
 import { buildDataQualityIssues, type DataQualityIssue } from "@/lib/data-quality";
 import { RoleHomeBanner } from "@/components/role-home-banner";
-import { getActiveHotelId } from "@/lib/hotel";
 
 export const Route = createFileRoute("/")({
   head: () => ({
