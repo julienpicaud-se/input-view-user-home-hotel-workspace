@@ -295,6 +295,15 @@ function ExtraSimpleHomePage() {
           </p>
         </section>
 
+        {/* Role-aware banner */}
+        {!loading && (
+          <RoleHomeBanner
+            hotels={hotelsState}
+            entries={entriesState}
+            activeHotelId={getActiveHotelId()}
+          />
+        )}
+
         {/* Portfolio KPI strip — these numbers only make sense at the portfolio level */}
         {!loading && totalHotels > 0 && (
           <section className="mb-10 grid gap-3 sm:grid-cols-3">
