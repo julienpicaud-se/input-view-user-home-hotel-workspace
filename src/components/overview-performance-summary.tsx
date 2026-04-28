@@ -161,6 +161,28 @@ export function OverviewPerformanceSummary({
   }
 
   const monthLabel = `${MONTH_NAMES[latest.month - 1]} ${latest.year}`;
+  const periodParam = `${latest.year}-${String(latest.month).padStart(2, "0")}`;
+
+  /** Builds a deep-link from the Performance Summary to Data Insights,
+   *  preserving role intent (operational / portfolio / governance). */
+  type Focus = "electricity" | "gas" | "water" | "waste" | "score" | "best" | "gap" | "occupancy";
+  type LinkDest = {
+    to: "/workspace";
+    search: { tab: "log" | "analyze"; from: "summary"; focus: Focus; period: string; intent: "review" | "missing" | "flagged" | "portfolio" | "governance" };
+  };
+  function buildDest(focus: Focus, opts?: { missing?: boolean; flagged?: boolean }): LinkDest {
+    let intent: LinkDest["search"]["intent"] = "review";
+    if (opts?.missing) intent = "missing";
+    else if (opts?.flagged) intent = "flagged";
+    else if (profileType === "vpo") intent = "portfolio";
+    else if (profileType === "super_admin") intent = "governance";
+    // Hotel users land in the Add-data tab to fix/review; VPO & Admin land in
+    // the dashboard with the relevant role overlays already in scope.
+    const tab: "log" | "analyze" =
+      profileType === "hotel_user" || opts?.missing ? "log" : "analyze";
+    return { to: "/workspace", search: { tab, from: "summary", focus, period: periodParam, intent } };
+  }
+
   const validRanked = rows.filter((r) => r.rank !== null);
   const sortedByRank = [...validRanked].sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0));
   const bestRow = sortedByRank[0] ?? null;
