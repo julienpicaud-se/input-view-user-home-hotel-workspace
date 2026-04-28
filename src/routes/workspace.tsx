@@ -755,6 +755,7 @@ function HomePage() {
                   ],
                 }}
               >
+                <RoleLensBanner role={profileType} section="ops" />
                 <ChartCard
                   id="consumption"
                   active={activeChart}
@@ -808,6 +809,7 @@ function HomePage() {
                 <OpsIntensityTrend entries={entries} filters={dashFilters} />
                 <OpsVarianceDrivers entries={entries} filters={dashFilters} />
                 <OpsSustainabilityActions />
+                <RoleSectionOverlays role={profileType} section="ops" />
               </DashboardSection>
 
               {/* Section 2 — Energy & Water Performance */}
@@ -834,6 +836,7 @@ function HomePage() {
                   ],
                 }}
               >
+                <RoleLensBanner role={profileType} section="energy-water" />
                 <ChartCard
                   id="intensity"
                   active={activeChart}
@@ -887,6 +890,7 @@ function HomePage() {
                   <HourlyLoadProfile resource="energy" />
                   <HourlyLoadProfile resource="water" />
                 </div>
+                <RoleSectionOverlays role={profileType} section="energy-water" />
               </DashboardSection>
 
               {/* Section 3 — Carbon Footprint */}
@@ -913,6 +917,7 @@ function HomePage() {
                   ],
                 }}
               >
+                <RoleLensBanner role={profileType} section="carbon" />
                 <ChartCard
                   id="co2e"
                   active={activeChart}
@@ -948,6 +953,7 @@ function HomePage() {
                 <CarbonIntensityTrend entries={entries} filters={dashFilters} />
                 <CarbonContribution entries={entries} />
                 <CarbonTargetProgress entries={entries} />
+                <RoleSectionOverlays role={profileType} section="carbon" />
               </DashboardSection>
 
               {/* Section 4 — Benchmarking & Peer Comparison */}
@@ -974,6 +980,7 @@ function HomePage() {
                   ],
                 }}
               >
+                <RoleLensBanner role={profileType} section="benchmarks" />
                 <ChartCard
                   id="peer"
                   active={activeChart}
@@ -1004,6 +1011,7 @@ function HomePage() {
                 <PeerDistribution />
                 <PeerOutliers />
                 <PeerRankOverTime />
+                <RoleSectionOverlays role={profileType} section="benchmarks" />
               </DashboardSection>
 
               {/* Section 5 — Data Quality & Reporting Confidence */}
@@ -1030,6 +1038,7 @@ function HomePage() {
                   ],
                 }}
               >
+                <RoleLensBanner role={profileType} section="data-quality" />
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <div className="rounded-2xl border border-border bg-card/60 p-4">
                     <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
@@ -1089,6 +1098,7 @@ function HomePage() {
                 <FlaggedValues entries={entries} />
                 <PreviousCampaignCompare entries={entries} />
                 <OwnerResponsibilityFilter />
+                <RoleSectionOverlays role={profileType} section="data-quality" />
               </DashboardSection>
             </div>
 
