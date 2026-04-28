@@ -531,6 +531,8 @@ function StatPill({
   trend,
   deltaText,
   accent,
+  to,
+  hint,
 }: {
   label: string;
   value: string;
@@ -538,6 +540,10 @@ function StatPill({
   trend: "up" | "down" | "flat" | null;
   deltaText: string | null;
   accent: "primary" | "positive" | "negative" | "neutral";
+  /** Optional deep-link destination — when provided, the tile becomes clickable. */
+  to?: { to: "/workspace"; search: Record<string, string> };
+  /** Tooltip-like hover hint shown when the tile is clickable. */
+  hint?: string;
 }) {
   const accentBg =
     accent === "primary"
@@ -558,10 +564,17 @@ function StatPill({
   const TrendIcon =
     trend === "up" ? TrendingUp : trend === "down" ? TrendingDown : Minus;
 
-  return (
-    <div className="rounded-2xl border border-border/60 bg-background/40 p-3">
-      <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-        {label}
+  const inner = (
+    <>
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          {label}
+        </div>
+        {to ? (
+          <span className="text-[10px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
+            View →
+          </span>
+        ) : null}
       </div>
       <div className="mt-1 flex items-baseline gap-1">
         <span className="font-serif text-2xl font-semibold text-foreground">
@@ -579,6 +592,24 @@ function StatPill({
           {deltaText}
         </div>
       )}
+    </>
+  );
+
+  if (to) {
+    return (
+      <Link
+        to={to.to}
+        search={to.search as never}
+        title={hint}
+        className="group block rounded-2xl border border-border/60 bg-background/40 p-3 text-left transition hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      >
+        {inner}
+      </Link>
+    );
+  }
+  return (
+    <div className="rounded-2xl border border-border/60 bg-background/40 p-3">
+      {inner}
     </div>
   );
 }
