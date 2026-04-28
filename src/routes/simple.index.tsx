@@ -182,6 +182,15 @@ function SimpleHomePage() {
       }
       help="This page is your monthly check-in. Add last month's data, then see how each hotel is doing compared to similar properties. You only need to come back once a month."
     >
+      {/* Role-aware banner */}
+      {!loading && (
+        <RoleHomeBanner
+          hotels={hotelsState}
+          entries={entriesState}
+          activeHotelId={getActiveHotelId()}
+        />
+      )}
+
       {/* Friendly briefing card */}
       <section className="mb-8 rounded-3xl border border-border/60 bg-card p-5 md:p-6">
         <div className="mb-3 flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
