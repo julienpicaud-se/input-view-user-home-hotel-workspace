@@ -200,3 +200,16 @@
   from { opacity: 0; transform: translateX(-28px); }
   to   { opacity: 1; transform: translateX(0); }
 }
+
+@keyframes ptFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes ptFadeOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+@keyframes ptFloat {
+  0%, 100% { transform: translate(calc(-50% + var(--ptx, 0px)), calc(-50% + var(--pty, 0px))) scale(0.96); opacity: 0.65; }
+  50%      { transform: translate(calc(-50% + var(--ptx, 0px)), calc(-58% + var(--pty, 0px))) scale(1); opacity: 1; }
+}
