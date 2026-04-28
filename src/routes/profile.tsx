@@ -242,6 +242,11 @@ function ProfilePage() {
         </div>
       </Card>
 
+      {/* Interests — drives dashboard personalization */}
+      <div className="mt-6">
+        <InterestsEditCard />
+      </div>
+
       {/* Company card */}
       <Card className="mt-6 rounded-3xl border-border/60 p-6 md:p-8">
         <div className="mb-6 flex items-start gap-3">
