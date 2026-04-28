@@ -632,155 +632,328 @@ function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-            {/* Charts column */}
-            <div className="space-y-6 lg:col-span-3">
-              {/* Stacked utility chart */}
-              <ChartCard
-                id="consumption"
-                active={activeChart}
-                onSelect={setActiveChart}
-                onExplain={setExplainerChart}
-                title="12-month consumption"
-                subtitle="Stacked utilities with CO₂e overlay."
-                aside={
-                  <div className="hidden items-center gap-3 text-xs text-muted-foreground md:flex">
-                    <LegendDot color="var(--chart-3)" label="Elec" />
-                    <LegendDot color="var(--chart-1)" label="Gas" />
-                    <LegendDot color="var(--chart-2)" label="Water" />
-                    <LegendDot color="var(--chart-5)" label="Waste" />
-                    <LegendDot color="var(--champagne)" label="CO₂e" line />
+            {/* Charts column — organised into interest-based sections */}
+            <div className="space-y-10 lg:col-span-3">
+              {/* Section 1 — Hotel Operational Performance */}
+              <DashboardSection
+                id="ops"
+                title="Hotel operational performance"
+                subtitle="Your full activity footprint at a glance — utilities and CO₂e in one view."
+                help={{
+                  intro:
+                    "This is the snapshot view of how the hotel ran over the last 12 months. Bars stack each utility so you see the full activity, the line shows the resulting CO₂e.",
+                  items: [
+                    {
+                      q: "Why are utilities stacked?",
+                      a: "Stacking shows total operational footprint per month. A taller stack means a busier or less efficient month — useful to spot peaks at a glance.",
+                    },
+                    {
+                      q: "How does seasonality affect it?",
+                      a: "Heating in winter, cooling and water in summer. Compare the same month year-over-year rather than month-to-month to remove the seasonal effect.",
+                    },
+                    {
+                      q: "Why look at intensity (per room/guest)?",
+                      a: "Intensity removes the effect of occupancy. A drop in absolute consumption with rising intensity means the hotel got less efficient even though it was quieter.",
+                    },
+                  ],
+                }}
+              >
+                <ChartCard
+                  id="consumption"
+                  active={activeChart}
+                  onSelect={setActiveChart}
+                  onExplain={setExplainerChart}
+                  title="12-month consumption"
+                  subtitle="Stacked utilities with CO₂e overlay."
+                  aside={
+                    <div className="hidden items-center gap-3 text-xs text-muted-foreground md:flex">
+                      <LegendDot color="var(--chart-3)" label="Elec" />
+                      <LegendDot color="var(--chart-1)" label="Gas" />
+                      <LegendDot color="var(--chart-2)" label="Water" />
+                      <LegendDot color="var(--chart-5)" label="Waste" />
+                      <LegendDot color="var(--champagne)" label="CO₂e" line />
+                    </div>
+                  }
+                >
+                  <div className="h-72 px-2 pb-4 md:px-4">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ComposedChart data={trendData} margin={{ top: 16, right: 16, left: 0, bottom: 8 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                        <XAxis dataKey="label" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
+                        <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
+                        <ReTooltip
+                          contentStyle={{
+                            backgroundColor: "var(--card)",
+                            border: "1px solid var(--border)",
+                            borderRadius: 12,
+                            fontSize: 12,
+                          }}
+                        />
+                        {(!utilityFilter || utilityFilter === "electricity") && (
+                          <Area dataKey="electricity" stackId="1" stroke="var(--chart-3)" fill="var(--chart-3)" fillOpacity={0.65} />
+                        )}
+                        {(!utilityFilter || utilityFilter === "gas") && (
+                          <Area dataKey="gas" stackId="1" stroke="var(--chart-1)" fill="var(--chart-1)" fillOpacity={0.65} />
+                        )}
+                        {(!utilityFilter || utilityFilter === "water") && (
+                          <Area dataKey="water" stackId="1" stroke="var(--chart-2)" fill="var(--chart-2)" fillOpacity={0.45} />
+                        )}
+                        {(!utilityFilter || utilityFilter === "waste") && (
+                          <Area dataKey="waste" stackId="1" stroke="var(--chart-5)" fill="var(--chart-5)" fillOpacity={0.45} />
+                        )}
+                        <Line dataKey="co2e" stroke="var(--champagne)" strokeWidth={2.5} dot={false} />
+                      </ComposedChart>
+                    </ResponsiveContainer>
                   </div>
-                }
-              >
-                <div className="h-72 px-2 pb-4 md:px-4">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart data={trendData} margin={{ top: 16, right: 16, left: 0, bottom: 8 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                      <XAxis dataKey="label" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
-                      <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
-                      <ReTooltip
-                        contentStyle={{
-                          backgroundColor: "var(--card)",
-                          border: "1px solid var(--border)",
-                          borderRadius: 12,
-                          fontSize: 12,
-                        }}
-                      />
-                      {(!utilityFilter || utilityFilter === "electricity") && (
-                        <Area dataKey="electricity" stackId="1" stroke="var(--chart-3)" fill="var(--chart-3)" fillOpacity={0.65} />
-                      )}
-                      {(!utilityFilter || utilityFilter === "gas") && (
-                        <Area dataKey="gas" stackId="1" stroke="var(--chart-1)" fill="var(--chart-1)" fillOpacity={0.65} />
-                      )}
-                      {(!utilityFilter || utilityFilter === "water") && (
-                        <Area dataKey="water" stackId="1" stroke="var(--chart-2)" fill="var(--chart-2)" fillOpacity={0.45} />
-                      )}
-                      {(!utilityFilter || utilityFilter === "waste") && (
-                        <Area dataKey="waste" stackId="1" stroke="var(--chart-5)" fill="var(--chart-5)" fillOpacity={0.45} />
-                      )}
-                      <Line dataKey="co2e" stroke="var(--champagne)" strokeWidth={2.5} dot={false} />
-                    </ComposedChart>
-                  </ResponsiveContainer>
-                </div>
-              </ChartCard>
+                </ChartCard>
+              </DashboardSection>
 
-              {/* CO2e bar chart */}
-              <ChartCard
-                id="co2e"
-                active={activeChart}
-                onSelect={setActiveChart}
-                onExplain={setExplainerChart}
-                title="CO₂e emissions"
-                subtitle="Estimated kg CO₂e per month."
-                aside={<BarChart3 className="h-5 w-5 text-muted-foreground" />}
+              {/* Section 2 — Energy & Water Performance */}
+              <DashboardSection
+                id="energy-water"
+                title="Energy & water performance"
+                subtitle="Trends over time, normalised by activity — spot drift early."
+                help={{
+                  intro:
+                    "Energy and water are your biggest operational levers. This view focuses on intensity (per room-night) so a busy month doesn't look like a problem.",
+                  items: [
+                    {
+                      q: "What usually drives variation?",
+                      a: "HVAC set-points, kitchen activity, laundry volumes, leaks, guest behaviour. A sudden change in one curve is usually traceable to one driver.",
+                    },
+                    {
+                      q: "How do I spot an abnormal peak?",
+                      a: "A spike that breaks the seasonal pattern (versus the same month last year) is the strongest signal. Single isolated peaks often point to a meter or invoice issue.",
+                    },
+                    {
+                      q: "Which actions move these curves?",
+                      a: "Setpoint optimisation, BMS scheduling, leak detection and laundry contracts typically have the fastest impact on the next 1–3 months.",
+                    },
+                  ],
+                }}
               >
-                <div className="h-60 px-2 pb-4 md:px-4">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={co2Data} margin={{ top: 12, right: 16, left: 0, bottom: 8 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                      <XAxis dataKey="label" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
-                      <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
-                      <ReTooltip
-                        contentStyle={{
-                          backgroundColor: "var(--card)",
-                          border: "1px solid var(--border)",
-                          borderRadius: 12,
-                          fontSize: 12,
-                        }}
-                      />
-                      <Bar dataKey="co2e" fill="var(--champagne)" radius={[6, 6, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </ChartCard>
-
-              {/* Intensity chart (per room-night) */}
-              <ChartCard
-                id="intensity"
-                active={activeChart}
-                onSelect={setActiveChart}
-                onExplain={setExplainerChart}
-                title="Intensity per room-night"
-                subtitle="Normalised consumption — independent of occupancy."
-                aside={
-                  <div className="hidden items-center gap-3 text-xs text-muted-foreground md:flex">
-                    <LegendDot color="var(--chart-3)" label="Elec" line />
-                    <LegendDot color="var(--chart-1)" label="Gas" line />
-                    <LegendDot color="var(--chart-2)" label="Water" line />
+                <ChartCard
+                  id="intensity"
+                  active={activeChart}
+                  onSelect={setActiveChart}
+                  onExplain={setExplainerChart}
+                  title="Intensity per room-night"
+                  subtitle="Normalised consumption — independent of occupancy."
+                  aside={
+                    <div className="hidden items-center gap-3 text-xs text-muted-foreground md:flex">
+                      <LegendDot color="var(--chart-3)" label="Elec" line />
+                      <LegendDot color="var(--chart-1)" label="Gas" line />
+                      <LegendDot color="var(--chart-2)" label="Water" line />
+                    </div>
+                  }
+                >
+                  <div className="h-60 px-2 pb-4 md:px-4">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={intensityData} margin={{ top: 12, right: 16, left: 0, bottom: 8 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                        <XAxis dataKey="label" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
+                        <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
+                        <ReTooltip
+                          contentStyle={{
+                            backgroundColor: "var(--card)",
+                            border: "1px solid var(--border)",
+                            borderRadius: 12,
+                            fontSize: 12,
+                          }}
+                        />
+                        <Legend wrapperStyle={{ fontSize: 11 }} />
+                        {(!utilityFilter || utilityFilter === "electricity") && (
+                          <Line type="monotone" dataKey="electricity" stroke="var(--chart-3)" strokeWidth={2} dot={false} name="Elec kWh/rn" />
+                        )}
+                        {(!utilityFilter || utilityFilter === "gas") && (
+                          <Line type="monotone" dataKey="gas" stroke="var(--chart-1)" strokeWidth={2} dot={false} name="Gas kWh/rn" />
+                        )}
+                        {(!utilityFilter || utilityFilter === "water") && (
+                          <Line type="monotone" dataKey="water" stroke="var(--chart-2)" strokeWidth={2} dot={false} name="Water m³/rn" />
+                        )}
+                      </LineChart>
+                    </ResponsiveContainer>
                   </div>
-                }
-              >
-                <div className="h-60 px-2 pb-4 md:px-4">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={intensityData} margin={{ top: 12, right: 16, left: 0, bottom: 8 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                      <XAxis dataKey="label" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
-                      <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
-                      <ReTooltip
-                        contentStyle={{
-                          backgroundColor: "var(--card)",
-                          border: "1px solid var(--border)",
-                          borderRadius: 12,
-                          fontSize: 12,
-                        }}
-                      />
-                      <Legend wrapperStyle={{ fontSize: 11 }} />
-                      {(!utilityFilter || utilityFilter === "electricity") && (
-                        <Line type="monotone" dataKey="electricity" stroke="var(--chart-3)" strokeWidth={2} dot={false} name="Elec kWh/rn" />
-                      )}
-                      {(!utilityFilter || utilityFilter === "gas") && (
-                        <Line type="monotone" dataKey="gas" stroke="var(--chart-1)" strokeWidth={2} dot={false} name="Gas kWh/rn" />
-                      )}
-                      {(!utilityFilter || utilityFilter === "water") && (
-                        <Line type="monotone" dataKey="water" stroke="var(--chart-2)" strokeWidth={2} dot={false} name="Water m³/rn" />
-                      )}
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </ChartCard>
+                </ChartCard>
+              </DashboardSection>
 
-              {/* Peer comparison */}
-              <ChartCard
-                id="peer"
-                active={activeChart}
-                onSelect={setActiveChart}
-                onExplain={setExplainerChart}
-                title="Peer comparison"
-                subtitle={`vs ${cohortSize} similar Mediterranean hotels`}
-                aside={<Trophy className="h-5 w-5" style={{ color: "var(--champagne)" }} />}
+              {/* Section 3 — Carbon Footprint */}
+              <DashboardSection
+                id="carbon"
+                title="Carbon footprint"
+                subtitle="CO₂e trajectory and the energy mix behind it."
+                help={{
+                  intro:
+                    "CO₂e is computed from your utility consumption and the emission factor of each energy source. It can move even if consumption stays flat.",
+                  items: [
+                    {
+                      q: "Why can emissions change at constant consumption?",
+                      a: "Because the emission factor changes — for example a greener electricity grid, or a switch from gas to electric heating. Same kWh, different CO₂e.",
+                    },
+                    {
+                      q: "Scope 1 vs Scope 2 at hotel level?",
+                      a: "Scope 1 = fuels burned on-site (gas, fuel oil). Scope 2 = electricity and district heating/cooling bought from a utility.",
+                    },
+                    {
+                      q: "What does ‘on track’ mean here?",
+                      a: "A trajectory aligned with the Accor reduction target (about –5% vs the same month last year). Below the line is good news.",
+                    },
+                  ],
+                }}
               >
-                <div className="grid grid-cols-1 gap-3 px-6 pb-6 sm:grid-cols-2">
-                  {KPIS.filter((kpi) => !utilityFilter || kpi.utility === utilityFilter).map((kpi) => (
-                    <PeerMiniCard
-                      key={kpi.key}
-                      kpi={kpi}
-                      latest={latest}
-                      filters={filters}
-                      cohortSize={cohortSize}
-                    />
-                  ))}
+                <ChartCard
+                  id="co2e"
+                  active={activeChart}
+                  onSelect={setActiveChart}
+                  onExplain={setExplainerChart}
+                  title="CO₂e emissions"
+                  subtitle="Estimated kg CO₂e per month."
+                  aside={<BarChart3 className="h-5 w-5 text-muted-foreground" />}
+                >
+                  <div className="h-60 px-2 pb-4 md:px-4">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={co2Data} margin={{ top: 12, right: 16, left: 0, bottom: 8 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                        <XAxis dataKey="label" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
+                        <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
+                        <ReTooltip
+                          contentStyle={{
+                            backgroundColor: "var(--card)",
+                            border: "1px solid var(--border)",
+                            borderRadius: 12,
+                            fontSize: 12,
+                          }}
+                        />
+                        <Bar dataKey="co2e" fill="var(--champagne)" radius={[6, 6, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </ChartCard>
+              </DashboardSection>
+
+              {/* Section 4 — Benchmarking & Peer Comparison */}
+              <DashboardSection
+                id="benchmarks"
+                title="Benchmarking & peer comparison"
+                subtitle={`How this hotel compares with ${cohortSize} similar Mediterranean hotels.`}
+                help={{
+                  intro:
+                    "Peer comparison places the hotel within a cohort of similar properties (size, climate, segment). It tells you whether your numbers are normal for that profile.",
+                  items: [
+                    {
+                      q: "What does ‘peer rank’ mean?",
+                      a: "It's your position in the cohort for one metric. Rank 1 means most efficient, last rank means least efficient — for that utility only.",
+                    },
+                    {
+                      q: "Why normalise the data?",
+                      a: "Hotels of different sizes can't be compared in absolute kWh. We use intensity (per room-night) so a 50-room and a 300-room hotel can sit on the same scale.",
+                    },
+                    {
+                      q: "How do I read percentile positioning?",
+                      a: "‘Top 25%’ means you're more efficient than 75% of similar hotels. ‘Bottom 25%’ flags a clear improvement opportunity.",
+                    },
+                  ],
+                }}
+              >
+                <ChartCard
+                  id="peer"
+                  active={activeChart}
+                  onSelect={setActiveChart}
+                  onExplain={setExplainerChart}
+                  title="Peer comparison"
+                  subtitle={`vs ${cohortSize} similar Mediterranean hotels`}
+                  aside={<Trophy className="h-5 w-5" style={{ color: "var(--champagne)" }} />}
+                >
+                  <div className="grid grid-cols-1 gap-3 px-6 pb-6 sm:grid-cols-2">
+                    {KPIS.filter((kpi) => !utilityFilter || kpi.utility === utilityFilter).map((kpi) => (
+                      <PeerMiniCard
+                        key={kpi.key}
+                        kpi={kpi}
+                        latest={latest}
+                        filters={filters}
+                        cohortSize={cohortSize}
+                      />
+                    ))}
+                  </div>
+                </ChartCard>
+              </DashboardSection>
+
+              {/* Section 5 — Data Quality & Reporting Confidence */}
+              <DashboardSection
+                id="data-quality"
+                title="Data quality & reporting confidence"
+                subtitle="Whether you can trust the numbers above — and what's still missing."
+                help={{
+                  intro:
+                    "Every chart on this page reflects what has been reported. This section tells you how complete and recent that input is, so you know when to trust a trend.",
+                  items: [
+                    {
+                      q: "Why do data gaps matter?",
+                      a: "A missing month makes year-over-year and peer comparisons unreliable. Trends look like drops or peaks that are really just gaps.",
+                    },
+                    {
+                      q: "How do reporting cycles work?",
+                      a: "Each utility is reported monthly, ideally within 30 days of the period close. Late submissions delay the comparison versus peers.",
+                    },
+                    {
+                      q: "What if my data looks incomplete?",
+                      a: "Open the Log tab to fill the missing fields, or upload an invoice — the platform will pre-fill the values for you to review.",
+                    },
+                  ],
+                }}
+              >
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <div className="rounded-2xl border border-border bg-card/60 p-4">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                      Latest reporting period
+                    </div>
+                    <div className="mt-1.5 text-base font-semibold text-foreground">
+                      {latest
+                        ? `${MONTH_NAMES[latest.month - 1]} ${latest.year}`
+                        : "No submissions yet"}
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {isCurrentLogged
+                        ? "Current period reported."
+                        : "Current period not yet reported."}
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-border bg-card/60 p-4">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                      Months covered (12m)
+                    </div>
+                    <div className="mt-1.5 text-base font-semibold text-foreground">
+                      {Math.min(sorted.length, 12)} / 12
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {sorted.length >= 12
+                        ? "Continuous 12-month history available."
+                        : `${12 - Math.min(sorted.length, 12)} month(s) missing for full year-over-year comparison.`}
+                    </div>
+                  </div>
+                  <div
+                    className={`rounded-2xl border p-4 ${
+                      missingFields.length === 0
+                        ? "border-emerald-500/30 bg-emerald-500/5"
+                        : "border-amber-500/30 bg-amber-500/5"
+                    }`}
+                  >
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                      Missing values (latest period)
+                    </div>
+                    <div className="mt-1.5 text-base font-semibold text-foreground">
+                      {missingFields.length === 0
+                        ? "All clear"
+                        : `${missingFields.length} field${missingFields.length > 1 ? "s" : ""} missing`}
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {missingFields.length === 0
+                        ? "Submission complete for the most recent period."
+                        : "Open the Log tab to complete the submission."}
+                    </div>
+                  </div>
                 </div>
-              </ChartCard>
+              </DashboardSection>
             </div>
 
             {/* Right rail: chart explainer (opens when "How to read this chart" is clicked) */}
