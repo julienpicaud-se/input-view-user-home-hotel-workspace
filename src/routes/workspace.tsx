@@ -239,6 +239,10 @@ function HomePage() {
     starRating: number;
   } | null>(null);
   const [savingProfile, setSavingProfile] = React.useState(false);
+  const [dashFilters, setDashFilters] = React.useState<DashboardFiltersValue>(
+    DEFAULT_DASHBOARD_FILTERS,
+  );
+  const [peerGroup, setPeerGroup] = React.useState<PeerGroupFilter>("region");
 
   const reload = React.useCallback(async () => {
     const hotelId = getActiveHotelId();
