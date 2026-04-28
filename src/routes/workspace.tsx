@@ -89,10 +89,12 @@ import { AutopilotLogCard } from "@/components/autopilot-log-card";
 import { PastDataActivity } from "@/components/past-data-activity";
 import { DashboardSection } from "@/components/dashboard-section";
 import { DashboardSectionNav } from "@/components/dashboard-section-nav";
+import { useProfileType } from "@/lib/profile-type";
 import {
   DashboardFilters,
-  DEFAULT_DASHBOARD_FILTERS,
+  recommendedFiltersForRole,
   type DashboardFiltersValue,
+  type FilterEmphasis,
 } from "@/components/dashboard-filters";
 import {
   OpsIntensityTrend,
@@ -239,10 +241,42 @@ function HomePage() {
     starRating: number;
   } | null>(null);
   const [savingProfile, setSavingProfile] = React.useState(false);
-  const [dashFilters, setDashFilters] = React.useState<DashboardFiltersValue>(
-    DEFAULT_DASHBOARD_FILTERS,
+  const { profileType } = useProfileType();
+  const roleRecommended = React.useMemo(
+    () => recommendedFiltersForRole(profileType),
+    [profileType],
   );
+  const [dashFilters, setDashFilters] = React.useState<DashboardFiltersValue>(
+    () => recommendedFiltersForRole(profileType).values,
+  );
+  // When the user switches role, refresh defaults so the dashboard reflects
+  // the new mental model (operational / portfolio / governance).
+  const lastRoleRef = React.useRef(profileType);
+  React.useEffect(() => {
+    if (lastRoleRef.current !== profileType) {
+      lastRoleRef.current = profileType;
+      setDashFilters(recommendedFiltersForRole(profileType).values);
+    }
+  }, [profileType]);
   const [peerGroup, setPeerGroup] = React.useState<PeerGroupFilter>("region");
+
+  // Per-section filter emphasis: keep the bar visually consistent but quietly
+  // surface what matters most in the current tab (no hidden filters).
+  const filterEmphasis = React.useMemo<FilterEmphasis>(() => {
+    switch (dashSection) {
+      case "benchmarks":
+        return { measurement: "primary", metrics: "primary", data: "muted" };
+      case "data-quality":
+        return { data: "primary", measurement: "muted" };
+      case "carbon":
+        return { comparison: "primary" };
+      case "energy-water":
+        return { measurement: "primary", metrics: "primary" };
+      case "ops":
+      default:
+        return { time: "primary", comparison: "primary" };
+    }
+  }, [dashSection]);
 
   const reload = React.useCallback(async () => {
     const hotelId = getActiveHotelId();
@@ -686,7 +720,9 @@ function HomePage() {
           <DashboardFilters
             value={dashFilters}
             onChange={setDashFilters}
-            allowedScopes={["hotel"]}
+            role={profileType}
+            emphasis={filterEmphasis}
+            onReset={() => setDashFilters(roleRecommended.values)}
           />
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
