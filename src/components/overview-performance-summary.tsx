@@ -3,16 +3,23 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   Bolt,
+  Building2,
   Droplets,
   Flame,
   Loader2,
   Minus,
+  ShieldCheck,
   Sparkles,
   Trash2,
   TrendingDown,
   TrendingUp,
   Trophy,
+  Users,
+  AlertTriangle,
+  CheckCircle2,
+  Target,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -23,6 +30,8 @@ import { MONTH_NAMES, formatNumber } from "@/lib/format";
 import { getPeerRank, getPeerStats, type Utility } from "@/lib/peer-benchmarks";
 import { getActiveHotelId, type Hotel, type MonthlyEntry } from "@/lib/hotel";
 import { sendAssistantMessage } from "@/server/assistant.functions";
+import { useProfileType, type ProfileType } from "@/lib/profile-type";
+import { PORTFOLIO_TARGETS } from "@/components/dashboard-role-lenses";
 
 interface UtilityDef {
   key: Utility;
