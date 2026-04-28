@@ -705,6 +705,8 @@ function HomePage() {
 
   // ── Role-aware "Today's briefing" ─────────────────────────────────────────
   const { profileType } = useProfileType();
+  const { interests, reopenOnboarding } = useInterests();
+  const sectionOrder = React.useMemo(() => orderedSections(interests), [interests]);
   const briefingHeader = React.useMemo(() => {
     if (profileType === "hotel_user") {
       return {
