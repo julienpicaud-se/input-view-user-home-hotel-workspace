@@ -583,6 +583,15 @@ function HomePage() {
         <div className="mt-6 h-px gold-divider" />
       </header>
 
+      {/* Contextual breadcrumb when arriving from Performance Summary */}
+      {search.from === "summary" && (
+        <FromSummaryBanner
+          focus={search.focus}
+          period={search.period}
+          intent={search.intent}
+        />
+      )}
+
       {/* Tabbed workspace — Ask Sera is now embedded inside Overview & Analyze */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
