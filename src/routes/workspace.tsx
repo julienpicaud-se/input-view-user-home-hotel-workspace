@@ -91,8 +91,10 @@ import { DashboardSection } from "@/components/dashboard-section";
 import { DashboardSectionNav } from "@/components/dashboard-section-nav";
 import {
   DashboardFilters,
-  DEFAULT_DASHBOARD_FILTERS,
+  recommendedFiltersForRole,
   type DashboardFiltersValue,
+  type FilterEmphasis,
+} from "@/components/dashboard-filters";
 } from "@/components/dashboard-filters";
 import {
   OpsIntensityTrend,
