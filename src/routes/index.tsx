@@ -797,19 +797,48 @@ function HomePage() {
           </Link>
         </div>
         <h1 className="mt-3 font-serif text-4xl md:text-5xl font-semibold leading-[1.05] text-foreground">
-          Welcome back, {firstName}.
+          {profileType === "vpo"
+            ? <>Welcome back, {firstName}. Here's your portfolio.</>
+            : profileType === "super_admin"
+            ? <>Welcome back, {firstName}. Program overview.</>
+            : <>Welcome back, {firstName}.</>}
         </h1>
         <p className="mt-3 max-w-2xl text-sm md:text-base text-muted-foreground">
           {loading ? (
-            "Pulling together your portfolio briefing…"
-          ) : openTodos > 0 ? (
-            <>
-              You have <span className="font-medium text-foreground">{openTodos} open {openTodos === 1 ? "task" : "tasks"}</span> across your{" "}
-              {summary?.hotelCount ?? 0} {summary?.hotelCount === 1 ? "hotel" : "hotels"}.
-              Here's what to focus on today.
-            </>
+            profileType === "vpo"
+              ? "Aggregating performance across your portfolio…"
+              : profileType === "super_admin"
+              ? "Compiling program health and data quality…"
+              : "Pulling together your hotel briefing…"
+          ) : profileType === "hotel_user" ? (
+            openTodos > 0 ? (
+              <>
+                You have <span className="font-medium text-foreground">{openTodos} open {openTodos === 1 ? "task" : "tasks"}</span> for{" "}
+                <span className="font-medium text-foreground">{activeHotel?.name ?? "your hotel"}</span>.
+                Here's what to focus on today.
+              </>
+            ) : (
+              <>{activeHotel?.name ?? "Your hotel"} is on track today. Nice work, {firstName}.</>
+            )
+          ) : profileType === "vpo" ? (
+            openTodos > 0 ? (
+              <>
+                <span className="font-medium text-foreground">{openTodos} open {openTodos === 1 ? "item" : "items"}</span> across{" "}
+                {summary?.hotelCount ?? 0} {summary?.hotelCount === 1 ? "hotel" : "hotels"} in your portfolio.
+                Review benchmarks and outliers below.
+              </>
+            ) : (
+              <>Your portfolio of {summary?.hotelCount ?? 0} hotels is performing on plan. Time to push best practices.</>
+            )
           ) : (
-            <>Everything looks on track today. Nice work, {firstName}.</>
+            openTodos > 0 ? (
+              <>
+                <span className="font-medium text-foreground">{openTodos} governance {openTodos === 1 ? "item" : "items"}</span> need attention across the program ({summary?.hotelCount ?? 0} hotels).
+                Check data quality and onboarding below.
+              </>
+            ) : (
+              <>Program health is green across {summary?.hotelCount ?? 0} hotels. Data is flowing as expected.</>
+            )
           )}
         </p>
         <div className="mt-6 h-px gold-divider" />
