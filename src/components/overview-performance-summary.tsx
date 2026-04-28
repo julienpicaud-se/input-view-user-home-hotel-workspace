@@ -586,3 +586,259 @@ function DeltaCell({ pct }: { pct: number | null }) {
     </span>
   );
 }
+
+/* ------------------------------------------------------------------ */
+/*  Role-aware additions                                              */
+/* ------------------------------------------------------------------ */
+
+/** Mock portfolio aggregates — kept in sync with dashboard-role-lenses. */
+const PORTFOLIO_SUMMARY = {
+  total: 8,
+  onTrack: 5,
+  completeness: 90,
+  late: 19,
+  flagged: 9,
+  energyAvg: 45.8,
+  waterAvg: 540,
+  carbonAvg: 12.7,
+  yoyEnergy: -3.4,
+};
+
+const ROLE_BANNER: Record<
+  ProfileType,
+  { label: string; icon: LucideIcon; tone: string; question: string }
+> = {
+  hotel_user:  { label: "Hotel view",     icon: Building2,   tone: "bg-primary/10 text-primary border-primary/20",                                          question: "How is my hotel performing this month vs last year and target?" },
+  vpo:         { label: "Portfolio view", icon: Users,       tone: "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20",                question: "Is the portfolio reaching group targets, and which hotels are driving it?" },
+  super_admin: { label: "Governance view",icon: ShieldCheck, tone: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20",        question: "Is the network reporting complete, valid and audit-ready?" },
+};
+
+function RolePerfBanner({ role }: { role: ProfileType }) {
+  const meta = ROLE_BANNER[role];
+  const Icon = meta.icon;
+  return (
+    <div className={`mb-4 flex items-start gap-3 rounded-xl border px-3 py-2 ${meta.tone}`}>
+      <Icon className="mt-0.5 h-4 w-4 shrink-0" />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em]">
+          {meta.label}
+          <span className="text-muted-foreground">· same data, different lens</span>
+        </div>
+        <div className="mt-0.5 text-xs font-medium text-foreground">{meta.question}</div>
+      </div>
+    </div>
+  );
+}
+
+function PerfStat({
+  label,
+  value,
+  unit,
+  tone,
+  icon: Icon,
+  hint,
+}: {
+  label: string;
+  value: string;
+  unit?: string;
+  tone: "good" | "warn" | "bad" | "neutral";
+  icon: LucideIcon;
+  hint?: string;
+}) {
+  const toneCls =
+    tone === "good"
+      ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-700 dark:text-emerald-300"
+      : tone === "warn"
+        ? "border-amber-500/30 bg-amber-500/5 text-amber-700 dark:text-amber-300"
+        : tone === "bad"
+          ? "border-red-500/30 bg-red-500/5 text-red-700 dark:text-red-300"
+          : "border-border bg-card/60 text-foreground";
+  return (
+    <div className={`rounded-2xl border p-3 ${toneCls}`}>
+      <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] opacity-80">
+        <Icon className="h-3 w-3" />
+        {label}
+      </div>
+      <div className="mt-1 font-serif text-2xl font-semibold tabular-nums text-foreground">{value}</div>
+      {unit ? <div className="text-[11px] text-muted-foreground">{unit}</div> : null}
+      {hint ? <div className="mt-0.5 text-[11px] text-muted-foreground">{hint}</div> : null}
+    </div>
+  );
+}
+
+const VPO_HOTELS = [
+  { name: "Olive Grove Inn",        energy: 36, on: true },
+  { name: "Azure Bay Resort",       energy: 38, on: true },
+  { name: "Marbella Grand",         energy: 41, on: true },
+  { name: "Northwind City Hotel",   energy: 44, on: false },
+  { name: "Costa Azul Resort",      energy: 47, on: false },
+  { name: "Skyline Business Hotel", energy: 49, on: false },
+  { name: "Alpine Sky Lodge",       energy: 53, on: false },
+  { name: "Desert Pearl Lodge",     energy: 58, on: false },
+];
+
+function VpoPortfolioSummary() {
+  const onTrackPct = Math.round((PORTFOLIO_SUMMARY.onTrack / PORTFOLIO_SUMMARY.total) * 100);
+  const energyTarget = PORTFOLIO_TARGETS.energyIntensity;
+  const energyGap = ((PORTFOLIO_SUMMARY.energyAvg - energyTarget) / energyTarget) * 100;
+  const beating = PORTFOLIO_SUMMARY.energyAvg <= energyTarget;
+
+  return (
+    <>
+      <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <PerfStat
+          label="Hotels on track"
+          value={`${PORTFOLIO_SUMMARY.onTrack}/${PORTFOLIO_SUMMARY.total}`}
+          unit={`${onTrackPct}% of portfolio`}
+          tone={onTrackPct >= 60 ? "good" : "warn"}
+          icon={CheckCircle2}
+        />
+        <PerfStat
+          label="Energy intensity"
+          value={`${PORTFOLIO_SUMMARY.energyAvg.toFixed(1)}`}
+          unit="kWh / room-night"
+          tone={beating ? "good" : "warn"}
+          icon={beating ? TrendingDown : TrendingUp}
+          hint={`${beating ? "" : "+"}${energyGap.toFixed(1)}% vs target ${energyTarget}`}
+        />
+        <PerfStat
+          label="YoY energy"
+          value={`${PORTFOLIO_SUMMARY.yoyEnergy.toFixed(1)}%`}
+          unit={`Target ${PORTFOLIO_TARGETS.yoyEnergy}%`}
+          tone={PORTFOLIO_SUMMARY.yoyEnergy <= PORTFOLIO_TARGETS.yoyEnergy ? "good" : "warn"}
+          icon={TrendingDown}
+        />
+        <PerfStat
+          label="Group target"
+          value={`${energyTarget}`}
+          unit="kWh / room-night"
+          tone="neutral"
+          icon={Target}
+          hint="Illustrative — Accor-style"
+        />
+      </div>
+
+      <div className="overflow-hidden rounded-2xl border border-border/60">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/40 text-[11px] uppercase tracking-wider text-muted-foreground">
+            <tr>
+              <th className="px-4 py-2 text-left font-medium">Hotel</th>
+              <th className="px-3 py-2 text-right font-medium">Energy intensity</th>
+              <th className="px-3 py-2 text-right font-medium">vs target ({energyTarget})</th>
+              <th className="px-3 py-2 text-right font-medium">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {VPO_HOTELS.map((h, i) => {
+              const gap = ((h.energy - energyTarget) / energyTarget) * 100;
+              return (
+                <tr key={h.name} className={i < VPO_HOTELS.length - 1 ? "border-b border-border/50" : ""}>
+                  <td className="px-4 py-2.5 font-medium text-foreground">{h.name}</td>
+                  <td className="num px-3 py-2.5 text-right tabular-nums text-foreground">
+                    {h.energy} <span className="text-[11px] text-muted-foreground">kWh/rn</span>
+                  </td>
+                  <td className="num px-3 py-2.5 text-right tabular-nums">
+                    <span className={h.on ? "text-emerald-700 dark:text-emerald-300" : "text-amber-700 dark:text-amber-300"}>
+                      {gap > 0 ? "+" : ""}{gap.toFixed(1)}%
+                    </span>
+                  </td>
+                  <td className="px-3 py-2.5 text-right">
+                    <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                      h.on
+                        ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                        : "bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                    }`}>
+                      {h.on ? "On track" : "Off track"}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      <p className="mt-3 text-xs text-muted-foreground">
+        Portfolio aggregate of {PORTFOLIO_SUMMARY.total} hotels, normalised per occupied
+        room-night. Targets are illustrative, aligned with Accor-style ambitions.
+      </p>
+    </>
+  );
+}
+
+function AdminGovernanceSummary() {
+  return (
+    <>
+      <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <PerfStat
+          label="Network completeness"
+          value={`${PORTFOLIO_SUMMARY.completeness}%`}
+          unit={`Target ${PORTFOLIO_TARGETS.completeness}%`}
+          tone={PORTFOLIO_SUMMARY.completeness >= PORTFOLIO_TARGETS.completeness ? "good" : "warn"}
+          icon={CheckCircle2}
+        />
+        <PerfStat
+          label="Hotels at 100%"
+          value={`5/${PORTFOLIO_SUMMARY.total}`}
+          unit="Fully reported"
+          tone="warn"
+          icon={Building2}
+        />
+        <PerfStat
+          label="Late submissions"
+          value={`${PORTFOLIO_SUMMARY.late}`}
+          unit="Last 12 months"
+          tone={PORTFOLIO_SUMMARY.late === 0 ? "good" : PORTFOLIO_SUMMARY.late < 10 ? "warn" : "bad"}
+          icon={AlertTriangle}
+        />
+        <PerfStat
+          label="Open anomalies"
+          value={`${PORTFOLIO_SUMMARY.flagged}`}
+          unit="Awaiting review"
+          tone={PORTFOLIO_SUMMARY.flagged === 0 ? "good" : "warn"}
+          icon={AlertTriangle}
+        />
+      </div>
+
+      <div className="overflow-hidden rounded-2xl border border-border/60">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/40 text-[11px] uppercase tracking-wider text-muted-foreground">
+            <tr>
+              <th className="px-4 py-2 text-left font-medium">Reporting health checkpoint</th>
+              <th className="px-3 py-2 text-right font-medium">Status</th>
+              <th className="px-3 py-2 text-right font-medium">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[
+              { label: "Monthly utility submissions complete", ok: false, action: "Chase 3 hotels" },
+              { label: "Reading dates within 30-day SLA",       ok: false, action: "Review late list" },
+              { label: "Validity rules — no flagged anomalies", ok: false, action: `${PORTFOLIO_SUMMARY.flagged} to clear` },
+              { label: "Carbon scope coverage consistent",      ok: true,  action: "—" },
+              { label: "Campaign continuity vs prior year",     ok: true,  action: "—" },
+            ].map((row, i, arr) => (
+              <tr key={row.label} className={i < arr.length - 1 ? "border-b border-border/50" : ""}>
+                <td className="px-4 py-2.5 font-medium text-foreground">{row.label}</td>
+                <td className="px-3 py-2.5 text-right">
+                  <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                    row.ok
+                      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                      : "bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                  }`}>
+                    {row.ok ? "OK" : "Watch"}
+                  </span>
+                </td>
+                <td className="px-3 py-2.5 text-right text-xs text-muted-foreground">{row.action}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <p className="mt-3 text-xs text-muted-foreground">
+        Programme-wide governance snapshot across {PORTFOLIO_SUMMARY.total} hotels —
+        completeness, validity and audit readiness rather than site performance.
+      </p>
+    </>
+  );
+}
