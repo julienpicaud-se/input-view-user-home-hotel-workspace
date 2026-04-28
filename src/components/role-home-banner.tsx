@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Hotel, Globe2, ShieldCheck, MapPin } from "lucide-react";
+import { Hotel, Globe2, ShieldCheck, MapPin, Zap, Droplet, Leaf, ArrowDown, ArrowUp, Minus, Building2, BarChart3, Database } from "lucide-react";
 import { useProfileType, PROFILE_TYPE_META, type ProfileType } from "@/lib/profile-type";
 import type { Hotel as HotelType, MonthlyEntry } from "@/lib/hotel";
 import { calculateCO2e, formatNumber } from "@/lib/format";
