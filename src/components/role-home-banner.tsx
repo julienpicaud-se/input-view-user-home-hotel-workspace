@@ -32,6 +32,8 @@ interface TileData {
   spark?: number[];
   /** trend card uses big arrow + sparkline emphasis */
   isTrendCard?: boolean;
+  /** if true, positive delta = improvement (e.g. % onboarded) */
+  higherIsBetter?: boolean;
 }
 
 /**
