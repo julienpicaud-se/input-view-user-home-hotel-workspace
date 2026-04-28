@@ -40,6 +40,8 @@ import { DataQualityCard } from "@/components/data-quality-card";
 import { buildDataQualityIssues, type DataQualityIssue } from "@/lib/data-quality";
 import { RoleHomeBanner } from "@/components/role-home-banner";
 import { useProfileType } from "@/lib/profile-type";
+import { useInterests, orderedSections, INTEREST_META } from "@/lib/interests";
+import { Sparkles } from "lucide-react";
 import { ShieldCheck, Globe2, Hotel as HotelIcon, Activity, Database, BarChart3 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -703,6 +705,8 @@ function HomePage() {
 
   // ── Role-aware "Today's briefing" ─────────────────────────────────────────
   const { profileType } = useProfileType();
+  const { interests, reopenOnboarding } = useInterests();
+  const sectionOrder = React.useMemo(() => orderedSections(interests), [interests]);
   const briefingHeader = React.useMemo(() => {
     if (profileType === "hotel_user") {
       return {
@@ -844,15 +848,48 @@ function HomePage() {
         <div className="mt-6 h-px gold-divider" />
       </header>
 
-      {/* Role-aware banner: same data, different lens */}
-      {!loading && (
-        <RoleHomeBanner
-          hotels={hotels}
-          entries={entries}
-          activeHotelId={getActiveHotelId()}
-        />
+      {/* Personalization indicator — discreet, non-intrusive */}
+      {interests.length > 0 && (
+        <div className="-mt-6 mb-6 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 font-medium uppercase tracking-[0.14em] text-primary">
+            <Sparkles className="h-3 w-3" />
+            Personalized based on your interests
+          </span>
+          <span className="hidden sm:inline">·</span>
+          <span className="hidden sm:inline">
+            {interests
+              .slice(0, 3)
+              .map((id) => INTEREST_META[id]?.label)
+              .filter(Boolean)
+              .join(" · ")}
+            {interests.length > 3 ? ` +${interests.length - 3}` : ""}
+          </span>
+          <button
+            type="button"
+            onClick={reopenOnboarding}
+            className="ml-auto rounded-lg border border-border/60 px-2 py-1 transition-colors hover:bg-muted hover:text-foreground"
+          >
+            Edit interests
+          </button>
+        </div>
       )}
 
+      {/* Sections — same widgets, ordered by user interests */}
+      <div className="flex flex-col">
+        {(() => { /* compute helper inline */ return null; })()}
+
+        {/* Role-aware banner: same data, different lens */}
+        <div style={{ order: sectionOrder.indexOf("role_banner") }}>
+        {!loading && (
+          <RoleHomeBanner
+            hotels={hotels}
+            entries={entries}
+            activeHotelId={getActiveHotelId()}
+          />
+        )}
+        </div>
+
+      <div style={{ order: sectionOrder.indexOf("briefing") }}>
       {/* Briefing — adapts to the selected profile (Hotel User / VPO / Super Admin) */}
       <section className="mb-12">
         <div className="mb-4 flex items-end justify-between">
@@ -1110,7 +1147,9 @@ function HomePage() {
           )}
         </div>
       </section>
+      </div>
 
+      <div style={{ order: sectionOrder.indexOf("sera") }}>
       {/* AI personalised briefing from Sera — focused on to-dos & data quality */}
       <section className="mb-12">
         <SeraBriefingCard
@@ -1125,7 +1164,9 @@ function HomePage() {
           }}
         />
       </section>
+      </div>
 
+      <div style={{ order: sectionOrder.indexOf("todos") }}>
       {/* To-dos — directly under the Sera briefing */}
       <section className="mb-12">
         <div className="mb-4 flex items-end justify-between gap-3">
@@ -1200,8 +1241,9 @@ function HomePage() {
           </div>
         )}
       </section>
+      </div>
 
-
+      <div style={{ order: sectionOrder.indexOf("data_quality") }}>
       {/* Data quality */}
       <section className="mb-12">
         <DataQualityCard
@@ -1210,7 +1252,9 @@ function HomePage() {
           onIssueClick={handleDataQualityClick}
         />
       </section>
+      </div>
 
+      </div>
     </PageContainer>
   );
 }

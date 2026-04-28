@@ -203,6 +203,8 @@ export type Database = {
           email: string | null
           email_notifications: boolean
           id: string
+          interests: string[]
+          interests_onboarded: boolean
           preferred_units: string
           profile_type: string
           timezone: string
@@ -216,6 +218,8 @@ export type Database = {
           email?: string | null
           email_notifications?: boolean
           id?: string
+          interests?: string[]
+          interests_onboarded?: boolean
           preferred_units?: string
           profile_type?: string
           timezone?: string
@@ -229,6 +233,8 @@ export type Database = {
           email?: string | null
           email_notifications?: boolean
           id?: string
+          interests?: string[]
+          interests_onboarded?: boolean
           preferred_units?: string
           profile_type?: string
           timezone?: string
