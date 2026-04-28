@@ -49,6 +49,8 @@ import {
   sendAssistantMessage,
   type BriefingPayload,
 } from "@/server/assistant.functions";
+import { RoleHomeBanner } from "@/components/role-home-banner";
+import { getActiveHotelId } from "@/lib/hotel";
 
 export const Route = createFileRoute("/easy/")({
   head: () => ({
@@ -113,6 +115,8 @@ function ExtraSimpleHomePage() {
 
   const [profile, setProfile] = React.useState<UserProfile | null>(null);
   const [rows, setRows] = React.useState<PortfolioRow[]>([]);
+  const [hotelsState, setHotelsState] = React.useState<Hotel[]>([]);
+  const [entriesState, setEntriesState] = React.useState<MonthlyEntry[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [briefing, setBriefing] = React.useState<BriefingPayload | null>(null);
   const [briefingLoading, setBriefingLoading] = React.useState(false);
@@ -189,6 +193,8 @@ function ExtraSimpleHomePage() {
 
       setProfile((profileData as UserProfile) ?? null);
       setRows(portfolio);
+      setHotelsState(hotels);
+      setEntriesState(entries);
       setLoading(false);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
