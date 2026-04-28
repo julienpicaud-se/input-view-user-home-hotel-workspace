@@ -401,9 +401,10 @@ function KpiTile({ tile }: { tile: TileData }) {
             <span className="inline-flex items-center gap-0.5">
               <ArrowIcon className={"h-3 w-3 " + toneTextClass(tile.tone)} />
               <span className={"num " + toneTextClass(tile.tone)}>
-                {delta! > 0 ? "+" : ""}{delta!.toFixed(0)}%
+                {delta! > 0 ? "+" : ""}{delta!.toFixed(0)}
+                {tile.higherIsBetter ? "pp" : "%"}
               </span>
-              <span>vs last year</span>
+              <span>{tile.higherIsBetter ? "vs target" : "vs last year"}</span>
             </span>
           </div>
         </div>
