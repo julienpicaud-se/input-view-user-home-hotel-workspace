@@ -28,7 +28,7 @@ export function RoleHomeBanner({ hotels, entries, activeHotelId }: Props) {
   const meta = PROFILE_TYPE_META[profileType];
   const Icon = ICONS[profileType];
 
-  const tiles = React.useMemo(() => {
+  const tiles = React.useMemo<TileData[]>(() => {
     if (profileType === "hotel_user") {
       const hotel =
         hotels.find((h) => h.id === activeHotelId) ?? hotels[0] ?? null;
@@ -50,26 +50,54 @@ export function RoleHomeBanner({ hotels, entries, activeHotelId }: Props) {
       const water = Number(last?.water_m3 ?? 0);
       const ePerRoom = occ > 0 ? elec / occ : null;
       const wPerRoom = occ > 0 ? water / occ : null;
+
+      const occPrev = lastYearSame?.occupied_room_nights ?? 0;
+      const ePerRoomPrev = occPrev > 0 ? Number(lastYearSame?.electricity_kwh ?? 0) / occPrev : null;
+      const wPerRoomPrev = occPrev > 0 ? Number(lastYearSame?.water_m3 ?? 0) / occPrev : null;
+      const eDelta = ePerRoom !== null && ePerRoomPrev ? ((ePerRoom - ePerRoomPrev) / ePerRoomPrev) * 100 : null;
+      const wDelta = wPerRoom !== null && wPerRoomPrev ? ((wPerRoom - wPerRoomPrev) / wPerRoomPrev) * 100 : null;
+
       const co2 = last ? calculateCO2e(last) : 0;
       const co2Prev = lastYearSame ? calculateCO2e(lastYearSame) : 0;
       const yoy =
         co2Prev > 0 ? ((co2 - co2Prev) / co2Prev) * 100 : null;
+
+      // sparkline data: last 12 entries chronologically (CO2e per occ)
+      const spark = [...myEntries].slice(0, 12).reverse().map((e) => {
+        const o = e.occupied_room_nights ?? 0;
+        return o > 0 ? calculateCO2e(e) / o : 0;
+      });
+
       return [
         {
           label: "Energy / occupied room",
-          value: ePerRoom !== null ? `${formatNumber(ePerRoom, 1)} kWh` : "—",
+          value: ePerRoom !== null ? formatNumber(ePerRoom, 1) : "—",
+          unit: "kWh",
           hint: "Last logged month",
+          icon: Zap,
+          delta: eDelta,
+          // for "lower is better" metrics
+          tone: eDelta === null ? "neutral" : eDelta < -2 ? "good" : eDelta > 2 ? "warn" : "neutral",
         },
         {
           label: "Water / occupied room",
-          value: wPerRoom !== null ? `${formatNumber(wPerRoom, 2)} m³` : "—",
+          value: wPerRoom !== null ? formatNumber(wPerRoom, 2) : "—",
+          unit: "m³",
           hint: "Last logged month",
+          icon: Droplet,
+          delta: wDelta,
+          tone: wDelta === null ? "neutral" : wDelta < -2 ? "good" : wDelta > 2 ? "warn" : "neutral",
         },
         {
           label: "CO₂e vs last year",
-          value: yoy !== null ? `${yoy > 0 ? "+" : ""}${yoy.toFixed(0)}%` : "—",
+          value: yoy !== null ? `${yoy > 0 ? "+" : ""}${yoy.toFixed(0)}` : "—",
+          unit: "%",
           hint: yoy !== null ? (yoy <= 0 ? "On track" : "Above last year") : "Need 12 months",
           tone: yoy === null ? "neutral" : yoy <= 0 ? "good" : "warn",
+          icon: Leaf,
+          delta: yoy,
+          spark,
+          isTrendCard: true,
         },
       ];
     }
