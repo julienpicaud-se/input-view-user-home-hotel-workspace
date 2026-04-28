@@ -204,6 +204,7 @@ export type Database = {
           email_notifications: boolean
           id: string
           preferred_units: string
+          profile_type: string
           timezone: string
           updated_at: string
         }
@@ -216,6 +217,7 @@ export type Database = {
           email_notifications?: boolean
           id?: string
           preferred_units?: string
+          profile_type?: string
           timezone?: string
           updated_at?: string
         }
@@ -228,6 +230,7 @@ export type Database = {
           email_notifications?: boolean
           id?: string
           preferred_units?: string
+          profile_type?: string
           timezone?: string
           updated_at?: string
         }
