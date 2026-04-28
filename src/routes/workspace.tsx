@@ -643,6 +643,9 @@ function HomePage() {
             ))}
           </div>
 
+          {/* Interest-based section nav (below KPI cards) */}
+          <DashboardSectionNav active={dashSection} onChange={goToSection} />
+
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
             {/* Charts column — organised into interest-based sections */}
             <div className="space-y-10 lg:col-span-3">
