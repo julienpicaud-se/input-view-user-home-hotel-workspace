@@ -178,6 +178,17 @@ function HomePage() {
   const [insightsLoading, setInsightsLoading] = React.useState(false);
   const [activeChart, setActiveChart] = React.useState<ChartId>("consumption");
   const [explainerChart, setExplainerChart] = React.useState<ChartId | null>(null);
+  const [dashSection, setDashSection] = React.useState<string>("ops");
+  const [dashDirection, setDashDirection] = React.useState<1 | -1>(1);
+  const SECTION_ORDER = React.useMemo(() => ["ops", "energy-water", "carbon", "benchmarks", "data-quality"], []);
+  const goToSection = React.useCallback((id: string) => {
+    setDashSection((prev) => {
+      const a = SECTION_ORDER.indexOf(prev);
+      const b = SECTION_ORDER.indexOf(id);
+      setDashDirection(b >= a ? 1 : -1);
+      return id;
+    });
+  }, [SECTION_ORDER]);
   const search = Route.useSearch();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = React.useState<string>(search.tab ?? "overview");
