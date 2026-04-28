@@ -874,21 +874,6 @@ function HomePage() {
         </div>
       )}
 
-      {/* Sections rendered in interest-driven order. Same widgets, same data,
-          just emphasis + ordering changes. */}
-      {(() => {
-        const sectionsMap: Record<string, React.ReactNode> = {
-          role_banner: !loading ? (
-            <RoleHomeBanner
-              hotels={hotels}
-              entries={entries}
-              activeHotelId={getActiveHotelId()}
-            />
-          ) : null,
-        };
-        return null;
-      })()}
-
 
       {/* Role-aware banner: same data, different lens */}
       {!loading && (
