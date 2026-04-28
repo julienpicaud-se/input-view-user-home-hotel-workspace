@@ -68,9 +68,13 @@ export function InterestsOnboarding() {
     setStep(2);
   };
 
+  const handleOpenChange = (o: boolean) => {
+    if (!o && !transitioning) markOnboarded();
+  };
+
   return (
     <>
-    <Dialog open={showOnboarding && !transitioning} onOpenChange={(o) => { if (!o && !transitioning) markOnboarded(); }}>
+    <Dialog open={showOnboarding && !transitioning} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto rounded-3xl p-0">
         <div className="px-6 pt-6 md:px-8 md:pt-8">
           <DialogHeader>
