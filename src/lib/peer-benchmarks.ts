@@ -43,11 +43,12 @@ const SEASONAL = {
   waste:       [0.75, 0.72, 0.8, 0.9, 1.0, 1.15, 1.3, 1.32, 1.2, 1.0, 0.85, 0.82],
 };
 
-// Base intensities (per occupied room-night) — typical mid-luxury Mediterranean hotel
+// Base intensities (per occupied room-night) — typical European hotel,
+// anchored on Accor RFP references (e.g. ~500 L water per occupied room).
 const BASE = {
   electricity_kwh: 38,
   gas_kwh: 14,
-  water_m3: 1.1,
+  water_m3: 0.55,
   waste_kg: 2.4,
 };
 
