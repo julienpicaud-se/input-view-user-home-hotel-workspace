@@ -848,6 +848,48 @@ function HomePage() {
         <div className="mt-6 h-px gold-divider" />
       </header>
 
+      {/* Personalization indicator — discreet, non-intrusive */}
+      {interests.length > 0 && (
+        <div className="-mt-6 mb-6 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 font-medium uppercase tracking-[0.14em] text-primary">
+            <Sparkles className="h-3 w-3" />
+            Personalized based on your interests
+          </span>
+          <span className="hidden sm:inline">·</span>
+          <span className="hidden sm:inline">
+            {interests
+              .slice(0, 3)
+              .map((id) => INTEREST_META[id]?.label)
+              .filter(Boolean)
+              .join(" · ")}
+            {interests.length > 3 ? ` +${interests.length - 3}` : ""}
+          </span>
+          <button
+            type="button"
+            onClick={reopenOnboarding}
+            className="ml-auto rounded-lg border border-border/60 px-2 py-1 transition-colors hover:bg-muted hover:text-foreground"
+          >
+            Edit interests
+          </button>
+        </div>
+      )}
+
+      {/* Sections rendered in interest-driven order. Same widgets, same data,
+          just emphasis + ordering changes. */}
+      {(() => {
+        const sectionsMap: Record<string, React.ReactNode> = {
+          role_banner: !loading ? (
+            <RoleHomeBanner
+              hotels={hotels}
+              entries={entries}
+              activeHotelId={getActiveHotelId()}
+            />
+          ) : null,
+        };
+        return null;
+      })()}
+
+
       {/* Role-aware banner: same data, different lens */}
       {!loading && (
         <RoleHomeBanner
