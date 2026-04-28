@@ -824,15 +824,15 @@ function HomePage() {
         />
       )}
 
-      {/* Briefing — Your portfolio at a glance (top of page) */}
+      {/* Briefing — adapts to the selected profile (Hotel User / VPO / Super Admin) */}
       <section className="mb-12">
         <div className="mb-4 flex items-end justify-between">
           <div>
             <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-              Today's briefing
+              {briefingHeader.eyebrow}
             </div>
             <h2 className="font-serif text-2xl font-semibold text-foreground">
-              Your portfolio at a glance
+              {briefingHeader.title}
             </h2>
           </div>
           {!loading && summary?.latestEntry && (
@@ -846,67 +846,239 @@ function HomePage() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
-          {/* Portfolio */}
-          <GlanceCard
-            label="Portfolio"
-            icon={Building2}
-            loading={loading}
-            value={summary ? formatNumber(summary.hotelCount) : "—"}
-            unit={summary?.hotelCount === 1 ? "hotel" : "hotels"}
-            footer={
-              summary
-                ? `${formatNumber(summary.totalRooms)} total rooms`
-                : undefined
-            }
-          />
+          {profileType === "hotel_user" && (
+            <>
+              {/* Active hotel context */}
+              <GlanceCard
+                label="My hotel"
+                icon={HotelIcon}
+                loading={loading}
+                value={activeHotel?.name ?? "—"}
+                valueSize="md"
+                footer={
+                  activeHotel
+                    ? `${formatNumber(activeHotel.rooms)} rooms · ${activeHotel.region}`
+                    : "Select a hotel from the switcher"
+                }
+              />
 
-          {/* Latest data */}
-          <GlanceCard
-            label="Latest data"
-            icon={ClipboardList}
-            loading={loading}
-            value={
-              summary?.latestEntry
-                ? periodLabel(summary.latestEntry.year, summary.latestEntry.month)
-                : "—"
-            }
-            valueSize="md"
-            badges={glanceBadges.latest}
-            footer={summary?.latestEntry?.hotel_name ?? "No entries yet"}
-          />
+              {/* Energy per occupied room with YoY */}
+              {(() => {
+                const occ = hotelLatest?.occupied_room_nights ?? 0;
+                const elec = Number(hotelLatest?.electricity_kwh ?? 0);
+                const ePerRoom = occ > 0 ? elec / occ : null;
+                const occLY = hotelLastYear?.occupied_room_nights ?? 0;
+                const elecLY = Number(hotelLastYear?.electricity_kwh ?? 0);
+                const ePerRoomLY = occLY > 0 ? elecLY / occLY : null;
+                const yoy =
+                  ePerRoom !== null && ePerRoomLY !== null && ePerRoomLY > 0
+                    ? ((ePerRoom - ePerRoomLY) / ePerRoomLY) * 100
+                    : null;
+                const better = yoy !== null && yoy < 0;
+                return (
+                  <GlanceCard
+                    label="Energy / occupied room"
+                    icon={Activity}
+                    loading={loading}
+                    value={ePerRoom !== null ? formatNumber(ePerRoom, 1) : "—"}
+                    unit="kWh"
+                    tone={
+                      yoy === null ? "neutral" : better ? "positive" : "warning"
+                    }
+                    footer={
+                      yoy !== null ? (
+                        <span
+                          className={`inline-flex items-center gap-1 font-medium ${
+                            better ? "text-success" : "text-warning"
+                          }`}
+                        >
+                          {better ? (
+                            <TrendingDown className="h-3.5 w-3.5" />
+                          ) : (
+                            <TrendingUp className="h-3.5 w-3.5" />
+                          )}
+                          {formatPct(yoy)} vs same month last year
+                        </span>
+                      ) : (
+                        "Need 12 months of data"
+                      )
+                    }
+                  />
+                );
+              })()}
 
-          {/* CO2e trend */}
-          <GlanceCard
-            label="CO₂e — latest month"
-            icon={Leaf}
-            loading={loading}
-            value={
-              summary
-                ? formatNumber(Math.round(summary.co2eLatest))
-                : "—"
-            }
-            unit="kg"
-            tone={co2Change === null ? "neutral" : co2Down ? "positive" : "warning"}
-            badges={glanceBadges.co2e}
-            footer={
-              co2Change !== null ? (
-                <span
-                  className={`inline-flex items-center gap-1 font-medium ${
-                    co2Down ? "text-success" : "text-warning"
-                  }`}
-                >
-                  {co2Down ? (
-                    <TrendingDown className="h-3.5 w-3.5" />
+              {/* Hotel CO2e vs prior month */}
+              {(() => {
+                const co2Now = hotelLatest ? calculateCO2e(hotelLatest) : 0;
+                const co2Prev = hotelPrev ? calculateCO2e(hotelPrev) : 0;
+                const change = pctChange(co2Now || null, co2Prev || null);
+                const down = change !== null && change < 0;
+                return (
+                  <GlanceCard
+                    label="CO₂e — last month"
+                    icon={Leaf}
+                    loading={loading}
+                    value={co2Now > 0 ? formatNumber(Math.round(co2Now)) : "—"}
+                    unit="kg"
+                    tone={
+                      change === null ? "neutral" : down ? "positive" : "warning"
+                    }
+                    footer={
+                      change !== null ? (
+                        <span
+                          className={`inline-flex items-center gap-1 font-medium ${
+                            down ? "text-success" : "text-warning"
+                          }`}
+                        >
+                          {down ? (
+                            <TrendingDown className="h-3.5 w-3.5" />
+                          ) : (
+                            <TrendingUp className="h-3.5 w-3.5" />
+                          )}
+                          {formatPct(change)} vs previous month
+                        </span>
+                      ) : (
+                        "Log another month to compare"
+                      )
+                    }
+                  />
+                );
+              })()}
+            </>
+          )}
+
+          {profileType === "vpo" && (
+            <>
+              {/* Portfolio scope */}
+              <GlanceCard
+                label="Portfolio"
+                icon={Building2}
+                loading={loading}
+                value={summary ? formatNumber(summary.hotelCount) : "—"}
+                unit={summary?.hotelCount === 1 ? "hotel" : "hotels"}
+                footer={
+                  summary
+                    ? `${formatNumber(summary.totalRooms)} total rooms`
+                    : undefined
+                }
+              />
+
+              {/* On-track % (proxy: hotels with complete data for expected month) */}
+              {(() => {
+                const total = summary?.hotelProgress.length ?? 0;
+                const onTrack = summary?.hotelProgress.filter((h) => h.complete).length ?? 0;
+                const pct = total > 0 ? Math.round((onTrack / total) * 100) : 0;
+                return (
+                  <GlanceCard
+                    label="Hotels on-track"
+                    icon={Activity}
+                    loading={loading}
+                    value={total > 0 ? `${pct}%` : "—"}
+                    tone={pct >= 60 ? "positive" : "warning"}
+                    footer={`${onTrack} of ${total} reported the latest month`}
+                  />
+                );
+              })()}
+
+              {/* Portfolio CO2e vs prev month */}
+              <GlanceCard
+                label="Portfolio CO₂e — latest month"
+                icon={Leaf}
+                loading={loading}
+                value={
+                  summary ? formatNumber(Math.round(summary.co2eLatest)) : "—"
+                }
+                unit="kg"
+                tone={co2Change === null ? "neutral" : co2Down ? "positive" : "warning"}
+                badges={glanceBadges.co2e}
+                footer={
+                  co2Change !== null ? (
+                    <span
+                      className={`inline-flex items-center gap-1 font-medium ${
+                        co2Down ? "text-success" : "text-warning"
+                      }`}
+                    >
+                      {co2Down ? (
+                        <TrendingDown className="h-3.5 w-3.5" />
+                      ) : (
+                        <TrendingUp className="h-3.5 w-3.5" />
+                      )}
+                      {formatPct(co2Change)} vs previous month
+                    </span>
                   ) : (
-                    <TrendingUp className="h-3.5 w-3.5" />
-                  )}
-                  {formatPct(co2Change)} vs previous month
-                </span>
-              ) : (
-                "No comparison yet"
-              )
-            }
-          />
+                    "No comparison yet"
+                  )
+                }
+              />
+            </>
+          )}
+
+          {profileType === "super_admin" && (
+            <>
+              {/* Hotels onboarded */}
+              {(() => {
+                const onboarded = new Set(entries.map((e) => e.hotel_id)).size;
+                const total = hotels.length;
+                const pct = total > 0 ? Math.round((onboarded / total) * 100) : 0;
+                return (
+                  <GlanceCard
+                    label="Hotels onboarded"
+                    icon={Building2}
+                    loading={loading}
+                    value={`${pct}%`}
+                    tone={pct >= 80 ? "positive" : "warning"}
+                    footer={`${onboarded} of ${total} hotels reporting`}
+                  />
+                );
+              })()}
+
+              {/* Data completeness */}
+              {(() => {
+                const expected = entries.length * 5;
+                const filled = entries.reduce((s, e) => {
+                  let n = 0;
+                  if (e.electricity_kwh != null) n++;
+                  if (e.gas_kwh != null) n++;
+                  if (e.water_m3 != null) n++;
+                  if (e.waste_kg != null) n++;
+                  if (e.occupied_room_nights != null) n++;
+                  return s + n;
+                }, 0);
+                const pct = expected > 0 ? (filled / expected) * 100 : 0;
+                return (
+                  <GlanceCard
+                    label="Data completeness"
+                    icon={Database}
+                    loading={loading}
+                    value={`${pct.toFixed(0)}%`}
+                    tone={pct >= 80 ? "positive" : pct >= 50 ? "neutral" : "warning"}
+                    footer={`${filled} of ${expected} fields filled`}
+                  />
+                );
+              })()}
+
+              {/* Reporting timeliness — % of hotels with the expected period logged */}
+              {(() => {
+                const total = summary?.hotelProgress.length ?? 0;
+                const onTime = summary?.hotelProgress.filter((h) => h.filledCount > 0).length ?? 0;
+                const pct = total > 0 ? Math.round((onTime / total) * 100) : 0;
+                return (
+                  <GlanceCard
+                    label="Reporting on time"
+                    icon={BarChart3}
+                    loading={loading}
+                    value={total > 0 ? `${pct}%` : "—"}
+                    tone={pct >= 80 ? "positive" : "warning"}
+                    footer={
+                      summary
+                        ? `For ${periodLabel(summary.expectedYear, summary.expectedMonth)}`
+                        : undefined
+                    }
+                  />
+                );
+              })()}
+            </>
+          )}
         </div>
       </section>
 
