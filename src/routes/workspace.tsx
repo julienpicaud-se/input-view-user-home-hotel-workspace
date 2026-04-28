@@ -89,6 +89,38 @@ import { AutopilotLogCard } from "@/components/autopilot-log-card";
 import { PastDataActivity } from "@/components/past-data-activity";
 import { DashboardSection } from "@/components/dashboard-section";
 import { DashboardSectionNav } from "@/components/dashboard-section-nav";
+import {
+  DashboardFilters,
+  DEFAULT_DASHBOARD_FILTERS,
+  type DashboardFiltersValue,
+} from "@/components/dashboard-filters";
+import {
+  OpsIntensityTrend,
+  OpsVarianceDrivers,
+  OpsSustainabilityActions,
+  EnergyTrend,
+  WaterTrend,
+  EnergyMix,
+  AnomalyDetection,
+  HourlyLoadProfile,
+  CarbonYoYTrend,
+  CarbonBreakdown,
+  CarbonIntensityTrend,
+  CarbonContribution,
+  CarbonTargetProgress,
+  PeerPercentileRank,
+  PeerDistribution,
+  PeerOutliers,
+  PeerRankOverTime,
+  BenchmarkGroupFilter,
+  type PeerGroupFilter,
+  CompletenessTimeline,
+  MissingDataMatrix,
+  FreshnessByMetric,
+  FlaggedValues,
+  PreviousCampaignCompare,
+  OwnerResponsibilityFilter,
+} from "@/components/dashboard-charts";
 
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
