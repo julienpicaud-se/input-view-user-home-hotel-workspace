@@ -308,6 +308,8 @@ Please:
             : `Network recap for ${monthLabel} — ${PORTFOLIO_SUMMARY.completeness}% reporting completeness, ${PORTFOLIO_SUMMARY.late} late submissions to chase.`}
       </p>
 
+      {profileType === "hotel_user" && (
+      <>
       {/* Stat strip */}
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatPill
