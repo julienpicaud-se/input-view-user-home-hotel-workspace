@@ -650,7 +650,7 @@ function HomePage() {
             {/* Charts column — organised into interest-based sections */}
             <div className="space-y-10 lg:col-span-3">
               {/* Section 1 — Hotel Operational Performance */}
-              <DashboardSection
+              <DashboardSection activeId={dashSection} direction={dashDirection}
                 id="ops"
                 title="Hotel operational performance"
                 subtitle="Your full activity footprint at a glance — utilities and CO₂e in one view."
@@ -724,7 +724,7 @@ function HomePage() {
               </DashboardSection>
 
               {/* Section 2 — Energy & Water Performance */}
-              <DashboardSection
+              <DashboardSection activeId={dashSection} direction={dashDirection}
                 id="energy-water"
                 title="Energy & water performance"
                 subtitle="Trends over time, normalised by activity — spot drift early."
@@ -793,7 +793,7 @@ function HomePage() {
               </DashboardSection>
 
               {/* Section 3 — Carbon Footprint */}
-              <DashboardSection
+              <DashboardSection activeId={dashSection} direction={dashDirection}
                 id="carbon"
                 title="Carbon footprint"
                 subtitle="CO₂e trajectory and the energy mix behind it."
@@ -847,7 +847,7 @@ function HomePage() {
               </DashboardSection>
 
               {/* Section 4 — Benchmarking & Peer Comparison */}
-              <DashboardSection
+              <DashboardSection activeId={dashSection} direction={dashDirection}
                 id="benchmarks"
                 title="Benchmarking & peer comparison"
                 subtitle={`How this hotel compares with ${cohortSize} similar Mediterranean hotels.`}
@@ -894,7 +894,7 @@ function HomePage() {
               </DashboardSection>
 
               {/* Section 5 — Data Quality & Reporting Confidence */}
-              <DashboardSection
+              <DashboardSection activeId={dashSection} direction={dashDirection}
                 id="data-quality"
                 title="Data quality & reporting confidence"
                 subtitle="Whether you can trust the numbers above — and what's still missing."
