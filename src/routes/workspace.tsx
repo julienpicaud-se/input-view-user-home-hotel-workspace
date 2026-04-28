@@ -264,6 +264,22 @@ function HomePage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search.tab]);
+  // Deep-link from Performance Summary: pre-highlight the relevant input field
+  // when the user lands here to fix or review missing data.
+  React.useEffect(() => {
+    if (search.from !== "summary") return;
+    if (search.intent !== "missing" && search.intent !== "review") return;
+    const map: Record<string, HighlightedField> = {
+      electricity: "electricity_kwh",
+      gas: "gas_kwh",
+      water: "water_m3",
+      waste: "waste_kg",
+      occupancy: "occupied_room_nights",
+    };
+    const f = search.focus ? map[search.focus] : undefined;
+    if (f) setHighlightFields([f]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search.from, search.intent, search.focus]);
   const [pendingPrompt, setPendingPrompt] = React.useState<string | null>(null);
   const [highlightFields, setHighlightFields] = React.useState<HighlightedField[]>([]);
   const [utilityFilter, setUtilityFilter] = React.useState<Utility | null>(null);
