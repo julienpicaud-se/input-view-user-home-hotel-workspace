@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
@@ -160,6 +161,28 @@ export function OverviewPerformanceSummary({
   }
 
   const monthLabel = `${MONTH_NAMES[latest.month - 1]} ${latest.year}`;
+  const periodParam = `${latest.year}-${String(latest.month).padStart(2, "0")}`;
+
+  /** Builds a deep-link from the Performance Summary to Data Insights,
+   *  preserving role intent (operational / portfolio / governance). */
+  type Focus = "electricity" | "gas" | "water" | "waste" | "score" | "best" | "gap" | "occupancy";
+  type LinkDest = {
+    to: "/workspace";
+    search: { tab: "log" | "analyze"; from: "summary"; focus: Focus; period: string; intent: "review" | "missing" | "flagged" | "portfolio" | "governance" };
+  };
+  function buildDest(focus: Focus, opts?: { missing?: boolean; flagged?: boolean }): LinkDest {
+    let intent: LinkDest["search"]["intent"] = "review";
+    if (opts?.missing) intent = "missing";
+    else if (opts?.flagged) intent = "flagged";
+    else if (profileType === "vpo") intent = "portfolio";
+    else if (profileType === "super_admin") intent = "governance";
+    // Hotel users land in the Add-data tab to fix/review; VPO & Admin land in
+    // the dashboard with the relevant role overlays already in scope.
+    const tab: "log" | "analyze" =
+      profileType === "hotel_user" || opts?.missing ? "log" : "analyze";
+    return { to: "/workspace", search: { tab, from: "summary", focus, period: periodParam, intent } };
+  }
+
   const validRanked = rows.filter((r) => r.rank !== null);
   const sortedByRank = [...validRanked].sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0));
   const bestRow = sortedByRank[0] ?? null;
@@ -323,6 +346,8 @@ Please:
               : `${scoreDelta > 0 ? "+" : ""}${scoreDelta.toFixed(1)} vs last month`
           }
           accent="primary"
+          to={buildDest("score") as never}
+          hint="Open the dashboard to see what drove the score"
         />
         <StatPill
           label="Occupied room-nights"
@@ -331,6 +356,8 @@ Please:
           trend={occMomPct === null ? null : occMomPct > 0 ? "up" : occMomPct < 0 ? "down" : "flat"}
           deltaText={occMomPct === null ? null : `${formatPct(occMomPct)} MoM`}
           accent="neutral"
+          to={buildDest("occupancy", { missing: occThis === null }) as never}
+          hint={occThis === null ? "Add occupancy for this period" : "Review occupancy entry"}
         />
         {bestRow && bestRow.position !== null ? (
           <StatPill
@@ -340,6 +367,8 @@ Please:
             trend="up"
             deltaText={bestRow.label}
             accent="positive"
+            to={buildDest(bestRow.key as Focus) as never}
+            hint={`Drill into ${bestRow.label.toLowerCase()}`}
           />
         ) : (
           <StatPill label="Best ranking" value="—" unit="" trend={null} deltaText={null} accent="neutral" />
@@ -352,6 +381,8 @@ Please:
             trend="down"
             deltaText={worstRow.label}
             accent="negative"
+            to={buildDest(worstRow.key as Focus) as never}
+            hint={`Drill into ${worstRow.label.toLowerCase()}`}
           />
         ) : (
           <StatPill label="Biggest gap" value="—" unit="" trend={null} deltaText={null} accent="neutral" />
@@ -374,17 +405,23 @@ Please:
           <tbody>
             {rows.map((r, i) => {
               const Icon = r.icon;
+              const focus = r.key as Focus;
+              const isMissing = r.value === null;
+              const rowDest = buildDest(focus, { missing: isMissing });
               return (
                 <tr
                   key={r.key}
-                  className={
-                    i < rows.length - 1
-                      ? "border-b border-border/50"
-                      : ""
-                  }
+                  className={`group transition-colors hover:bg-primary/5 ${
+                    i < rows.length - 1 ? "border-b border-border/50" : ""
+                  }`}
                 >
-                  <td className="sticky left-0 z-10 bg-card/95 px-4 py-3 backdrop-blur-sm">
-                    <div className="flex items-center gap-2">
+                  <td className="sticky left-0 z-10 bg-card/95 px-0 py-0 backdrop-blur-sm group-hover:bg-primary/5">
+                    <Link
+                      to={rowDest.to}
+                      search={rowDest.search as never}
+                      title={isMissing ? `Add ${r.label.toLowerCase()} for ${monthLabel}` : `Review ${r.label.toLowerCase()} for ${monthLabel}`}
+                      className="flex items-center gap-2 px-4 py-3 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    >
                       <div
                         className="flex h-7 w-7 items-center justify-center rounded-lg"
                         style={{
@@ -393,21 +430,35 @@ Please:
                       >
                         <Icon className="h-3.5 w-3.5" style={{ color: r.color }} />
                       </div>
-                      <span className="font-medium text-foreground">
+                      <span className="font-medium text-foreground underline-offset-2 group-hover:underline">
                         {r.label}
                       </span>
-                    </div>
+                      <span className="ml-1 text-[10px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
+                        {isMissing ? "Add data →" : "View →"}
+                      </span>
+                    </Link>
                   </td>
                   <td className="num px-3 py-3 text-right text-foreground">
                     {r.value !== null ? (
-                      <>
+                      <Link
+                        to={rowDest.to}
+                        search={rowDest.search as never}
+                        className="rounded px-1 py-0.5 hover:bg-primary/10"
+                      >
                         {formatNumber(r.value, 2)}
                         <span className="ml-1 text-[11px] text-muted-foreground">
                           {r.unit}
                         </span>
-                      </>
+                      </Link>
                     ) : (
-                      <span className="text-muted-foreground">—</span>
+                      <Link
+                        to={rowDest.to}
+                        search={rowDest.search as never}
+                        title={`Add ${r.label.toLowerCase()} for ${monthLabel}`}
+                        className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-700 hover:bg-amber-500/20 dark:text-amber-300"
+                      >
+                        — Add data
+                      </Link>
                     )}
                   </td>
                   <td className="px-3 py-3 text-right">
@@ -508,6 +559,8 @@ function StatPill({
   trend,
   deltaText,
   accent,
+  to,
+  hint,
 }: {
   label: string;
   value: string;
@@ -515,6 +568,10 @@ function StatPill({
   trend: "up" | "down" | "flat" | null;
   deltaText: string | null;
   accent: "primary" | "positive" | "negative" | "neutral";
+  /** Optional deep-link destination — when provided, the tile becomes clickable. */
+  to?: { to: "/workspace"; search: Record<string, string> };
+  /** Tooltip-like hover hint shown when the tile is clickable. */
+  hint?: string;
 }) {
   const accentBg =
     accent === "primary"
@@ -535,10 +592,17 @@ function StatPill({
   const TrendIcon =
     trend === "up" ? TrendingUp : trend === "down" ? TrendingDown : Minus;
 
-  return (
-    <div className="rounded-2xl border border-border/60 bg-background/40 p-3">
-      <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-        {label}
+  const inner = (
+    <>
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          {label}
+        </div>
+        {to ? (
+          <span className="text-[10px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
+            View →
+          </span>
+        ) : null}
       </div>
       <div className="mt-1 flex items-baseline gap-1">
         <span className="font-serif text-2xl font-semibold text-foreground">
@@ -556,6 +620,24 @@ function StatPill({
           {deltaText}
         </div>
       )}
+    </>
+  );
+
+  if (to) {
+    return (
+      <Link
+        to={to.to}
+        search={to.search as never}
+        title={hint}
+        className="group block rounded-2xl border border-border/60 bg-background/40 p-3 text-left transition hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      >
+        {inner}
+      </Link>
+    );
+  }
+  return (
+    <div className="rounded-2xl border border-border/60 bg-background/40 p-3">
+      {inner}
     </div>
   );
 }

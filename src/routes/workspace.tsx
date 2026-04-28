@@ -125,7 +125,7 @@ import {
   PreviousCampaignCompare,
   OwnerResponsibilityFilter,
 } from "@/components/dashboard-charts";
-import { RoleLensBanner, RoleSectionOverlays } from "@/components/dashboard-role-lenses";
+import { RoleLensBanner, RoleSectionOverlays, FromSummaryBanner } from "@/components/dashboard-role-lenses";
 
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -167,15 +167,44 @@ import {
 import { BenchmarksPanel } from "@/components/benchmarks-panel";
 import { OverviewPerformanceSummary } from "@/components/overview-performance-summary";
 
-type IndexSearch = { tab?: "overview" | "log" | "analyze" | "settings" | "benchmarks" };
+type IndexSearch = {
+  tab?: "overview" | "log" | "analyze" | "settings" | "benchmarks";
+  /** Performance Summary deep-link: which utility/KPI brought the user here. */
+  focus?: "electricity" | "gas" | "water" | "waste" | "score" | "best" | "gap" | "occupancy";
+  /** Period in YYYY-MM format (e.g. "2026-03"). */
+  period?: string;
+  /** What the user is here to do. */
+  intent?: "review" | "missing" | "flagged" | "portfolio" | "governance";
+  /** Where the user came from — used to render a contextual breadcrumb. */
+  from?: "summary";
+};
+
+const FOCUS_VALUES = ["electricity", "gas", "water", "waste", "score", "best", "gap", "occupancy"] as const;
+const INTENT_VALUES = ["review", "missing", "flagged", "portfolio", "governance"] as const;
 
 export const Route = createFileRoute("/workspace")({
   validateSearch: (search: Record<string, unknown>): IndexSearch => {
+    const out: IndexSearch = {};
     const tab = search.tab;
     if (tab === "overview" || tab === "log" || tab === "analyze" || tab === "settings" || tab === "benchmarks") {
-      return { tab };
+      out.tab = tab;
     }
-    return {};
+    const focus = search.focus;
+    if (typeof focus === "string" && (FOCUS_VALUES as readonly string[]).includes(focus)) {
+      out.focus = focus as IndexSearch["focus"];
+    }
+    const period = search.period;
+    if (typeof period === "string" && /^\d{4}-\d{2}$/.test(period)) {
+      out.period = period;
+    }
+    const intent = search.intent;
+    if (typeof intent === "string" && (INTENT_VALUES as readonly string[]).includes(intent)) {
+      out.intent = intent as IndexSearch["intent"];
+    }
+    if (search.from === "summary") {
+      out.from = "summary";
+    }
+    return out;
   },
   head: () => ({
     meta: [
@@ -235,6 +264,22 @@ function HomePage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search.tab]);
+  // Deep-link from Performance Summary: pre-highlight the relevant input field
+  // when the user lands here to fix or review missing data.
+  React.useEffect(() => {
+    if (search.from !== "summary") return;
+    if (search.intent !== "missing" && search.intent !== "review") return;
+    const map: Record<string, HighlightedField> = {
+      electricity: "electricity_kwh",
+      gas: "gas_kwh",
+      water: "water_m3",
+      waste: "waste_kg",
+      occupancy: "occupied_room_nights",
+    };
+    const f = search.focus ? map[search.focus] : undefined;
+    if (f) setHighlightFields([f]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search.from, search.intent, search.focus]);
   const [pendingPrompt, setPendingPrompt] = React.useState<string | null>(null);
   const [highlightFields, setHighlightFields] = React.useState<HighlightedField[]>([]);
   const [utilityFilter, setUtilityFilter] = React.useState<Utility | null>(null);
@@ -537,6 +582,15 @@ function HomePage() {
         </div>
         <div className="mt-6 h-px gold-divider" />
       </header>
+
+      {/* Contextual breadcrumb when arriving from Performance Summary */}
+      {search.from === "summary" && (
+        <FromSummaryBanner
+          focus={search.focus}
+          period={search.period}
+          intent={search.intent}
+        />
+      )}
 
       {/* Tabbed workspace — Ask Sera is now embedded inside Overview & Analyze */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
