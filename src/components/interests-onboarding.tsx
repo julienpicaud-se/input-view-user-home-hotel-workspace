@@ -14,6 +14,7 @@ import {
   useProfileType,
   type ProfileType,
 } from "@/lib/profile-type";
+import { PersonalizingTransition } from "@/components/personalizing-transition";
 
 /**
  * Two-step onboarding:
@@ -26,12 +27,14 @@ export function InterestsOnboarding() {
   const [selected, setSelected] = React.useState<Set<InterestId>>(new Set(interests));
   const [step, setStep] = React.useState<1 | 2>(1);
   const [pickedRole, setPickedRole] = React.useState<ProfileType | null>(null);
+  const [transitioning, setTransitioning] = React.useState(false);
 
   React.useEffect(() => {
     if (showOnboarding) {
       setSelected(new Set(interests));
       setStep(1);
       setPickedRole(profileType ?? null);
+      setTransitioning(false);
     }
   }, [showOnboarding, interests, profileType]);
 
@@ -44,16 +47,19 @@ export function InterestsOnboarding() {
     });
   };
 
-  const onSave = () => {
+  const commit = () => {
     if (pickedRole) setProfileType(pickedRole);
     setInterests(Array.from(selected));
-    markOnboarded();
+  };
+
+  const onSave = () => {
+    commit();
+    setTransitioning(true);
   };
 
   const onSkip = () => {
-    if (pickedRole) setProfileType(pickedRole);
-    setInterests(Array.from(selected));
-    markOnboarded();
+    commit();
+    setTransitioning(true);
   };
 
   const goNext = () => {
@@ -63,7 +69,8 @@ export function InterestsOnboarding() {
   };
 
   return (
-    <Dialog open={showOnboarding} onOpenChange={(o) => { if (!o) markOnboarded(); }}>
+    <>
+    <Dialog open={showOnboarding && !transitioning} onOpenChange={(o) => { if (!o && !transitioning) markOnboarded(); }}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto rounded-3xl p-0">
         <div className="px-6 pt-6 md:px-8 md:pt-8">
           <DialogHeader>
@@ -232,6 +239,14 @@ export function InterestsOnboarding() {
         </div>
       </DialogContent>
     </Dialog>
+    <PersonalizingTransition
+      show={transitioning}
+      onDone={() => {
+        setTransitioning(false);
+        markOnboarded();
+      }}
+    />
+    </>
   );
 }
 
