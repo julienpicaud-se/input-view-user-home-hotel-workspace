@@ -449,6 +449,11 @@ Please:
         latest month to the previous month and to the same month last year (when
         available). Peer rank uses {cohortSize} similar Mediterranean hotels.
       </p>
+      </>
+      )}
+
+      {profileType === "vpo" && <VpoPortfolioSummary />}
+      {profileType === "super_admin" && <AdminGovernanceSummary />}
 
       <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border/50 pt-4">
         <Button
