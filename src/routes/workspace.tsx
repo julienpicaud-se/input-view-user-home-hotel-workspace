@@ -3995,13 +3995,9 @@ function LogDataTabs({
         </div>
       </div>
 
-      {/* Past data — accessible via scroll */}
+      {/* Data activity & history — accessible via scroll */}
       <div>
-        <div className="mb-3 flex items-baseline justify-between">
-          <h2 className="text-lg font-semibold">Past data</h2>
-          <span className="text-xs text-muted-foreground">{sorted.length} entries</span>
-        </div>
-        <PastDataSection sorted={sorted} rooms={rooms} hotel={hotel} />
+        <PastDataActivity entries={sorted} hotel={hotel} onChanged={onSaved} />
       </div>
     </div>
   );
