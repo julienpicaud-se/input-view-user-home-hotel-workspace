@@ -23,6 +23,11 @@ export function PersonalizingTransition({ show, onDone, duration = 3200 }: Props
   const [ready, setReady] = React.useState(false);
   const [leaving, setLeaving] = React.useState(false);
 
+  const onDoneRef = React.useRef(onDone);
+  React.useEffect(() => {
+    onDoneRef.current = onDone;
+  }, [onDone]);
+
   React.useEffect(() => {
     if (!show) {
       setStepIdx(0);
@@ -37,12 +42,10 @@ export function PersonalizingTransition({ show, onDone, duration = 3200 }: Props
       timers.push(setTimeout(() => setStepIdx(i), perStep * i));
     });
     timers.push(setTimeout(() => setReady(true), duration - 600));
-    timers.push(
-      setTimeout(() => setLeaving(true), duration - 300),
-    );
-    timers.push(setTimeout(() => onDone(), duration));
+    timers.push(setTimeout(() => setLeaving(true), duration - 300));
+    timers.push(setTimeout(() => onDoneRef.current(), duration));
     return () => timers.forEach(clearTimeout);
-  }, [show, duration, onDone]);
+  }, [show, duration]);
 
   if (!show) return null;
 
