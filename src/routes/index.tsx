@@ -874,15 +874,20 @@ function HomePage() {
         </div>
       )}
 
+      {/* Sections — same widgets, ordered by user interests */}
+      <div className="flex flex-col">
+        {(() => { /* compute helper inline */ return null; })()}
 
-      {/* Role-aware banner: same data, different lens */}
-      {!loading && (
-        <RoleHomeBanner
-          hotels={hotels}
-          entries={entries}
-          activeHotelId={getActiveHotelId()}
-        />
-      )}
+        {/* Role-aware banner: same data, different lens */}
+        <div style={{ order: sectionOrder.indexOf("role_banner") }}>
+        {!loading && (
+          <RoleHomeBanner
+            hotels={hotels}
+            entries={entries}
+            activeHotelId={getActiveHotelId()}
+          />
+        )}
+        </div>
 
       {/* Briefing — adapts to the selected profile (Hotel User / VPO / Super Admin) */}
       <section className="mb-12">
