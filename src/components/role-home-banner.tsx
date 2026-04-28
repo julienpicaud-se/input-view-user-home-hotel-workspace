@@ -118,6 +118,8 @@ export function RoleHomeBanner({ hotels, entries, activeHotelId }: Props) {
         },
       ];
     }
+    const TARGET_YOY = -5; // Group target: reduce CO₂e by 5% vs last year
+
     if (profileType === "vpo") {
       // Aggregate latest month available
       const latestPeriod = entries.reduce<{ y: number; m: number } | null>(
@@ -134,40 +136,97 @@ export function RoleHomeBanner({ hotels, entries, activeHotelId }: Props) {
             (e) => e.year === latestPeriod.y && e.month === latestPeriod.m,
           )
         : [];
+      const inMonthPrev = latestPeriod
+        ? entries.filter(
+            (e) => e.year === latestPeriod.y - 1 && e.month === latestPeriod.m,
+          )
+        : [];
       const reported = new Set(inMonth.map((e) => e.hotel_id)).size;
-      const onTrack = inMonth.filter((e) => {
+      const reportedPrev = new Set(inMonthPrev.map((e) => e.hotel_id)).size;
+      const reportingPct = hotels.length > 0 ? (reported / hotels.length) * 100 : 0;
+      const reportingPrevPct = hotels.length > 0 ? (reportedPrev / hotels.length) * 100 : 0;
+      const reportingDelta = reportingPrevPct > 0 ? reportingPct - reportingPrevPct : null;
+
+      // "On-target" = hotel beating the -5% YoY CO₂e/occ goal
+      const onTarget = inMonth.filter((e) => {
         const occ = e.occupied_room_nights ?? 0;
-        const elec = Number(e.electricity_kwh ?? 0);
-        return occ > 0 && elec / occ < 30; // simple heuristic
+        const prev = inMonthPrev.find((p) => p.hotel_id === e.hotel_id);
+        const occPrev = prev?.occupied_room_nights ?? 0;
+        if (occ === 0 || occPrev === 0 || !prev) return false;
+        const cur = calculateCO2e(e) / occ;
+        const old = calculateCO2e(prev) / occPrev;
+        return old > 0 && ((cur - old) / old) * 100 <= TARGET_YOY;
       }).length;
+      const onTargetPct = reported > 0 ? (onTarget / reported) * 100 : 0;
+
       const co2 = inMonth.reduce((s, e) => s + calculateCO2e(e), 0);
+      const co2Prev = inMonthPrev.reduce((s, e) => s + calculateCO2e(e), 0);
+      const co2Delta = co2Prev > 0 ? ((co2 - co2Prev) / co2Prev) * 100 : null;
+
+      // Sparkline: portfolio CO₂e by month, last 12 months
+      const byPeriod = new Map<string, number>();
+      entries.forEach((e) => {
+        const k = `${e.year}-${String(e.month).padStart(2, "0")}`;
+        byPeriod.set(k, (byPeriod.get(k) ?? 0) + calculateCO2e(e));
+      });
+      const co2Spark = [...byPeriod.entries()]
+        .sort(([a], [b]) => a.localeCompare(b))
+        .slice(-12)
+        .map(([, v]) => v);
+
       return [
         {
           label: "Hotels reporting",
           value: `${reported}/${hotels.length}`,
-          hint: "Latest period",
+          hint: reportingPct >= 80 ? "Good coverage" : "Coverage below 80%",
           icon: Building2,
+          delta: reportingDelta,
+          tone: reportingPct >= 80 ? "good" : reportingPct >= 50 ? "neutral" : "warn",
+          // override: higher reporting is better
+          higherIsBetter: true,
         },
         {
-          label: "On-track vs target",
-          value: reported > 0 ? `${Math.round((onTrack / reported) * 100)}` : "—",
+          label: "On target (−5% YoY)",
+          value: reported > 0 ? `${Math.round(onTargetPct)}` : "—",
           unit: "%",
-          hint: `${onTrack} of ${reported} hotels`,
-          tone: reported > 0 && onTrack / reported >= 0.6 ? "good" : "warn",
+          hint: `${onTarget} of ${reported} hotels meeting goal`,
+          tone: onTargetPct >= 60 ? "good" : onTargetPct >= 30 ? "neutral" : "warn",
           icon: BarChart3,
+          higherIsBetter: true,
+          delta: reported > 0 ? onTargetPct - 60 : null, // distance from 60% threshold
         },
         {
-          label: "Portfolio CO₂e",
-          value: `${formatNumber(Math.round(co2))}`,
-          unit: "kg",
-          hint: "Sum of latest period",
+          label: "Portfolio CO₂e vs LY",
+          value: co2Delta !== null ? `${co2Delta > 0 ? "+" : ""}${co2Delta.toFixed(0)}` : "—",
+          unit: "%",
+          hint:
+            co2Delta === null
+              ? "Need 12 months"
+              : co2Delta <= TARGET_YOY
+                ? "Beating −5% target"
+                : co2Delta <= 0
+                  ? "Improving, below target"
+                  : "Above last year",
           icon: Leaf,
+          delta: co2Delta,
+          tone:
+            co2Delta === null
+              ? "neutral"
+              : co2Delta <= TARGET_YOY
+                ? "good"
+                : co2Delta <= 0
+                  ? "neutral"
+                  : "warn",
+          spark: co2Spark,
+          isTrendCard: true,
         },
       ];
     }
+
     // super_admin → program health
     const totalHotels = hotels.length;
     const onboarded = new Set(entries.map((e) => e.hotel_id)).size;
+    const onboardedPct = totalHotels > 0 ? (onboarded / totalHotels) * 100 : 0;
     const expectedFields = entries.length * 5;
     const filledFields = entries.reduce((s, e) => {
       let n = 0;
@@ -180,14 +239,38 @@ export function RoleHomeBanner({ hotels, entries, activeHotelId }: Props) {
     }, 0);
     const completeness =
       expectedFields > 0 ? (filledFields / expectedFields) * 100 : 0;
+
+    // Program-wide CO₂e/occ trend, last 12 months — used as the trend card
+    const byPeriodAdmin = new Map<string, { co2: number; occ: number }>();
+    entries.forEach((e) => {
+      const k = `${e.year}-${String(e.month).padStart(2, "0")}`;
+      const cur = byPeriodAdmin.get(k) ?? { co2: 0, occ: 0 };
+      cur.co2 += calculateCO2e(e);
+      cur.occ += e.occupied_room_nights ?? 0;
+      byPeriodAdmin.set(k, cur);
+    });
+    const sortedPeriods = [...byPeriodAdmin.entries()].sort(([a], [b]) => a.localeCompare(b));
+    const intensitySpark = sortedPeriods.slice(-12).map(([, v]) => (v.occ > 0 ? v.co2 / v.occ : 0));
+    // YoY delta on intensity (latest vs same month last year)
+    let programYoy: number | null = null;
+    if (sortedPeriods.length >= 13) {
+      const last = sortedPeriods[sortedPeriods.length - 1][1];
+      const yearAgo = sortedPeriods[sortedPeriods.length - 13][1];
+      const cur = last.occ > 0 ? last.co2 / last.occ : 0;
+      const old = yearAgo.occ > 0 ? yearAgo.co2 / yearAgo.occ : 0;
+      programYoy = old > 0 ? ((cur - old) / old) * 100 : null;
+    }
+
     return [
       {
         label: "Hotels onboarded",
-        value: `${Math.round((onboarded / Math.max(1, totalHotels)) * 100)}`,
+        value: `${Math.round(onboardedPct)}`,
         unit: "%",
-        hint: `${onboarded} of ${totalHotels}`,
-        tone: onboarded / Math.max(1, totalHotels) >= 0.8 ? "good" : "warn",
+        hint: `${onboarded} of ${totalHotels} hotels`,
+        tone: onboardedPct >= 80 ? "good" : onboardedPct >= 50 ? "neutral" : "warn",
         icon: Building2,
+        higherIsBetter: true,
+        delta: onboardedPct - 80, // distance from 80% adoption goal
       },
       {
         label: "Data completeness",
@@ -196,12 +279,33 @@ export function RoleHomeBanner({ hotels, entries, activeHotelId }: Props) {
         hint: `${filledFields} / ${expectedFields} fields`,
         tone: completeness >= 80 ? "good" : completeness >= 50 ? "neutral" : "warn",
         icon: Database,
+        higherIsBetter: true,
+        delta: completeness - 80,
       },
       {
-        label: "KPI coverage",
-        value: `${entries.length}`,
-        hint: "Total monthly entries logged",
-        icon: BarChart3,
+        label: "Program CO₂e vs LY",
+        value: programYoy !== null ? `${programYoy > 0 ? "+" : ""}${programYoy.toFixed(0)}` : "—",
+        unit: "%",
+        hint:
+          programYoy === null
+            ? "Need 12 months"
+            : programYoy <= TARGET_YOY
+              ? "Beating −5% target"
+              : programYoy <= 0
+                ? "Improving, below target"
+                : "Above last year",
+        tone:
+          programYoy === null
+            ? "neutral"
+            : programYoy <= TARGET_YOY
+              ? "good"
+              : programYoy <= 0
+                ? "neutral"
+                : "warn",
+        icon: Leaf,
+        delta: programYoy,
+        spark: intensitySpark,
+        isTrendCard: true,
       },
     ];
   }, [profileType, hotels, entries, activeHotelId]);
