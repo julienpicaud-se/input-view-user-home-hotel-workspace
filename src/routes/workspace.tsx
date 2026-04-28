@@ -552,8 +552,6 @@ function HomePage() {
 
         {/* ANALYZE — KPIs, multiple charts, peer benchmarks + Sera chart chat */}
         <TabsContent value="analyze" className="mt-0 space-y-6 focus-visible:outline-none">
-          {/* Sticky in-page nav for the interest-based sections below */}
-          <DashboardSectionNav />
           {/* AI summary (replaces previous Smart insights block) */}
           <MonthlyChangeSummary
             latest={latest}
