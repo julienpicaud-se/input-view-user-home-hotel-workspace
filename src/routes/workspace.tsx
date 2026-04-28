@@ -167,15 +167,44 @@ import {
 import { BenchmarksPanel } from "@/components/benchmarks-panel";
 import { OverviewPerformanceSummary } from "@/components/overview-performance-summary";
 
-type IndexSearch = { tab?: "overview" | "log" | "analyze" | "settings" | "benchmarks" };
+type IndexSearch = {
+  tab?: "overview" | "log" | "analyze" | "settings" | "benchmarks";
+  /** Performance Summary deep-link: which utility/KPI brought the user here. */
+  focus?: "electricity" | "gas" | "water" | "waste" | "score" | "best" | "gap" | "occupancy";
+  /** Period in YYYY-MM format (e.g. "2026-03"). */
+  period?: string;
+  /** What the user is here to do. */
+  intent?: "review" | "missing" | "flagged" | "portfolio" | "governance";
+  /** Where the user came from — used to render a contextual breadcrumb. */
+  from?: "summary";
+};
+
+const FOCUS_VALUES = ["electricity", "gas", "water", "waste", "score", "best", "gap", "occupancy"] as const;
+const INTENT_VALUES = ["review", "missing", "flagged", "portfolio", "governance"] as const;
 
 export const Route = createFileRoute("/workspace")({
   validateSearch: (search: Record<string, unknown>): IndexSearch => {
+    const out: IndexSearch = {};
     const tab = search.tab;
     if (tab === "overview" || tab === "log" || tab === "analyze" || tab === "settings" || tab === "benchmarks") {
-      return { tab };
+      out.tab = tab;
     }
-    return {};
+    const focus = search.focus;
+    if (typeof focus === "string" && (FOCUS_VALUES as readonly string[]).includes(focus)) {
+      out.focus = focus as IndexSearch["focus"];
+    }
+    const period = search.period;
+    if (typeof period === "string" && /^\d{4}-\d{2}$/.test(period)) {
+      out.period = period;
+    }
+    const intent = search.intent;
+    if (typeof intent === "string" && (INTENT_VALUES as readonly string[]).includes(intent)) {
+      out.intent = intent as IndexSearch["intent"];
+    }
+    if (search.from === "summary") {
+      out.from = "summary";
+    }
+    return out;
   },
   head: () => ({
     meta: [
