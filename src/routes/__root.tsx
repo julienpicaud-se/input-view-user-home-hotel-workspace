@@ -16,6 +16,8 @@ import { DesignModeProvider, useDesignMode } from "@/lib/design-mode";
 import { DesignModeSwitcher } from "@/components/design-mode-switcher";
 import { ProfileTypeProvider } from "@/lib/profile-type";
 import { ProfileTypeSwitcher } from "@/components/profile-type-switcher";
+import { InterestsProvider } from "@/lib/interests";
+import { InterestsOnboarding } from "@/components/interests-onboarding";
 
 import appCss from "../styles.css?url";
 
@@ -136,10 +138,13 @@ function RootComponent() {
   return (
     <DesignModeProvider>
       <ProfileTypeProvider>
-        <TooltipProvider delayDuration={200}>
-          <ModeAwareShell />
-          <Toaster richColors position="top-center" />
-        </TooltipProvider>
+        <InterestsProvider>
+          <TooltipProvider delayDuration={200}>
+            <ModeAwareShell />
+            <InterestsOnboarding />
+            <Toaster richColors position="top-center" />
+          </TooltipProvider>
+        </InterestsProvider>
       </ProfileTypeProvider>
     </DesignModeProvider>
   );

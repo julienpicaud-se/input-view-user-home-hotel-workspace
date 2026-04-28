@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { InterestsEditCard } from "@/components/interests-edit-card";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
