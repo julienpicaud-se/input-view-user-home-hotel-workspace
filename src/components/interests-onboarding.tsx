@@ -28,14 +28,16 @@ export function InterestsOnboarding() {
   const [step, setStep] = React.useState<1 | 2>(1);
   const [pickedRole, setPickedRole] = React.useState<ProfileType | null>(null);
   const [transitioning, setTransitioning] = React.useState(false);
+  const wasOnboardingOpen = React.useRef(false);
 
   React.useEffect(() => {
-    if (showOnboarding) {
+    if (showOnboarding && !wasOnboardingOpen.current) {
       setSelected(new Set(interests));
       setStep(1);
       setPickedRole(profileType ?? null);
       setTransitioning(false);
     }
+    wasOnboardingOpen.current = showOnboarding;
   }, [showOnboarding, interests, profileType]);
 
   const toggle = (id: InterestId) => {
