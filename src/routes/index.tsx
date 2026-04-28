@@ -38,6 +38,8 @@ import { generateBriefing, type BriefingPayload } from "@/server/assistant.funct
 import { SeraBriefingCard } from "@/components/sera-briefing-card";
 import { DataQualityCard } from "@/components/data-quality-card";
 import { buildDataQualityIssues, type DataQualityIssue } from "@/lib/data-quality";
+import { RoleHomeBanner } from "@/components/role-home-banner";
+import { getActiveHotelId } from "@/lib/hotel";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -769,6 +771,15 @@ function HomePage() {
         </p>
         <div className="mt-6 h-px gold-divider" />
       </header>
+
+      {/* Role-aware banner: same data, different lens */}
+      {!loading && (
+        <RoleHomeBanner
+          hotels={hotels}
+          entries={entries}
+          activeHotelId={getActiveHotelId()}
+        />
+      )}
 
       {/* Briefing — Your portfolio at a glance (top of page) */}
       <section className="mb-12">
