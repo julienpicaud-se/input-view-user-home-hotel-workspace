@@ -239,6 +239,14 @@ export function InterestsOnboarding() {
         </div>
       </DialogContent>
     </Dialog>
+    <PersonalizingTransition
+      show={transitioning}
+      onDone={() => {
+        setTransitioning(false);
+        markOnboarded();
+      }}
+    />
+    </>
   );
 }
 
