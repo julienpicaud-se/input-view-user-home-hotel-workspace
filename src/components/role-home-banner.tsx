@@ -146,17 +146,22 @@ export function RoleHomeBanner({ hotels, entries, activeHotelId }: Props) {
           label: "Hotels reporting",
           value: `${reported}/${hotels.length}`,
           hint: "Latest period",
+          icon: Building2,
         },
         {
           label: "On-track vs target",
-          value: reported > 0 ? `${Math.round((onTrack / reported) * 100)}%` : "—",
+          value: reported > 0 ? `${Math.round((onTrack / reported) * 100)}` : "—",
+          unit: "%",
           hint: `${onTrack} of ${reported} hotels`,
           tone: reported > 0 && onTrack / reported >= 0.6 ? "good" : "warn",
+          icon: BarChart3,
         },
         {
           label: "Portfolio CO₂e",
-          value: `${formatNumber(Math.round(co2))} kg`,
+          value: `${formatNumber(Math.round(co2))}`,
+          unit: "kg",
           hint: "Sum of latest period",
+          icon: Leaf,
         },
       ];
     }
