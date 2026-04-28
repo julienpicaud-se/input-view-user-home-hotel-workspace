@@ -288,15 +288,24 @@ Please:
               </Badge>
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
-              A snapshot of how {hotel.name} performed this month versus last
-              month, last year, and {cohortSize} similar hotels.
+              {profileType === "hotel_user"
+                ? `A snapshot of how ${hotel.name} performed this month versus last month, last year, and ${cohortSize} similar hotels.`
+                : profileType === "vpo"
+                  ? "Same hotel KPIs, rolled up to your portfolio — with target tracking and hotel-level contributions."
+                  : "Same hotel KPIs, viewed through a programme governance lens — completeness, validity and reporting readiness."}
             </p>
           </div>
         </div>
       </div>
 
+      <RolePerfBanner role={profileType} />
+
       <p className="mb-5 font-serif text-lg leading-snug text-foreground">
-        {headline}
+        {profileType === "hotel_user"
+          ? headline
+          : profileType === "vpo"
+            ? `Portfolio recap for ${monthLabel} — ${PORTFOLIO_SUMMARY.onTrack}/${PORTFOLIO_SUMMARY.total} hotels on track on energy intensity.`
+            : `Network recap for ${monthLabel} — ${PORTFOLIO_SUMMARY.completeness}% reporting completeness, ${PORTFOLIO_SUMMARY.late} late submissions to chase.`}
       </p>
 
       {/* Stat strip */}
