@@ -153,7 +153,6 @@ export const INTEREST_META: Record<InterestId, InterestMeta> = INTERESTS.reduce(
 export type SectionId =
   | "briefing"
   | "role_banner"
-  | "kpi_glance"
   | "sera"
   | "todos"
   | "data_quality";
@@ -163,26 +162,25 @@ export type SectionId =
  * Section default order is preserved when no interest is selected.
  */
 const INTEREST_SECTION_BOOST: Record<InterestId, Partial<Record<SectionId, number>>> = {
-  ops: { kpi_glance: 3, briefing: 2 },
-  energy: { kpi_glance: 3, briefing: 2 },
-  water: { kpi_glance: 3 },
-  waste: { kpi_glance: 2 },
-  carbon: { kpi_glance: 3, briefing: 2 },
-  actions: { todos: 3 },
-  targets: { kpi_glance: 3, briefing: 3, role_banner: 2 },
-  benchmarks: { role_banner: 3, sera: 2 },
-  portfolio: { role_banner: 4, kpi_glance: 2 },
-  data_quality: { data_quality: 5, todos: 3 },
-  governance: { data_quality: 4, role_banner: 2, todos: 2 },
-  realtime: { kpi_glance: 2, sera: 2 },
-  reporting: { data_quality: 3, todos: 2 },
+  ops: { briefing: 4 },
+  energy: { briefing: 4 },
+  water: { briefing: 3 },
+  waste: { briefing: 2 },
+  carbon: { briefing: 4 },
+  actions: { todos: 4 },
+  targets: { briefing: 4, role_banner: 2 },
+  benchmarks: { role_banner: 4, sera: 2 },
+  portfolio: { role_banner: 5, briefing: 2 },
+  data_quality: { data_quality: 6, todos: 4 },
+  governance: { data_quality: 5, role_banner: 2, todos: 2 },
+  realtime: { briefing: 3, sera: 2 },
+  reporting: { data_quality: 4, todos: 2 },
 };
 
 /** Default order of sections (used as tiebreaker). */
 const DEFAULT_SECTION_ORDER: SectionId[] = [
-  "briefing",
   "role_banner",
-  "kpi_glance",
+  "briefing",
   "sera",
   "todos",
   "data_quality",
