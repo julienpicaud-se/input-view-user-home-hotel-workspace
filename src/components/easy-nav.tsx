@@ -2,6 +2,7 @@ import * as React from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { Sun, Building2, Sparkles, LayoutGrid, Hotel } from "lucide-react";
 import { DesignModeSwitcher } from "@/components/design-mode-switcher";
+import { ProfileTypeSwitcher } from "@/components/profile-type-switcher";
 import { cn } from "@/lib/utils";
 
 /**
@@ -66,6 +67,7 @@ export function EasyHeader() {
         </Link>
 
         <div className="flex items-center gap-2">
+          <ProfileTypeSwitcher />
           <DesignModeSwitcher />
         </div>
       </div>

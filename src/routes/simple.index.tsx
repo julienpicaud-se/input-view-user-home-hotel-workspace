@@ -20,6 +20,8 @@ import { DEMO_PROFILE_ID, type UserProfile } from "@/lib/user-profile";
 import { MONTH_NAMES, calculateCO2e, formatNumber } from "@/lib/format";
 import { SimpleShell } from "@/components/simple-shell";
 import { generateBriefing, type BriefingPayload } from "@/server/assistant.functions";
+import { RoleHomeBanner } from "@/components/role-home-banner";
+import { getActiveHotelId } from "@/lib/hotel";
 
 export const Route = createFileRoute("/simple/")({
   head: () => ({
@@ -62,6 +64,8 @@ function SimpleHomePage() {
   const [loading, setLoading] = React.useState(true);
   const [profile, setProfile] = React.useState<UserProfile | null>(null);
   const [summaries, setSummaries] = React.useState<HotelSummary[]>([]);
+  const [hotelsState, setHotelsState] = React.useState<Hotel[]>([]);
+  const [entriesState, setEntriesState] = React.useState<MonthlyEntry[]>([]);
   const [briefing, setBriefing] = React.useState<BriefingPayload | null>(null);
   const [briefingLoading, setBriefingLoading] = React.useState(false);
   const [co2eLatest, setCo2eLatest] = React.useState(0);
@@ -126,6 +130,8 @@ function SimpleHomePage() {
 
       setProfile((profileData as UserProfile) ?? null);
       setSummaries(summaries);
+      setHotelsState(hotels);
+      setEntriesState(entries);
       setCo2eLatest(co2);
       setLoading(false);
     })();
@@ -176,6 +182,15 @@ function SimpleHomePage() {
       }
       help="This page is your monthly check-in. Add last month's data, then see how each hotel is doing compared to similar properties. You only need to come back once a month."
     >
+      {/* Role-aware banner */}
+      {!loading && (
+        <RoleHomeBanner
+          hotels={hotelsState}
+          entries={entriesState}
+          activeHotelId={getActiveHotelId()}
+        />
+      )}
+
       {/* Friendly briefing card */}
       <section className="mb-8 rounded-3xl border border-border/60 bg-card p-5 md:p-6">
         <div className="mb-3 flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">

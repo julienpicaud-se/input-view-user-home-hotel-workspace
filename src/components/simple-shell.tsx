@@ -2,6 +2,7 @@ import * as React from "react";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { Home, ClipboardList, Sparkles, Settings2, ArrowLeft, HelpCircle, Building2 } from "lucide-react";
 import { DesignModeSwitcher } from "@/components/design-mode-switcher";
+import { ProfileTypeSwitcher } from "@/components/profile-type-switcher";
 import { HotelSwitcher } from "@/components/hotel-switcher";
 import { cn } from "@/lib/utils";
 
@@ -64,6 +65,7 @@ export function SimpleShell({ children, title, subtitle, showBack, help }: Simpl
             <div className="hidden md:block">
               <HotelSwitcher />
             </div>
+            <ProfileTypeSwitcher />
             <DesignModeSwitcher />
           </div>
         </div>

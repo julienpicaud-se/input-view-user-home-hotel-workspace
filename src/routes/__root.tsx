@@ -14,6 +14,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppSidebar } from "@/components/app-sidebar";
 import { DesignModeProvider, useDesignMode } from "@/lib/design-mode";
 import { DesignModeSwitcher } from "@/components/design-mode-switcher";
+import { ProfileTypeProvider } from "@/lib/profile-type";
+import { ProfileTypeSwitcher } from "@/components/profile-type-switcher";
 
 import appCss from "../styles.css?url";
 
@@ -123,6 +125,7 @@ function MobileTopBar() {
         >
           Workspace
         </Link>
+        <ProfileTypeSwitcher />
         <DesignModeSwitcher />
       </div>
     </header>
@@ -132,10 +135,12 @@ function MobileTopBar() {
 function RootComponent() {
   return (
     <DesignModeProvider>
-      <TooltipProvider delayDuration={200}>
-        <ModeAwareShell />
-        <Toaster richColors position="top-center" />
-      </TooltipProvider>
+      <ProfileTypeProvider>
+        <TooltipProvider delayDuration={200}>
+          <ModeAwareShell />
+          <Toaster richColors position="top-center" />
+        </TooltipProvider>
+      </ProfileTypeProvider>
     </DesignModeProvider>
   );
 }
@@ -198,9 +203,10 @@ function ModeAwareShell() {
       <AppSidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <MobileTopBar />
-        {/* Floating switcher so the user can flip from Standard too. */}
+        {/* Floating switchers so the user can flip role + view from Standard too. */}
         <div className="pointer-events-none fixed right-4 top-3 z-40 hidden md:block">
-          <div className="pointer-events-auto">
+          <div className="pointer-events-auto flex items-center gap-2">
+            <ProfileTypeSwitcher />
             <DesignModeSwitcher />
           </div>
         </div>

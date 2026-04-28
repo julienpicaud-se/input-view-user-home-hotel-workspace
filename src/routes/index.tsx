@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import { setActiveHotelId, type Hotel, type MonthlyEntry } from "@/lib/hotel";
+import { setActiveHotelId, getActiveHotelId, type Hotel, type MonthlyEntry } from "@/lib/hotel";
 import { DEMO_PROFILE_ID, type UserProfile } from "@/lib/user-profile";
 import {
   MONTH_NAMES,
@@ -38,6 +38,7 @@ import { generateBriefing, type BriefingPayload } from "@/server/assistant.funct
 import { SeraBriefingCard } from "@/components/sera-briefing-card";
 import { DataQualityCard } from "@/components/data-quality-card";
 import { buildDataQualityIssues, type DataQualityIssue } from "@/lib/data-quality";
+import { RoleHomeBanner } from "@/components/role-home-banner";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -769,6 +770,15 @@ function HomePage() {
         </p>
         <div className="mt-6 h-px gold-divider" />
       </header>
+
+      {/* Role-aware banner: same data, different lens */}
+      {!loading && (
+        <RoleHomeBanner
+          hotels={hotels}
+          entries={entries}
+          activeHotelId={getActiveHotelId()}
+        />
+      )}
 
       {/* Briefing — Your portfolio at a glance (top of page) */}
       <section className="mb-12">
