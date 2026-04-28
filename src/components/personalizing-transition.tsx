@@ -56,7 +56,9 @@ export function PersonalizingTransition({ show, onDone, duration = 3200 }: Props
       className={[
         "fixed inset-0 z-[100] flex items-center justify-center",
         "bg-background/95 backdrop-blur-md",
-        leaving ? "animate-[ptFadeOut_0.3s_ease-out_forwards]" : "animate-[ptFadeIn_0.25s_ease-out]",
+        leaving
+          ? "animate-[ptFadeOut_0.3s_ease-out_forwards]"
+          : "animate-[ptFadeIn_0.25s_ease-out]",
       ].join(" ")}
     >
       {/* Soft ambient glow */}
@@ -82,9 +84,7 @@ export function PersonalizingTransition({ show, onDone, duration = 3200 }: Props
           {ready ? "Your dashboard is ready." : "Personalizing your dashboard…"}
         </h2>
         <p className="mt-1 max-w-md text-sm text-muted-foreground">
-          {ready
-            ? "Bringing you in."
-            : "Organizing insights based on your role and interests."}
+          {ready ? "Bringing you in." : "Organizing insights based on your role and interests."}
         </p>
 
         {/* Cycling acknowledgments */}
@@ -139,9 +139,7 @@ function ConfigCues({ ready }: { ready: boolean }) {
                 ? `translate(calc(-50% + ${finalX}px), calc(-50% + ${finalY}px)) scale(1)`
                 : undefined,
               animationDelay: ready ? undefined : `${i * 180}ms`,
-              background: ready
-                ? "color-mix(in oklab, var(--primary) 8%, var(--card))"
-                : undefined,
+              background: ready ? "color-mix(in oklab, var(--primary) 8%, var(--card))" : undefined,
               borderColor: ready
                 ? "color-mix(in oklab, var(--primary) 35%, var(--border))"
                 : undefined,
