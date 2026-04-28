@@ -93,8 +93,10 @@ import { useProfileType } from "@/lib/profile-type";
 import {
   DashboardFilters,
   recommendedFiltersForRole,
-  type DashboardFiltersValue,
-  type FilterEmphasis,
+} from "@/components/dashboard-filters";
+import type {
+  DashboardFiltersValue,
+  FilterEmphasis,
 } from "@/components/dashboard-filters";
 import {
   OpsIntensityTrend,
