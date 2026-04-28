@@ -1,0 +1,2 @@
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS interests text[] NOT NULL DEFAULT '{}'::text[];
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS interests_onboarded boolean NOT NULL DEFAULT false;
