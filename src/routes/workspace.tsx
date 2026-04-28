@@ -89,6 +89,38 @@ import { AutopilotLogCard } from "@/components/autopilot-log-card";
 import { PastDataActivity } from "@/components/past-data-activity";
 import { DashboardSection } from "@/components/dashboard-section";
 import { DashboardSectionNav } from "@/components/dashboard-section-nav";
+import {
+  DashboardFilters,
+  DEFAULT_DASHBOARD_FILTERS,
+  type DashboardFiltersValue,
+} from "@/components/dashboard-filters";
+import {
+  OpsIntensityTrend,
+  OpsVarianceDrivers,
+  OpsSustainabilityActions,
+  EnergyTrend,
+  WaterTrend,
+  EnergyMix,
+  AnomalyDetection,
+  HourlyLoadProfile,
+  CarbonYoYTrend,
+  CarbonBreakdown,
+  CarbonIntensityTrend,
+  CarbonContribution,
+  CarbonTargetProgress,
+  PeerPercentileRank,
+  PeerDistribution,
+  PeerOutliers,
+  PeerRankOverTime,
+  BenchmarkGroupFilter,
+  type PeerGroupFilter,
+  CompletenessTimeline,
+  MissingDataMatrix,
+  FreshnessByMetric,
+  FlaggedValues,
+  PreviousCampaignCompare,
+  OwnerResponsibilityFilter,
+} from "@/components/dashboard-charts";
 
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -207,6 +239,10 @@ function HomePage() {
     starRating: number;
   } | null>(null);
   const [savingProfile, setSavingProfile] = React.useState(false);
+  const [dashFilters, setDashFilters] = React.useState<DashboardFiltersValue>(
+    DEFAULT_DASHBOARD_FILTERS,
+  );
+  const [peerGroup, setPeerGroup] = React.useState<PeerGroupFilter>("region");
 
   const reload = React.useCallback(async () => {
     const hotelId = getActiveHotelId();
@@ -646,6 +682,13 @@ function HomePage() {
           {/* Interest-based section nav (below KPI cards) */}
           <DashboardSectionNav active={dashSection} onChange={goToSection} />
 
+          {/* Persistent global filter bar — applies across every dashboard tab */}
+          <DashboardFilters
+            value={dashFilters}
+            onChange={setDashFilters}
+            allowedScopes={["hotel"]}
+          />
+
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
             {/* Charts column — organised into interest-based sections */}
             <div className="space-y-10 lg:col-span-3">
@@ -721,6 +764,11 @@ function HomePage() {
                     </ResponsiveContainer>
                   </div>
                 </ChartCard>
+
+                {/* Additional operational chart blocks (RFP-aligned hotel cockpit) */}
+                <OpsIntensityTrend entries={entries} filters={dashFilters} />
+                <OpsVarianceDrivers entries={entries} filters={dashFilters} />
+                <OpsSustainabilityActions />
               </DashboardSection>
 
               {/* Section 2 — Energy & Water Performance */}
@@ -790,6 +838,16 @@ function HomePage() {
                     </ResponsiveContainer>
                   </div>
                 </ChartCard>
+
+                {/* Energy & Water thematic deep dive (RFP Lot 2a + optional Lot 2b) */}
+                <EnergyTrend entries={entries} filters={dashFilters} />
+                <WaterTrend entries={entries} filters={dashFilters} />
+                <EnergyMix entries={entries} filters={dashFilters} />
+                <AnomalyDetection entries={entries} filters={dashFilters} />
+                <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+                  <HourlyLoadProfile resource="energy" />
+                  <HourlyLoadProfile resource="water" />
+                </div>
               </DashboardSection>
 
               {/* Section 3 — Carbon Footprint */}
@@ -844,6 +902,13 @@ function HomePage() {
                     </ResponsiveContainer>
                   </div>
                 </ChartCard>
+
+                {/* Carbon trajectory and breakdown */}
+                <CarbonYoYTrend entries={entries} filters={dashFilters} />
+                <CarbonBreakdown entries={entries} />
+                <CarbonIntensityTrend entries={entries} filters={dashFilters} />
+                <CarbonContribution entries={entries} />
+                <CarbonTargetProgress entries={entries} />
               </DashboardSection>
 
               {/* Section 4 — Benchmarking & Peer Comparison */}
@@ -891,6 +956,15 @@ function HomePage() {
                     ))}
                   </div>
                 </ChartCard>
+
+                {/* Benchmarks deep dive */}
+                <div className="rounded-2xl border border-border/60 bg-card/50 p-3">
+                  <BenchmarkGroupFilter value={peerGroup} onChange={setPeerGroup} />
+                </div>
+                <PeerPercentileRank filters={dashFilters} />
+                <PeerDistribution />
+                <PeerOutliers />
+                <PeerRankOverTime />
               </DashboardSection>
 
               {/* Section 5 — Data Quality & Reporting Confidence */}
@@ -968,6 +1042,14 @@ function HomePage() {
                     </div>
                   </div>
                 </div>
+
+                {/* Data quality deep dive (RFP Lot 2a — completion + prior campaign) */}
+                <CompletenessTimeline entries={entries} />
+                <MissingDataMatrix entries={entries} />
+                <FreshnessByMetric entries={entries} />
+                <FlaggedValues entries={entries} />
+                <PreviousCampaignCompare entries={entries} />
+                <OwnerResponsibilityFilter />
               </DashboardSection>
             </div>
 
