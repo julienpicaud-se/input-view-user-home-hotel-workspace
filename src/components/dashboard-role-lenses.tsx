@@ -586,3 +586,88 @@ export function RoleSectionOverlays({
 
   return null;
 }
+
+/* ------------------------------------------------------------------ */
+/*  Contextual breadcrumb shown after navigating from Performance Summary */
+/* ------------------------------------------------------------------ */
+
+import { Link as RouterLink } from "@tanstack/react-router";
+import { ArrowLeft } from "lucide-react";
+
+const FOCUS_LABEL: Record<string, string> = {
+  electricity: "Electricity",
+  gas: "Gas",
+  water: "Water",
+  waste: "Waste",
+  occupancy: "Occupancy",
+  score: "Sustainability score",
+  best: "Best ranking",
+  gap: "Biggest gap",
+};
+
+const INTENT_LABEL: Record<string, string> = {
+  review: "review data",
+  missing: "fill missing data",
+  flagged: "review flagged values",
+  portfolio: "portfolio drill-down",
+  governance: "governance check",
+};
+
+function formatPeriod(p?: string): string | null {
+  if (!p) return null;
+  const m = /^(\d{4})-(\d{2})$/.exec(p);
+  if (!m) return null;
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const idx = parseInt(m[2], 10) - 1;
+  if (idx < 0 || idx > 11) return null;
+  return `${months[idx]} ${m[1]}`;
+}
+
+export function FromSummaryBanner({
+  focus,
+  period,
+  intent,
+}: {
+  focus?: string;
+  period?: string;
+  intent?: string;
+}) {
+  const focusLabel = focus ? FOCUS_LABEL[focus] : null;
+  const periodLabel = formatPeriod(period);
+  const intentLabel = intent ? INTENT_LABEL[intent] : null;
+
+  const parts: string[] = [];
+  if (focusLabel) parts.push(`**${focusLabel}**`);
+  if (periodLabel) parts.push(`for ${periodLabel}`);
+  if (intentLabel) parts.push(`— ${intentLabel}`);
+
+  const summary = parts.length > 0 ? parts.join(" ") : "data review";
+
+  return (
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-2.5 text-sm">
+      <div className="flex min-w-0 items-center gap-2.5 text-foreground">
+        <Info className="h-4 w-4 shrink-0 text-primary" />
+        <span className="min-w-0">
+          You're reviewing{" "}
+          <span
+            className="font-medium"
+            dangerouslySetInnerHTML={{
+              __html: summary.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>"),
+            }}
+          />
+          <span className="ml-1 text-xs text-muted-foreground">
+            (from Performance Summary)
+          </span>
+        </span>
+      </div>
+      <RouterLink
+        to="/workspace"
+        search={{ tab: "overview" }}
+        className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-muted"
+      >
+        <ArrowLeft className="h-3 w-3" />
+        Back to summary
+      </RouterLink>
+    </div>
+  );
+}
