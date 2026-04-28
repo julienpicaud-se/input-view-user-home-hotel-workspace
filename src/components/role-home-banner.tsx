@@ -17,6 +17,23 @@ interface Props {
   activeHotelId?: string;
 }
 
+type Tone = "good" | "warn" | "neutral";
+
+interface TileData {
+  label: string;
+  value: string;
+  unit?: string;
+  hint: string;
+  tone?: Tone;
+  icon?: React.ComponentType<{ className?: string }>;
+  /** % delta vs reference (negative = improvement for "lower is better" metrics) */
+  delta?: number | null;
+  /** sparkline series (chronological) */
+  spark?: number[];
+  /** trend card uses big arrow + sparkline emphasis */
+  isTrendCard?: boolean;
+}
+
 /**
  * Role-aware banner that shows above each homepage.
  * - Confirms scope ("Where am I looking?")
