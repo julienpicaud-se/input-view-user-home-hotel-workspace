@@ -125,7 +125,7 @@ import {
   PreviousCampaignCompare,
   OwnerResponsibilityFilter,
 } from "@/components/dashboard-charts";
-import { RoleLensBanner, RoleSectionOverlays } from "@/components/dashboard-role-lenses";
+import { RoleLensBanner, RoleSectionOverlays, FromSummaryBanner } from "@/components/dashboard-role-lenses";
 
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
