@@ -889,6 +889,7 @@ function HomePage() {
         )}
         </div>
 
+      <div style={{ order: sectionOrder.indexOf("briefing") }}>
       {/* Briefing — adapts to the selected profile (Hotel User / VPO / Super Admin) */}
       <section className="mb-12">
         <div className="mb-4 flex items-end justify-between">
@@ -1146,7 +1147,9 @@ function HomePage() {
           )}
         </div>
       </section>
+      </div>
 
+      <div style={{ order: sectionOrder.indexOf("sera") }}>
       {/* AI personalised briefing from Sera — focused on to-dos & data quality */}
       <section className="mb-12">
         <SeraBriefingCard
@@ -1161,7 +1164,9 @@ function HomePage() {
           }}
         />
       </section>
+      </div>
 
+      <div style={{ order: sectionOrder.indexOf("todos") }}>
       {/* To-dos — directly under the Sera briefing */}
       <section className="mb-12">
         <div className="mb-4 flex items-end justify-between gap-3">
@@ -1236,8 +1241,9 @@ function HomePage() {
           </div>
         )}
       </section>
+      </div>
 
-
+      <div style={{ order: sectionOrder.indexOf("data_quality") }}>
       {/* Data quality */}
       <section className="mb-12">
         <DataQualityCard
@@ -1246,7 +1252,9 @@ function HomePage() {
           onIssueClick={handleDataQualityClick}
         />
       </section>
+      </div>
 
+      </div>
     </PageContainer>
   );
 }
