@@ -1383,12 +1383,8 @@ function FillDataPanel({
   const [surveyRecipient, setSurveyRecipient] = React.useState("");
   const [surveyDue, setSurveyDue] = React.useState("");
 
-  // Invoice state
-  const [invoiceFile, setInvoiceFile] = React.useState<File | null>(null);
-  const [invoiceExtracted, setInvoiceExtracted] = React.useState<number | null>(
-    null,
-  );
-  const [extracting, setExtracting] = React.useState(false);
+
+
 
   async function handleSave() {
     const num = Number(value);
