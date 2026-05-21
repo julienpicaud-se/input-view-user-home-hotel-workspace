@@ -16,7 +16,14 @@ import {
   Search,
   Download,
   Eye,
+  Calendar as CalendarIcon,
+  ChevronDown,
 } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveHotelId, type Hotel, type MonthlyEntry } from "@/lib/hotel";
 import { HotelSwitcher } from "@/components/hotel-switcher";
@@ -421,7 +428,7 @@ function CoverageMatrix({
               draft cell to add data.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             <GranularityToggle value={granularity} onChange={setGranularity} />
             <RangeSelector
               start={rangeStart}
@@ -431,9 +438,9 @@ function CoverageMatrix({
                 setRangeEnd(e);
               }}
             />
-            <Legend />
           </div>
         </div>
+
 
         <div className="overflow-x-auto">
           <table className="w-full min-w-[760px] border-separate border-spacing-0 text-sm">
@@ -540,7 +547,11 @@ function CoverageMatrix({
             </tbody>
           </table>
         </div>
+        <div className="mt-3 flex justify-end border-t border-border/40 pt-3">
+          <Legend />
+        </div>
       </div>
+
     </div>
   );
 }
@@ -616,29 +627,40 @@ function GranularityToggle({
   value: Granularity;
   onChange: (g: Granularity) => void;
 }) {
-  const options: { key: Granularity; label: string }[] = [
-    { key: "monthly", label: "Monthly" },
-    { key: "quarterly", label: "Quarterly" },
-    { key: "semester", label: "Semester" },
-    { key: "annual", label: "Annual" },
+  const options: { key: Granularity; label: string; short: string }[] = [
+    { key: "monthly", label: "Monthly", short: "M" },
+    { key: "quarterly", label: "Quarterly", short: "Q" },
+    { key: "semester", label: "Semester", short: "S" },
+    { key: "annual", label: "Annual", short: "Y" },
   ];
   return (
-    <div className="inline-flex items-center gap-0.5 rounded-xl border border-border bg-muted/40 p-0.5">
-      {options.map((o) => (
-        <button
-          key={o.key}
-          type="button"
-          onClick={() => onChange(o.key)}
-          className={cn(
-            "rounded-lg px-2.5 py-1 text-xs font-medium transition",
-            value === o.key
-              ? "bg-emerald-500 text-white shadow-sm"
-              : "text-muted-foreground hover:bg-background hover:text-foreground",
-          )}
-        >
-          {o.label}
-        </button>
-      ))}
+    <div
+      role="tablist"
+      aria-label="Granularity"
+      className="inline-flex h-8 items-center rounded-lg bg-muted/60 p-0.5 text-xs"
+    >
+      {options.map((o) => {
+        const active = value === o.key;
+        return (
+          <button
+            key={o.key}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            onClick={() => onChange(o.key)}
+            className={cn(
+              "h-7 rounded-md px-2.5 font-medium transition",
+              active
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+            title={o.label}
+          >
+            <span className="hidden sm:inline">{o.label}</span>
+            <span className="sm:hidden">{o.short}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -659,95 +681,125 @@ function RangeSelector({
     const s = { month, year };
     const sDate = new Date(year, month - 1, 1);
     const eDate = new Date(end.year, end.month - 1, 1);
-    if (sDate > eDate) {
-      // Push end to match start
-      onChange(s, s);
-    } else {
-      onChange(s, end);
-    }
+    if (sDate > eDate) onChange(s, s);
+    else onChange(s, end);
   }
 
   function updateEnd(month: number, year: number) {
     const e = { month, year };
     const sDate = new Date(start.year, start.month - 1, 1);
     const eDate = new Date(year, month - 1, 1);
-    if (eDate < sDate) {
-      // Push start to match end
-      onChange(e, e);
-    } else {
-      onChange(start, e);
-    }
+    if (eDate < sDate) onChange(e, e);
+    else onChange(start, e);
   }
 
-  function resetRolling() {
+  function applyPreset(monthsBack: number) {
     const now = new Date();
     const e = { year: now.getFullYear(), month: now.getMonth() + 1 };
-    const sDate = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+    const sDate = new Date(now.getFullYear(), now.getMonth() - (monthsBack - 1), 1);
     const s = { year: sDate.getFullYear(), month: sDate.getMonth() + 1 };
     onChange(s, e);
   }
 
+  function applyYTD() {
+    const now = new Date();
+    onChange(
+      { year: now.getFullYear(), month: 1 },
+      { year: now.getFullYear(), month: now.getMonth() + 1 },
+    );
+  }
+
+  const label = `${MONTH_SHORT[start.month - 1]} ${start.year} → ${MONTH_SHORT[end.month - 1]} ${end.year}`;
+
+  const presets: { label: string; run: () => void }[] = [
+    { label: "Last 6 months", run: () => applyPreset(6) },
+    { label: "Last 12 months", run: () => applyPreset(12) },
+    { label: "Last 24 months", run: () => applyPreset(24) },
+    { label: "Year to date", run: applyYTD },
+  ];
+
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <div className="flex items-center gap-1.5 rounded-xl border border-border bg-muted/40 px-2.5 py-1.5 text-xs">
-        <span className="text-muted-foreground">From</span>
-        <select
-          value={start.month}
-          onChange={(e) => updateStart(Number(e.target.value), start.year)}
-          className="rounded-md border border-input bg-background px-1.5 py-1 text-xs outline-none focus:ring-1 focus:ring-ring"
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="inline-flex h-8 items-center gap-2 rounded-lg border border-border bg-background px-3 text-xs font-medium text-foreground transition hover:border-primary/40 hover:bg-muted/60"
         >
-          {MONTH_SHORT.map((m, i) => (
-            <option key={m} value={i + 1}>
-              {m}
-            </option>
-          ))}
-        </select>
-        <input
-          type="number"
-          min={2000}
-          max={2100}
-          value={start.year}
-          onChange={(e) => updateStart(start.month, Number(e.target.value))}
-          className="w-16 rounded-md border border-input bg-background px-1.5 py-1 text-xs text-center outline-none focus:ring-1 focus:ring-ring"
-        />
-      </div>
-
-      <span className="text-muted-foreground text-xs">→</span>
-
-      <div className="flex items-center gap-1.5 rounded-xl border border-border bg-muted/40 px-2.5 py-1.5 text-xs">
-        <span className="text-muted-foreground">To</span>
-        <select
-          value={end.month}
-          onChange={(e) => updateEnd(Number(e.target.value), end.year)}
-          className="rounded-md border border-input bg-background px-1.5 py-1 text-xs outline-none focus:ring-1 focus:ring-ring"
-        >
-          {MONTH_SHORT.map((m, i) => (
-            <option key={m} value={i + 1}>
-              {m}
-            </option>
-          ))}
-        </select>
-        <input
-          type="number"
-          min={2000}
-          max={2100}
-          value={end.year}
-          onChange={(e) => updateEnd(end.month, Number(e.target.value))}
-          className="w-16 rounded-md border border-input bg-background px-1.5 py-1 text-xs text-center outline-none focus:ring-1 focus:ring-ring"
-        />
-      </div>
-
-      <button
-        type="button"
-        onClick={resetRolling}
-        className="rounded-lg px-2 py-1.5 text-xs font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
-        title="Reset to last 12 months"
-      >
-        Last 12 months
-      </button>
-    </div>
+          <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground" />
+          {label}
+          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-[300px] p-3">
+        <div className="space-y-3">
+          <div className="flex flex-wrap gap-1.5">
+            {presets.map((p) => (
+              <button
+                key={p.label}
+                type="button"
+                onClick={p.run}
+                className="rounded-md border border-border bg-muted/40 px-2 py-1 text-[11px] font-medium text-muted-foreground transition hover:border-primary/40 hover:text-foreground"
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+          <div className="space-y-2 border-t border-border/60 pt-3">
+            <div>
+              <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                From
+              </div>
+              <div className="flex items-center gap-1.5">
+                <select
+                  value={start.month}
+                  onChange={(e) => updateStart(Number(e.target.value), start.year)}
+                  className="flex-1 rounded-md border border-input bg-background px-2 py-1 text-xs outline-none focus:ring-1 focus:ring-ring"
+                >
+                  {MONTH_SHORT.map((m, i) => (
+                    <option key={m} value={i + 1}>{m}</option>
+                  ))}
+                </select>
+                <input
+                  type="number"
+                  min={2000}
+                  max={2100}
+                  value={start.year}
+                  onChange={(e) => updateStart(start.month, Number(e.target.value))}
+                  className="w-20 rounded-md border border-input bg-background px-2 py-1 text-xs text-center outline-none focus:ring-1 focus:ring-ring"
+                />
+              </div>
+            </div>
+            <div>
+              <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                To
+              </div>
+              <div className="flex items-center gap-1.5">
+                <select
+                  value={end.month}
+                  onChange={(e) => updateEnd(Number(e.target.value), end.year)}
+                  className="flex-1 rounded-md border border-input bg-background px-2 py-1 text-xs outline-none focus:ring-1 focus:ring-ring"
+                >
+                  {MONTH_SHORT.map((m, i) => (
+                    <option key={m} value={i + 1}>{m}</option>
+                  ))}
+                </select>
+                <input
+                  type="number"
+                  min={2000}
+                  max={2100}
+                  value={end.year}
+                  onChange={(e) => updateEnd(end.month, Number(e.target.value))}
+                  className="w-20 rounded-md border border-input bg-background px-2 py-1 text-xs text-center outline-none focus:ring-1 focus:ring-ring"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
+
 
 function statusLabel(s: CellStatus): string {
   switch (s) {
