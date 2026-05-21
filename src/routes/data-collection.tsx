@@ -142,7 +142,7 @@ function deriveStatus(
 
 // ---------- Page ----------
 function DataCollectionPage() {
-  const { tab } = Route.useSearch();
+  const { tab, metric: metricFilter, period: periodFilter } = Route.useSearch();
   const [hotel, setHotel] = React.useState<Hotel | null>(null);
   const [entries, setEntries] = React.useState<MonthlyEntry[]>([]);
   const [loading, setLoading] = React.useState(true);
