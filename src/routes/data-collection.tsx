@@ -324,6 +324,7 @@ function CoverageMatrix({
 
   const [rangeStart, setRangeStart] = React.useState(defaultStart);
   const [rangeEnd, setRangeEnd] = React.useState(defaultEnd);
+  const [granularity, setGranularity] = React.useState<Granularity>("monthly");
 
   // Build month list from range
   const months: { year: number; month: number }[] = [];
@@ -337,6 +338,12 @@ function CoverageMatrix({
   // Clamp to a reasonable max (36 months) to avoid perf issues
   const clampedMonths = months.slice(-36);
 
+  // Group months into periods based on granularity
+  const periods = React.useMemo(
+    () => groupMonths(clampedMonths, granularity),
+    [clampedMonths, granularity],
+  );
+
   const entryByKey = new Map<string, MonthlyEntry>();
   for (const e of entries) entryByKey.set(`${e.year}-${e.month}`, e);
 
@@ -348,7 +355,23 @@ function CoverageMatrix({
     return deriveStatus(entryByKey.get(`${year}-${month}`), metric);
   }
 
-  // Aggregate KPIs (based on visible range)
+  function periodStatus(
+    metric: MetricKey,
+    period: Period,
+  ): CellStatus {
+    let done = 0;
+    let missing = 0;
+    for (const m of period.months) {
+      const s = cellStatus(metric, m.year, m.month);
+      if (s === "done") done++;
+      else if (s === "missing") missing++;
+    }
+    if (done === period.months.length) return "done";
+    if (missing === period.months.length) return "missing";
+    return "in_progress";
+  }
+
+  // Aggregate KPIs (based on visible range, at month level)
   const total = METRICS.length * clampedMonths.length;
   let covered = 0;
   let missing = 0;
@@ -399,6 +422,7 @@ function CoverageMatrix({
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
+            <GranularityToggle value={granularity} onChange={setGranularity} />
             <RangeSelector
               start={rangeStart}
               end={rangeEnd}
@@ -418,14 +442,14 @@ function CoverageMatrix({
                 <th className="sticky left-0 z-10 bg-card px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Data type
                 </th>
-                {clampedMonths.map((m) => (
+                {periods.map((p) => (
                   <th
-                    key={`${m.year}-${m.month}`}
+                    key={p.key}
                     className="px-2 py-2 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
                   >
-                    <div>{MONTH_SHORT[m.month - 1]}</div>
+                    <div>{p.label}</div>
                     <div className="text-[9px] font-normal text-muted-foreground/70">
-                      {String(m.year).slice(2)}
+                      {p.sublabel}
                     </div>
                   </th>
                 ))}
@@ -456,10 +480,17 @@ function CoverageMatrix({
                         </div>
                       </div>
                     </td>
-                    {clampedMonths.map((m) => {
-                      const status = cellStatus(metric.key, m.year, m.month);
-                      const period = `${m.year}-${String(m.month).padStart(2, "0")}`;
-                      const monthLabel = `${MONTH_NAMES[m.month - 1]} ${m.year}`;
+                    {periods.map((p) => {
+                      const status = periodStatus(metric.key, p);
+                      const first = p.months[0];
+                      const period = `${first.year}-${String(first.month).padStart(2, "0")}`;
+                      const doneCount = p.months.filter(
+                        (mo) => cellStatus(metric.key, mo.year, mo.month) === "done",
+                      ).length;
+                      const tooltip =
+                        p.months.length > 1
+                          ? `${p.tooltipLabel} — ${doneCount}/${p.months.length} months ${statusLabel(status).toLowerCase()}`
+                          : `${p.tooltipLabel} — ${statusLabel(status)}`;
                       const commonClass = cn(
                         "mx-auto flex h-6 w-6 items-center justify-center rounded-full transition-transform cursor-pointer hover:scale-125 hover:ring-2 hover:ring-primary/40",
                         statusDot(status),
@@ -472,7 +503,7 @@ function CoverageMatrix({
                         ) : null;
                       return (
                         <td
-                          key={`${metric.key}-${m.year}-${m.month}`}
+                          key={`${metric.key}-${p.key}`}
                           className="px-1 py-3 text-center"
                         >
                           {status === "done" ? (
@@ -483,7 +514,7 @@ function CoverageMatrix({
                                 metric: metric.key,
                                 period,
                               }}
-                              title={`${monthLabel} — Done (view in Detailed Data)`}
+                              title={`${tooltip} (view in Detailed Data)`}
                               className={commonClass}
                             >
                               {icon}
@@ -492,9 +523,9 @@ function CoverageMatrix({
                             <button
                               type="button"
                               onClick={() =>
-                                onCellClick(metric, m.year, m.month)
+                                onCellClick(metric, first.year, first.month)
                               }
-                              title={`${monthLabel} — ${statusLabel(status)} (click to add)`}
+                              title={`${tooltip} (click to add)`}
                               className={commonClass}
                             >
                               {icon}
@@ -510,6 +541,104 @@ function CoverageMatrix({
           </table>
         </div>
       </div>
+    </div>
+  );
+}
+
+type Granularity = "monthly" | "quarterly" | "semester" | "annual";
+
+interface Period {
+  key: string;
+  label: string;
+  sublabel: string;
+  tooltipLabel: string;
+  months: { year: number; month: number }[];
+}
+
+function groupMonths(
+  months: { year: number; month: number }[],
+  granularity: Granularity,
+): Period[] {
+  if (months.length === 0) return [];
+  if (granularity === "monthly") {
+    return months.map((m) => ({
+      key: `${m.year}-${m.month}`,
+      label: MONTH_SHORT[m.month - 1],
+      sublabel: String(m.year).slice(2),
+      tooltipLabel: `${MONTH_NAMES[m.month - 1]} ${m.year}`,
+      months: [m],
+    }));
+  }
+
+  const map = new Map<string, Period>();
+  for (const m of months) {
+    let key: string;
+    let label: string;
+    let sublabel: string;
+    let tooltipLabel: string;
+    if (granularity === "annual") {
+      key = `${m.year}`;
+      label = String(m.year);
+      sublabel = "FY";
+      tooltipLabel = `${m.year}`;
+    } else if (granularity === "semester") {
+      const half = m.month <= 6 ? 1 : 2;
+      key = `${m.year}-H${half}`;
+      label = `H${half}`;
+      sublabel = String(m.year).slice(2);
+      tooltipLabel = `H${half} ${m.year} (${half === 1 ? "Jan–Jun" : "Jul–Dec"})`;
+    } else {
+      const q = Math.floor((m.month - 1) / 3) + 1;
+      key = `${m.year}-Q${q}`;
+      label = `Q${q}`;
+      sublabel = String(m.year).slice(2);
+      const startM = (q - 1) * 3;
+      tooltipLabel = `Q${q} ${m.year} (${MONTH_SHORT[startM]}–${MONTH_SHORT[startM + 2]})`;
+    }
+    let bucket = map.get(key);
+    if (!bucket) {
+      bucket = { key, label, sublabel, tooltipLabel, months: [] };
+      map.set(key, bucket);
+    }
+    bucket.months.push(m);
+  }
+  return Array.from(map.values()).sort((a, b) => {
+    const am = a.months[0];
+    const bm = b.months[0];
+    return am.year - bm.year || am.month - bm.month;
+  });
+}
+
+function GranularityToggle({
+  value,
+  onChange,
+}: {
+  value: Granularity;
+  onChange: (g: Granularity) => void;
+}) {
+  const options: { key: Granularity; label: string }[] = [
+    { key: "monthly", label: "Monthly" },
+    { key: "quarterly", label: "Quarterly" },
+    { key: "semester", label: "Semester" },
+    { key: "annual", label: "Annual" },
+  ];
+  return (
+    <div className="inline-flex items-center gap-0.5 rounded-xl border border-border bg-muted/40 p-0.5">
+      {options.map((o) => (
+        <button
+          key={o.key}
+          type="button"
+          onClick={() => onChange(o.key)}
+          className={cn(
+            "rounded-lg px-2.5 py-1 text-xs font-medium transition",
+            value === o.key
+              ? "bg-emerald-500 text-white shadow-sm"
+              : "text-muted-foreground hover:bg-background hover:text-foreground",
+          )}
+        >
+          {o.label}
+        </button>
+      ))}
     </div>
   );
 }
