@@ -139,7 +139,7 @@ function HistoryPage() {
         setHighlightKey(k);
         // Focus the targeted input field if specified
         if (search.hf) {
-          const colIndex = FIELD_TO_COL[search.hf];
+          const colIndex = FIELD_TO_COL[search.hf as HighlightField];
           const input = el.querySelectorAll<HTMLInputElement>("input")[colIndex - 1];
           input?.focus();
           input?.select();
