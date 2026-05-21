@@ -703,29 +703,29 @@ function RangeSelector({
     else onChange(start, e);
   }
 
-  function applyPreset(monthsBack: number) {
+  function applyPreset(monthsForward: number) {
     const now = new Date();
-    const e = { year: now.getFullYear(), month: now.getMonth() + 1 };
-    const sDate = new Date(now.getFullYear(), now.getMonth() - (monthsBack - 1), 1);
-    const s = { year: sDate.getFullYear(), month: sDate.getMonth() + 1 };
+    const s = { year: now.getFullYear(), month: now.getMonth() + 1 };
+    const eDate = new Date(now.getFullYear(), now.getMonth() + (monthsForward - 1), 1);
+    const e = { year: eDate.getFullYear(), month: eDate.getMonth() + 1 };
     onChange(s, e);
   }
 
   function applyYTD() {
     const now = new Date();
     onChange(
-      { year: now.getFullYear(), month: 1 },
       { year: now.getFullYear(), month: now.getMonth() + 1 },
+      { year: now.getFullYear(), month: 12 },
     );
   }
 
   const label = `${MONTH_SHORT[start.month - 1]} ${start.year} → ${MONTH_SHORT[end.month - 1]} ${end.year}`;
 
   const presets: { label: string; run: () => void }[] = [
-    { label: "Last 6 months", run: () => applyPreset(6) },
-    { label: "Last 12 months", run: () => applyPreset(12) },
-    { label: "Last 24 months", run: () => applyPreset(24) },
-    { label: "Year to date", run: applyYTD },
+    { label: "Next 6 months", run: () => applyPreset(6) },
+    { label: "Next 12 months", run: () => applyPreset(12) },
+    { label: "Next 24 months", run: () => applyPreset(24) },
+    { label: "Rest of year", run: applyYTD },
   ];
 
   return (
