@@ -847,14 +847,14 @@ function KpiCard({
   tone: string;
 }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-      <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+    <div className="rounded-xl border border-zinc-200 bg-white p-5">
+      <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-500">
         {label}
       </div>
-      <div className={cn("mt-2 font-serif text-3xl font-semibold", tone)}>
+      <div className={cn("mt-2 text-[28px] font-bold tracking-tight tabular-nums", tone)}>
         {value}
       </div>
-      <div className="mt-1 text-xs text-muted-foreground">{hint}</div>
+      <div className="mt-1 text-xs text-zinc-500">{hint}</div>
     </div>
   );
 }
