@@ -994,6 +994,32 @@ function DetailedData({
       .includes(q.toLowerCase());
   });
 
+  type SortKey = "activity" | "startDate" | "endDate" | "value" | "metric" | "entity";
+  const [sortKey, setSortKey] = React.useState<SortKey>("startDate");
+  const [sortDir, setSortDir] = React.useState<"asc" | "desc">("desc");
+
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir(key === "value" || key === "startDate" || key === "endDate" ? "desc" : "asc");
+    }
+  }
+
+  const sorted = React.useMemo(() => {
+    const arr = [...filtered];
+    arr.sort((a, b) => {
+      const av = a[sortKey];
+      const bv = b[sortKey];
+      let cmp = 0;
+      if (typeof av === "number" && typeof bv === "number") cmp = av - bv;
+      else cmp = String(av).localeCompare(String(bv));
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return arr;
+  }, [filtered, sortKey, sortDir]);
+
   const activeMetric = metricFilter
     ? METRICS.find((m) => m.key === metricFilter)
     : null;
