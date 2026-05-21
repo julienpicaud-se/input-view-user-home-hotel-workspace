@@ -1209,17 +1209,17 @@ function DetailedData({
         <table className="w-full min-w-[920px] text-sm">
           <thead>
             <tr className="border-b border-zinc-100 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-500">
-              <th className="px-5 py-3">Activity data</th>
-              <th className="px-3 py-3">Start date</th>
-              <th className="px-3 py-3">End date</th>
-              <th className="px-3 py-3 text-right">Value</th>
-              <th className="px-3 py-3">Metric</th>
-              <th className="px-5 py-3">Entity name</th>
+              <SortableTh label="Activity data" sortKey="activity" currentKey={sortKey} dir={sortDir} onSort={toggleSort} className="px-5 py-3" />
+              <SortableTh label="Start date" sortKey="startDate" currentKey={sortKey} dir={sortDir} onSort={toggleSort} className="px-3 py-3" />
+              <SortableTh label="End date" sortKey="endDate" currentKey={sortKey} dir={sortDir} onSort={toggleSort} className="px-3 py-3" />
+              <SortableTh label="Value" sortKey="value" currentKey={sortKey} dir={sortDir} onSort={toggleSort} className="px-3 py-3" align="right" />
+              <SortableTh label="Metric" sortKey="metric" currentKey={sortKey} dir={sortDir} onSort={toggleSort} className="px-3 py-3" />
+              <SortableTh label="Entity name" sortKey="entity" currentKey={sortKey} dir={sortDir} onSort={toggleSort} className="px-5 py-3" />
               <th className="px-3 py-3 text-right" />
             </tr>
           </thead>
           <tbody>
-            {filtered.length === 0 ? (
+            {sorted.length === 0 ? (
               <tr>
                 <td
                   colSpan={7}
@@ -1229,7 +1229,7 @@ function DetailedData({
                 </td>
               </tr>
             ) : (
-              filtered.map((r) => {
+              sorted.map((r) => {
                 const isEditing = editingId === r.id;
                 const isSaving = savingId === r.id;
                 return (
