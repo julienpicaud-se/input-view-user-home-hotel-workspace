@@ -26,8 +26,22 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+const METRIC_KEYS = [
+  "electricity_kwh",
+  "gas_kwh",
+  "water_m3",
+  "waste_kg",
+  "occupied_room_nights",
+] as const;
+
 const searchSchema = z.object({
   tab: z.enum(["coverage", "detailed"]).catch("coverage"),
+  metric: z.enum(METRIC_KEYS).optional().catch(undefined),
+  period: z
+    .string()
+    .regex(/^\d{4}-\d{2}$/)
+    .optional()
+    .catch(undefined),
 });
 
 export const Route = createFileRoute("/data-collection")({
@@ -128,7 +142,7 @@ function deriveStatus(
 
 // ---------- Page ----------
 function DataCollectionPage() {
-  const { tab } = Route.useSearch();
+  const { tab, metric: metricFilter, period: periodFilter } = Route.useSearch();
   const [hotel, setHotel] = React.useState<Hotel | null>(null);
   const [entries, setEntries] = React.useState<MonthlyEntry[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -198,7 +212,12 @@ function DataCollectionPage() {
           }
         />
       ) : (
-        <DetailedData hotel={hotel} entries={entries} />
+        <DetailedData
+          hotel={hotel}
+          entries={entries}
+          metricFilter={metricFilter}
+          periodFilter={periodFilter}
+        />
       )}
 
       {editing && (
@@ -380,35 +399,50 @@ function CoverageMatrix({
                     </td>
                     {months.map((m) => {
                       const status = cellStatus(metric.key, m.year, m.month);
-                      const clickable =
-                        status === "missing" || status === "in_progress";
+                      const period = `${m.year}-${String(m.month).padStart(2, "0")}`;
+                      const monthLabel = `${MONTH_NAMES[m.month - 1]} ${m.year}`;
+                      const commonClass = cn(
+                        "mx-auto flex h-6 w-6 items-center justify-center rounded-full transition-transform cursor-pointer hover:scale-125 hover:ring-2 hover:ring-primary/40",
+                        statusDot(status),
+                      );
+                      const icon =
+                        status === "in_progress" ? (
+                          <Clock className="h-3 w-3 text-white" />
+                        ) : status === "missing" ? (
+                          <AlertCircle className="h-3 w-3 text-muted-foreground" />
+                        ) : null;
                       return (
                         <td
                           key={`${metric.key}-${m.year}-${m.month}`}
                           className="px-1 py-3 text-center"
                         >
-                          <button
-                            type="button"
-                            onClick={() =>
-                              onCellClick(metric, m.year, m.month)
-                            }
-                            title={`${MONTH_NAMES[m.month - 1]} ${m.year} — ${statusLabel(status)}${clickable ? " (click to add)" : ""}`}
-                            className={cn(
-                              "mx-auto flex h-6 w-6 items-center justify-center rounded-full transition-transform",
-                              statusDot(status),
-                              clickable
-                                ? "cursor-pointer hover:scale-125 hover:ring-2 hover:ring-primary/40"
-                                : "cursor-default",
-                            )}
-                          >
-                            {status === "in_progress" && (
-                              <Clock className="h-3 w-3 text-white" />
-                            )}
-                            {status === "missing" && (
-                              <AlertCircle className="h-3 w-3 text-muted-foreground" />
-                            )}
-                          </button>
+                          {status === "done" ? (
+                            <Link
+                              to="/data-collection"
+                              search={{
+                                tab: "detailed",
+                                metric: metric.key,
+                                period,
+                              }}
+                              title={`${monthLabel} — Done (view in Detailed Data)`}
+                              className={commonClass}
+                            >
+                              {icon}
+                            </Link>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                onCellClick(metric, m.year, m.month)
+                              }
+                              title={`${monthLabel} — ${statusLabel(status)} (click to add)`}
+                              className={commonClass}
+                            >
+                              {icon}
+                            </button>
+                          )}
                         </td>
+
                       );
                     })}
                   </tr>
@@ -495,14 +529,20 @@ interface Row {
   value: number;
   metric: string;
   entity: string;
+  metricKey: MetricKey;
+  period: string;
 }
 
 function DetailedData({
   hotel,
   entries,
+  metricFilter,
+  periodFilter,
 }: {
   hotel: Hotel | null;
   entries: MonthlyEntry[];
+  metricFilter?: MetricKey;
+  periodFilter?: string;
 }) {
   const rows: Row[] = React.useMemo(() => {
     const out: Row[] = [];
@@ -511,6 +551,7 @@ function DetailedData({
       const end = new Date(e.year, e.month, 0);
       const startStr = start.toISOString().slice(0, 10);
       const endStr = end.toISOString().slice(0, 10);
+      const period = `${e.year}-${String(e.month).padStart(2, "0")}`;
       for (const m of METRICS) {
         const v = e[m.key];
         if (v === null || v === undefined) continue;
@@ -522,6 +563,8 @@ function DetailedData({
           value: Number(v),
           metric: m.unit,
           entity: hotel?.name ?? "—",
+          metricKey: m.key,
+          period,
         });
       }
     }
@@ -531,13 +574,26 @@ function DetailedData({
   }, [entries, hotel]);
 
   const [q, setQ] = React.useState("");
-  const filtered = rows.filter((r) =>
-    !q
-      ? true
-      : `${r.activity} ${r.entity} ${r.metric}`
-          .toLowerCase()
-          .includes(q.toLowerCase()),
-  );
+  const filtered = rows.filter((r) => {
+    if (metricFilter && r.metricKey !== metricFilter) return false;
+    if (periodFilter && r.period !== periodFilter) return false;
+    if (!q) return true;
+    return `${r.activity} ${r.entity} ${r.metric}`
+      .toLowerCase()
+      .includes(q.toLowerCase());
+  });
+
+  const activeMetric = metricFilter
+    ? METRICS.find((m) => m.key === metricFilter)
+    : null;
+  const activePeriodLabel = periodFilter
+    ? (() => {
+        const [y, mo] = periodFilter.split("-").map(Number);
+        return `${MONTH_NAMES[mo - 1]} ${y}`;
+      })()
+    : null;
+  const hasFilters = Boolean(activeMetric || activePeriodLabel);
+
 
   function exportCsv() {
     const header = [
@@ -605,6 +661,32 @@ function DetailedData({
           </Button>
         </div>
       </div>
+
+      {hasFilters && (
+        <div className="flex flex-wrap items-center gap-2 border-b border-border/60 bg-muted/30 px-5 py-3 text-xs">
+          <span className="font-medium text-muted-foreground">
+            Filtered by:
+          </span>
+          {activeMetric && (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 font-medium text-foreground">
+              {activeMetric.label}
+            </span>
+          )}
+          {activePeriodLabel && (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 font-medium text-foreground">
+              {activePeriodLabel}
+            </span>
+          )}
+          <Link
+            to="/data-collection"
+            search={{ tab: "detailed" }}
+            className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-muted-foreground transition hover:text-foreground"
+          >
+            <X className="h-3 w-3" />
+            Clear
+          </Link>
+        </div>
+      )}
 
       <div className="overflow-x-auto">
         <table className="w-full min-w-[820px] text-sm">
