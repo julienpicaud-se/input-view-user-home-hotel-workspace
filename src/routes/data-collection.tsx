@@ -1339,7 +1339,7 @@ function FillDataPanel({
   onClose: () => void;
   onSaved: () => void;
 }) {
-  type Mode = "manual" | "survey" | "invoice";
+  type Mode = "manual" | "survey";
   const [mode, setMode] = React.useState<Mode>("manual");
 
   const [value, setValue] = React.useState<string>(() => {
@@ -1383,12 +1383,8 @@ function FillDataPanel({
   const [surveyRecipient, setSurveyRecipient] = React.useState("");
   const [surveyDue, setSurveyDue] = React.useState("");
 
-  // Invoice state
-  const [invoiceFile, setInvoiceFile] = React.useState<File | null>(null);
-  const [invoiceExtracted, setInvoiceExtracted] = React.useState<number | null>(
-    null,
-  );
-  const [extracting, setExtracting] = React.useState(false);
+
+
 
   async function handleSave() {
     const num = Number(value);
@@ -1403,11 +1399,7 @@ function FillDataPanel({
     setSaving(true);
     try {
       const sourceNote =
-        mode === "invoice"
-          ? `Source: invoice (${invoiceFile?.name ?? "uploaded file"})`
-          : mode === "survey"
-            ? `Source: survey response`
-            : null;
+        mode === "survey" ? `Source: survey response` : null;
       const unitNote = unit && unit !== metric.unit ? `Unit: ${unit}` : null;
       const finalNotes = [notes, unitNote, sourceNote].filter(Boolean).join(" · ") || null;
 
@@ -1464,30 +1456,11 @@ function FillDataPanel({
     onClose();
   }
 
-  function handleInvoiceUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setInvoiceFile(file);
-    setExtracting(true);
-    // Simulated extraction — replace with real OCR/extraction later
-    window.setTimeout(() => {
-      const fake = Math.round(
-        (metric.key === "occupied_room_nights" ? 2400 : 12500) *
-          (0.85 + Math.random() * 0.3),
-      );
-      setInvoiceExtracted(fake);
-      setValue(String(fake));
-      setExtracting(false);
-      toast.success("Value extracted from invoice");
-    }, 900);
-  }
-
   const Icon = metric.Icon;
 
   const modes: { key: Mode; label: string; Icon: typeof PencilLine; desc: string }[] = [
     { key: "manual", label: "Manual", Icon: PencilLine, desc: "Type the value" },
     { key: "survey", label: "Survey", Icon: ClipboardList, desc: "Request from teammate" },
-    { key: "invoice", label: "Invoice", Icon: Receipt, desc: "Upload a document" },
   ];
 
   return (
@@ -1693,72 +1666,6 @@ function FillDataPanel({
             </>
           )}
 
-          {mode === "invoice" && (
-            <>
-              <div className="rounded-xl border border-zinc-200 bg-zinc-50/60 px-4 py-3 text-xs text-zinc-600">
-                <div className="flex items-center gap-1.5 font-medium text-zinc-900">
-                  <Receipt className="h-3.5 w-3.5 text-emerald-600" />
-                  Upload an invoice
-                </div>
-                <p className="mt-1">
-                  Upload a PDF or image invoice. We'll extract the{" "}
-                  {metric.activity.toLowerCase()} value automatically — review
-                  before saving.
-                </p>
-              </div>
-
-              <label
-                htmlFor="invoice-file"
-                className={cn(
-                  "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-6 text-center transition",
-                  invoiceFile
-                    ? "border-emerald-300 bg-emerald-50/40"
-                    : "border-zinc-300 bg-white hover:border-emerald-400 hover:bg-emerald-50/30",
-                )}
-              >
-                <Upload className="h-5 w-5 text-zinc-400" />
-                <div className="text-[13px] font-medium text-zinc-900">
-                  {invoiceFile ? invoiceFile.name : "Click to upload invoice"}
-                </div>
-                <div className="text-[11px] text-zinc-500">
-                  PDF, PNG, JPG · up to 10 MB
-                </div>
-                <input
-                  id="invoice-file"
-                  type="file"
-                  accept=".pdf,image/*"
-                  className="hidden"
-                  onChange={handleInvoiceUpload}
-                />
-              </label>
-
-              {extracting && (
-                <div className="rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-[12px] text-zinc-600">
-                  Extracting value from invoice…
-                </div>
-              )}
-
-              {invoiceExtracted !== null && !extracting && (
-                <div className="space-y-1.5">
-                  <Label htmlFor="invoice-value">
-                    Extracted value ({metric.unit})
-                  </Label>
-                  <Input
-                    id="invoice-value"
-                    type="number"
-                    inputMode="decimal"
-                    min={0}
-                    step="any"
-                    value={value}
-                    onChange={(e) => setValue(e.target.value)}
-                  />
-                  <p className="text-[11px] text-zinc-500">
-                    Review and adjust if needed before saving.
-                  </p>
-                </div>
-              )}
-            </>
-          )}
         </div>
 
         <footer className="flex items-center justify-end gap-2 border-t border-zinc-100 px-5 py-4">
@@ -1781,7 +1688,7 @@ function FillDataPanel({
           ) : (
             <Button
               onClick={handleSave}
-              disabled={saving || (mode === "invoice" && invoiceExtracted === null)}
+              disabled={saving}
               className="rounded-full bg-emerald-600 px-5 text-white hover:bg-emerald-700"
             >
               {saving ? "Saving…" : "Save data"}
