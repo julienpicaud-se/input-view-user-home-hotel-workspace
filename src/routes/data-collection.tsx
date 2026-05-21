@@ -394,8 +394,9 @@ function CoverageMatrix({
         <KpiCard
           label="Coverage"
           value={`${coveragePct}%`}
-          tone="text-emerald-600"
+          tone="text-zinc-900"
           hint={`${covered} of ${total} cells filled`}
+          progress={coveragePct}
         />
         <KpiCard
           label="Records"
