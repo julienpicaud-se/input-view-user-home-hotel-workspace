@@ -105,7 +105,7 @@ const METRICS: MetricDef[] = [
   },
 ];
 
-type CellStatus = "approved" | "submitted" | "draft" | "missing";
+type CellStatus = "done" | "in_progress" | "missing";
 
 // Deterministic pseudo-random so the demo statuses feel real & stable.
 function statusFor(hotelId: string, year: number, month: number, key: MetricKey): CellStatus {
@@ -115,10 +115,9 @@ function statusFor(hotelId: string, year: number, month: number, key: MetricKey)
     month * 7 +
     key.length * 3;
   const r = (Math.sin(seed) + 1) / 2;
-  if (r < 0.08) return "missing";
-  if (r < 0.18) return "draft";
-  if (r < 0.32) return "submitted";
-  return "approved";
+  if (r < 0.15) return "missing";
+  if (r < 0.32) return "in_progress";
+  return "done";
 }
 
 // ---------- Page ----------
