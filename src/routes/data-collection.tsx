@@ -1025,11 +1025,11 @@ function DetailedData({
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-card shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 px-5 py-4">
+    <div className="rounded-xl border border-zinc-200 bg-white">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 px-5 py-4">
         <div>
-          <h2 className="font-serif text-lg font-semibold">Detailed Data</h2>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <h2 className="text-[15px] font-semibold tracking-tight text-zinc-900">Detailed data</h2>
+          <p className="mt-1 text-xs text-zinc-500">
             {formatNumber(filtered.length)} record
             {filtered.length === 1 ? "" : "s"} ·{" "}
             {hotel?.name ?? "Hotel"} · Click any value to edit
@@ -1037,20 +1037,19 @@ function DetailedData({
         </div>
         <div className="flex items-center gap-2">
           <div className="relative">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400" />
             <Input
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search activity…"
-              className="h-9 w-56 pl-8 text-sm"
+              className="h-9 w-56 rounded-full border-zinc-200 pl-8 text-sm"
             />
           </div>
           <Button
             type="button"
-            variant="outline"
             size="sm"
             onClick={exportCsv}
-            className="gap-1.5"
+            className="gap-1.5 rounded-full bg-emerald-600 px-4 text-white hover:bg-emerald-700"
           >
             <Download className="h-3.5 w-3.5" />
             Export CSV
@@ -1059,24 +1058,24 @@ function DetailedData({
       </div>
 
       {hasFilters && (
-        <div className="flex flex-wrap items-center gap-2 border-b border-border/60 bg-muted/30 px-5 py-3 text-xs">
-          <span className="font-medium text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-2 border-b border-zinc-100 bg-zinc-50/60 px-5 py-3 text-xs">
+          <span className="font-medium text-zinc-500">
             Filtered by:
           </span>
           {activeMetric && (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 font-medium text-foreground">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-2.5 py-1 font-medium text-zinc-900">
               {activeMetric.label}
             </span>
           )}
           {activePeriodLabel && (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 font-medium text-foreground">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-2.5 py-1 font-medium text-zinc-900">
               {activePeriodLabel}
             </span>
           )}
           <Link
             to="/data-collection"
             search={{ tab: "detailed" }}
-            className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-muted-foreground transition hover:text-foreground"
+            className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-zinc-500 transition hover:text-zinc-900"
           >
             <X className="h-3 w-3" />
             Clear
@@ -1087,7 +1086,7 @@ function DetailedData({
       <div className="overflow-x-auto">
         <table className="w-full min-w-[920px] text-sm">
           <thead>
-            <tr className="border-b border-border/60 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <tr className="border-b border-zinc-100 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-500">
               <th className="px-5 py-3">Activity data</th>
               <th className="px-3 py-3">Start date</th>
               <th className="px-3 py-3">End date</th>
