@@ -529,14 +529,20 @@ interface Row {
   value: number;
   metric: string;
   entity: string;
+  metricKey: MetricKey;
+  period: string;
 }
 
 function DetailedData({
   hotel,
   entries,
+  metricFilter,
+  periodFilter,
 }: {
   hotel: Hotel | null;
   entries: MonthlyEntry[];
+  metricFilter?: MetricKey;
+  periodFilter?: string;
 }) {
   const rows: Row[] = React.useMemo(() => {
     const out: Row[] = [];
@@ -545,6 +551,7 @@ function DetailedData({
       const end = new Date(e.year, e.month, 0);
       const startStr = start.toISOString().slice(0, 10);
       const endStr = end.toISOString().slice(0, 10);
+      const period = `${e.year}-${String(e.month).padStart(2, "0")}`;
       for (const m of METRICS) {
         const v = e[m.key];
         if (v === null || v === undefined) continue;
@@ -556,6 +563,8 @@ function DetailedData({
           value: Number(v),
           metric: m.unit,
           entity: hotel?.name ?? "—",
+          metricKey: m.key,
+          period,
         });
       }
     }
@@ -565,13 +574,26 @@ function DetailedData({
   }, [entries, hotel]);
 
   const [q, setQ] = React.useState("");
-  const filtered = rows.filter((r) =>
-    !q
-      ? true
-      : `${r.activity} ${r.entity} ${r.metric}`
-          .toLowerCase()
-          .includes(q.toLowerCase()),
-  );
+  const filtered = rows.filter((r) => {
+    if (metricFilter && r.metricKey !== metricFilter) return false;
+    if (periodFilter && r.period !== periodFilter) return false;
+    if (!q) return true;
+    return `${r.activity} ${r.entity} ${r.metric}`
+      .toLowerCase()
+      .includes(q.toLowerCase());
+  });
+
+  const activeMetric = metricFilter
+    ? METRICS.find((m) => m.key === metricFilter)
+    : null;
+  const activePeriodLabel = periodFilter
+    ? (() => {
+        const [y, mo] = periodFilter.split("-").map(Number);
+        return `${MONTH_NAMES[mo - 1]} ${y}`;
+      })()
+    : null;
+  const hasFilters = Boolean(activeMetric || activePeriodLabel);
+
 
   function exportCsv() {
     const header = [
