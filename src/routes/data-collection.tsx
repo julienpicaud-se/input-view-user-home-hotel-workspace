@@ -950,10 +950,27 @@ function DetailedData({
     );
   }, [entries, hotel]);
 
+  const now = new Date();
+  const defaultEnd = { year: now.getFullYear(), month: now.getMonth() + 1 };
+  const defaultStart = (() => {
+    const d = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+    return { year: d.getFullYear(), month: d.getMonth() + 1 };
+  })();
+  const [rangeStart, setRangeStart] = React.useState(defaultStart);
+  const [rangeEnd, setRangeEnd] = React.useState(defaultEnd);
+
+  function inRange(year: number, month: number) {
+    const v = year * 12 + (month - 1);
+    const s = rangeStart.year * 12 + (rangeStart.month - 1);
+    const e = rangeEnd.year * 12 + (rangeEnd.month - 1);
+    return v >= s && v <= e;
+  }
+
   const [q, setQ] = React.useState("");
   const filtered = rows.filter((r) => {
     if (metricFilter && r.metricKey !== metricFilter) return false;
     if (periodFilter && r.period !== periodFilter) return false;
+    if (!inRange(r.year, r.month)) return false;
     if (!q) return true;
     return `${r.activity} ${r.entity} ${r.metric}`
       .toLowerCase()
