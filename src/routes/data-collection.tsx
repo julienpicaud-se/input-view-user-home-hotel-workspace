@@ -169,8 +169,15 @@ function DataCollectionPage() {
     void load();
   }, [load]);
 
-  // Side panel state for filling in missing data
+  // Side panel state for filling in missing data (Coverage Matrix)
   const [editing, setEditing] = React.useState<{
+    metric: MetricDef;
+    year: number;
+    month: number;
+  } | null>(null);
+
+  // Side panel state for viewing measuring points (Detailed Data)
+  const [viewing, setViewing] = React.useState<{
     metric: MetricDef;
     year: number;
     month: number;
@@ -218,12 +225,12 @@ function DataCollectionPage() {
           entries={entries}
           metricFilter={metricFilter}
           periodFilter={periodFilter}
-          onRowClick={(metricKey, year, month) => {
+          onViewDetails={(metricKey, year, month) => {
             const m = METRICS.find((x) => x.key === metricKey);
-            if (m) setEditing({ metric: m, year, month });
+            if (m) setViewing({ metric: m, year, month });
           }}
+          onRefresh={load}
         />
-
       )}
 
       {editing && (
@@ -243,6 +250,21 @@ function DataCollectionPage() {
             await load();
             toast.success("Data saved");
           }}
+        />
+      )}
+
+      {viewing && (
+        <DetailsPanel
+          hotel={hotel}
+          metric={viewing.metric}
+          year={viewing.year}
+          month={viewing.month}
+          entry={
+            entries.find(
+              (e) => e.year === viewing.year && e.month === viewing.month,
+            ) ?? null
+          }
+          onClose={() => setViewing(null)}
         />
       )}
     </PageContainer>
