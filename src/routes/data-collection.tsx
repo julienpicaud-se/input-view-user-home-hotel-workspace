@@ -1171,6 +1171,7 @@ function DetailedData({
           <Button
             type="button"
             size="sm"
+            onClick={onAddData}
             className="gap-1.5 rounded-full bg-emerald-600 px-4 text-white hover:bg-emerald-700"
           >
             <Plus className="h-3.5 w-3.5" />
