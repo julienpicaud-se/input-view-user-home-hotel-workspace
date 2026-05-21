@@ -285,13 +285,29 @@ function CoverageMatrix({
   entries: MonthlyEntry[];
   onCellClick: (metric: MetricDef, year: number, month: number) => void;
 }) {
-  // Show a rolling 12-month window ending at the current month.
   const now = new Date();
+
+  // Default rolling 12-month window
+  const defaultEnd = { year: now.getFullYear(), month: now.getMonth() + 1 };
+  const defaultStart = (() => {
+    const d = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+    return { year: d.getFullYear(), month: d.getMonth() + 1 };
+  })();
+
+  const [rangeStart, setRangeStart] = React.useState(defaultStart);
+  const [rangeEnd, setRangeEnd] = React.useState(defaultEnd);
+
+  // Build month list from range
   const months: { year: number; month: number }[] = [];
-  for (let i = 11; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    months.push({ year: d.getFullYear(), month: d.getMonth() + 1 });
+  const cursor = new Date(rangeStart.year, rangeStart.month - 1, 1);
+  const endCursor = new Date(rangeEnd.year, rangeEnd.month - 1, 1);
+  while (cursor <= endCursor) {
+    months.push({ year: cursor.getFullYear(), month: cursor.getMonth() + 1 });
+    cursor.setMonth(cursor.getMonth() + 1);
   }
+
+  // Clamp to a reasonable max (36 months) to avoid perf issues
+  const clampedMonths = months.slice(-36);
 
   const entryByKey = new Map<string, MonthlyEntry>();
   for (const e of entries) entryByKey.set(`${e.year}-${e.month}`, e);
@@ -304,18 +320,23 @@ function CoverageMatrix({
     return deriveStatus(entryByKey.get(`${year}-${month}`), metric);
   }
 
-  // Aggregate KPIs
-  const total = METRICS.length * months.length;
+  // Aggregate KPIs (based on visible range)
+  const total = METRICS.length * clampedMonths.length;
   let covered = 0;
   let missing = 0;
   for (const m of METRICS) {
-    for (const mo of months) {
+    for (const mo of clampedMonths) {
       const s = cellStatus(m.key, mo.year, mo.month);
       if (s === "missing") missing++;
       else covered++;
     }
   }
-  const coveragePct = Math.round((covered / total) * 100);
+  const coveragePct = total > 0 ? Math.round((covered / total) * 100) : 0;
+
+  const rangeLabel =
+    clampedMonths.length === 0
+      ? "No months selected"
+      : `${MONTH_SHORT[clampedMonths[0].month - 1]} ${clampedMonths[0].year} – ${MONTH_SHORT[clampedMonths[clampedMonths.length - 1].month - 1]} ${clampedMonths[clampedMonths.length - 1].year}`;
 
   return (
     <div className="space-y-6">
@@ -345,11 +366,21 @@ function CoverageMatrix({
           <div>
             <h2 className="font-serif text-lg font-semibold">Coverage Matrix</h2>
             <p className="mt-1 text-xs text-muted-foreground">
-              Rolling 12 months · {hotel?.name ?? "Hotel"} · Click a missing or
+              {rangeLabel} · {hotel?.name ?? "Hotel"} · Click a missing or
               draft cell to add data.
             </p>
           </div>
-          <Legend />
+          <div className="flex flex-wrap items-center gap-3">
+            <RangeSelector
+              start={rangeStart}
+              end={rangeEnd}
+              onChange={(s, e) => {
+                setRangeStart(s);
+                setRangeEnd(e);
+              }}
+            />
+            <Legend />
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -359,7 +390,7 @@ function CoverageMatrix({
                 <th className="sticky left-0 z-10 bg-card px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Data type
                 </th>
-                {months.map((m) => (
+                {clampedMonths.map((m) => (
                   <th
                     key={`${m.year}-${m.month}`}
                     className="px-2 py-2 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
@@ -397,7 +428,7 @@ function CoverageMatrix({
                         </div>
                       </div>
                     </td>
-                    {months.map((m) => {
+                    {clampedMonths.map((m) => {
                       const status = cellStatus(metric.key, m.year, m.month);
                       const period = `${m.year}-${String(m.month).padStart(2, "0")}`;
                       const monthLabel = `${MONTH_NAMES[m.month - 1]} ${m.year}`;
@@ -442,7 +473,6 @@ function CoverageMatrix({
                             </button>
                           )}
                         </td>
-
                       );
                     })}
                   </tr>
@@ -452,6 +482,112 @@ function CoverageMatrix({
           </table>
         </div>
       </div>
+    </div>
+  );
+}
+
+function RangeSelector({
+  start,
+  end,
+  onChange,
+}: {
+  start: { year: number; month: number };
+  end: { year: number; month: number };
+  onChange: (
+    start: { year: number; month: number },
+    end: { year: number; month: number },
+  ) => void;
+}) {
+  function updateStart(month: number, year: number) {
+    const s = { month, year };
+    const sDate = new Date(year, month - 1, 1);
+    const eDate = new Date(end.year, end.month - 1, 1);
+    if (sDate > eDate) {
+      // Push end to match start
+      onChange(s, s);
+    } else {
+      onChange(s, end);
+    }
+  }
+
+  function updateEnd(month: number, year: number) {
+    const e = { month, year };
+    const sDate = new Date(start.year, start.month - 1, 1);
+    const eDate = new Date(year, month - 1, 1);
+    if (eDate < sDate) {
+      // Push start to match end
+      onChange(e, e);
+    } else {
+      onChange(start, e);
+    }
+  }
+
+  function resetRolling() {
+    const now = new Date();
+    const e = { year: now.getFullYear(), month: now.getMonth() + 1 };
+    const sDate = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+    const s = { year: sDate.getFullYear(), month: sDate.getMonth() + 1 };
+    onChange(s, e);
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="flex items-center gap-1.5 rounded-xl border border-border bg-muted/40 px-2.5 py-1.5 text-xs">
+        <span className="text-muted-foreground">From</span>
+        <select
+          value={start.month}
+          onChange={(e) => updateStart(Number(e.target.value), start.year)}
+          className="rounded-md border border-input bg-background px-1.5 py-1 text-xs outline-none focus:ring-1 focus:ring-ring"
+        >
+          {MONTH_SHORT.map((m, i) => (
+            <option key={m} value={i + 1}>
+              {m}
+            </option>
+          ))}
+        </select>
+        <input
+          type="number"
+          min={2000}
+          max={2100}
+          value={start.year}
+          onChange={(e) => updateStart(start.month, Number(e.target.value))}
+          className="w-16 rounded-md border border-input bg-background px-1.5 py-1 text-xs text-center outline-none focus:ring-1 focus:ring-ring"
+        />
+      </div>
+
+      <span className="text-muted-foreground text-xs">→</span>
+
+      <div className="flex items-center gap-1.5 rounded-xl border border-border bg-muted/40 px-2.5 py-1.5 text-xs">
+        <span className="text-muted-foreground">To</span>
+        <select
+          value={end.month}
+          onChange={(e) => updateEnd(Number(e.target.value), end.year)}
+          className="rounded-md border border-input bg-background px-1.5 py-1 text-xs outline-none focus:ring-1 focus:ring-ring"
+        >
+          {MONTH_SHORT.map((m, i) => (
+            <option key={m} value={i + 1}>
+              {m}
+            </option>
+          ))}
+        </select>
+        <input
+          type="number"
+          min={2000}
+          max={2100}
+          value={end.year}
+          onChange={(e) => updateEnd(end.month, Number(e.target.value))}
+          className="w-16 rounded-md border border-input bg-background px-1.5 py-1 text-xs text-center outline-none focus:ring-1 focus:ring-ring"
+        />
+      </div>
+
+      <button
+        type="button"
+        onClick={resetRolling}
+        className="rounded-lg px-2 py-1.5 text-xs font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
+        title="Reset to last 12 months"
+      >
+        Last 12 months
+      </button>
     </div>
   );
 }
