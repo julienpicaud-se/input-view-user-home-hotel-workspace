@@ -1339,7 +1339,7 @@ function FillDataPanel({
   onClose: () => void;
   onSaved: () => void;
 }) {
-  type Mode = "manual" | "survey" | "invoice";
+  type Mode = "manual" | "survey";
   const [mode, setMode] = React.useState<Mode>("manual");
 
   const [value, setValue] = React.useState<string>(() => {
