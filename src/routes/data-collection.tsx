@@ -212,7 +212,12 @@ function DataCollectionPage() {
           }
         />
       ) : (
-        <DetailedData hotel={hotel} entries={entries} />
+        <DetailedData
+          hotel={hotel}
+          entries={entries}
+          metricFilter={metricFilter}
+          periodFilter={periodFilter}
+        />
       )}
 
       {editing && (
