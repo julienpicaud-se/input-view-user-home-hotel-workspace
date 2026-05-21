@@ -491,14 +491,14 @@ function CoverageMatrix({
                           ? `${p.tooltipLabel} — ${doneCount}/${p.months.length} months ${statusLabel(status).toLowerCase()}`
                           : `${p.tooltipLabel} — ${statusLabel(status)}`;
                       const commonClass = cn(
-                        "mx-auto flex h-6 w-6 items-center justify-center rounded-full transition-transform cursor-pointer hover:scale-125 hover:ring-2 hover:ring-primary/40",
+                        "mx-auto flex h-6 w-6 items-center justify-center rounded-full transition cursor-pointer hover:scale-110 hover:ring-2 hover:ring-emerald-500/30",
                         statusDot(status),
                       );
                       const icon =
                         status === "in_progress" ? (
                           <Clock className="h-3 w-3 text-white" />
                         ) : status === "missing" ? (
-                          <AlertCircle className="h-3 w-3 text-muted-foreground" />
+                          <AlertCircle className="h-3 w-3 text-zinc-400" />
                         ) : null;
                       return (
                         <td
