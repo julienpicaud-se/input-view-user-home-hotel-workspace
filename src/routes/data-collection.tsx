@@ -107,16 +107,22 @@ const METRICS: MetricDef[] = [
 
 type CellStatus = "done" | "in_progress" | "missing";
 
-// Deterministic pseudo-random so the demo statuses feel real & stable.
-function statusFor(hotelId: string, year: number, month: number, key: MetricKey): CellStatus {
-  const seed =
-    hotelId.charCodeAt(hotelId.length - 1) +
-    year * 13 +
-    month * 7 +
-    key.length * 3;
-  const r = (Math.sin(seed) + 1) / 2;
-  if (r < 0.15) return "missing";
-  if (r < 0.32) return "in_progress";
+/**
+ * Real status derived from saved monthly_entries:
+ *  - done        → a non-null, positive value is stored for this metric/month
+ *  - in_progress → a row exists for the month but this metric is null or 0
+ *                  (the user started logging the month but hasn't filled this field)
+ *  - missing     → no row at all for that month
+ */
+function deriveStatus(
+  entry: MonthlyEntry | undefined,
+  metric: MetricKey,
+): CellStatus {
+  if (!entry) return "missing";
+  const v = entry[metric];
+  if (v === null || v === undefined) return "in_progress";
+  const n = Number(v);
+  if (!Number.isFinite(n) || n <= 0) return "in_progress";
   return "done";
 }
 
@@ -276,11 +282,7 @@ function CoverageMatrix({
     year: number,
     month: number,
   ): CellStatus {
-    const e = entryByKey.get(`${year}-${month}`);
-    if (e && e[metric] !== null && e[metric] !== undefined) {
-      return statusFor(hotelId, year, month, metric);
-    }
-    return statusFor(hotelId, year, month, metric);
+    return deriveStatus(entryByKey.get(`${year}-${month}`), metric);
   }
 
   // Aggregate KPIs
