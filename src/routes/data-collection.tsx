@@ -1904,3 +1904,44 @@ function DetailsPanel({
     </div>
   );
 }
+
+function SortableTh({
+  label,
+  sortKey,
+  currentKey,
+  dir,
+  onSort,
+  className,
+  align,
+}: {
+  label: string;
+  sortKey: "activity" | "startDate" | "endDate" | "value" | "metric" | "entity";
+  currentKey: string;
+  dir: "asc" | "desc";
+  onSort: (k: "activity" | "startDate" | "endDate" | "value" | "metric" | "entity") => void;
+  className?: string;
+  align?: "left" | "right";
+}) {
+  const active = currentKey === sortKey;
+  const isRight = align === "right";
+  return (
+    <th className={`${className ?? ""} ${isRight ? "text-right" : ""}`}>
+      <button
+        type="button"
+        onClick={() => onSort(sortKey)}
+        className={`inline-flex items-center gap-1 uppercase tracking-[0.08em] transition-colors hover:text-zinc-900 ${active ? "text-zinc-900" : "text-zinc-500"} ${isRight ? "flex-row-reverse" : ""}`}
+      >
+        {label}
+        {active ? (
+          dir === "asc" ? (
+            <ChevronUp className="h-3 w-3" />
+          ) : (
+            <ChevronDown className="h-3 w-3" />
+          )
+        ) : (
+          <ChevronsUpDown className="h-3 w-3 opacity-50" />
+        )}
+      </button>
+    </th>
+  );
+}
