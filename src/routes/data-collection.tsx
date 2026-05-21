@@ -229,6 +229,14 @@ function DataCollectionPage() {
               const m = METRICS.find((x) => x.key === metricKey);
               if (m) setViewing({ metric: m, year, month });
             }}
+            onAddData={() => {
+              const now = new Date();
+              setEditing({
+                metric: METRICS[0],
+                year: now.getFullYear(),
+                month: now.getMonth() + 1,
+              });
+            }}
             onRefresh={load}
           />
         )}
