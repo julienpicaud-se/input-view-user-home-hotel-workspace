@@ -1133,8 +1133,7 @@ function DetailedData({
           <Button
             type="button"
             size="sm"
-            variant="outline"
-            className="gap-1.5 rounded-full border-zinc-200 px-4 text-zinc-700 hover:border-emerald-500/40 hover:text-zinc-900"
+            className="gap-1.5 rounded-full bg-emerald-600 px-4 text-white hover:bg-emerald-700"
           >
             <Plus className="h-3.5 w-3.5" />
             Add data
@@ -1142,8 +1141,9 @@ function DetailedData({
           <Button
             type="button"
             size="sm"
+            variant="outline"
             onClick={exportCsv}
-            className="gap-1.5 rounded-full bg-emerald-600 px-4 text-white hover:bg-emerald-700"
+            className="gap-1.5 rounded-full border-zinc-200 px-4 text-zinc-700 hover:border-emerald-500/40 hover:text-zinc-900"
           >
             <Download className="h-3.5 w-3.5" />
             Export CSV
