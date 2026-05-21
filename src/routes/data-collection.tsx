@@ -217,7 +217,12 @@ function DataCollectionPage() {
           entries={entries}
           metricFilter={metricFilter}
           periodFilter={periodFilter}
+          onRowClick={(metricKey, year, month) => {
+            const m = METRICS.find((x) => x.key === metricKey);
+            if (m) setEditing({ metric: m, year, month });
+          }}
         />
+
       )}
 
       {editing && (
