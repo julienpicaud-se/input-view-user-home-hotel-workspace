@@ -23,6 +23,7 @@ import {
   Receipt,
   Upload,
   RotateCcw,
+  Plus,
 } from "lucide-react";
 import {
   Popover,
@@ -1129,6 +1130,15 @@ function DetailedData({
               className="h-9 w-56 rounded-full border-zinc-200 pl-8 text-sm"
             />
           </div>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="gap-1.5 rounded-full border-zinc-200 px-4 text-zinc-700 hover:border-emerald-500/40 hover:text-zinc-900"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add data
+          </Button>
           <Button
             type="button"
             size="sm"
