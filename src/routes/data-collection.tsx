@@ -304,11 +304,13 @@ function CoverageMatrix({
   hotel,
   entries,
   onCellClick,
+  onViewCell,
 }: {
   hotelId: string;
   hotel: Hotel | null;
   entries: MonthlyEntry[];
   onCellClick: (metric: MetricDef, year: number, month: number) => void;
+  onViewCell: (metric: MetricDef, year: number, month: number) => void;
 }) {
   const now = new Date();
 
