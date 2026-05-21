@@ -413,10 +413,10 @@ function CoverageMatrix({
         />
       </div>
 
-      <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+      <div className="rounded-xl border border-zinc-200 bg-white p-5">
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 className="font-serif text-lg font-semibold">Coverage Matrix</h2>
+            <h2 className="text-[15px] font-semibold tracking-tight text-zinc-900">Coverage matrix</h2>
             <p className="mt-1 text-xs text-muted-foreground">
               {rangeLabel} · {hotel?.name ?? "Hotel"} · Click a missing or
               draft cell to add data.
