@@ -1273,7 +1273,7 @@ function FillDataPanel({
               <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
                 Add data
               </div>
-              <div className="font-serif text-lg font-semibold">
+              <div className="text-[15px] font-semibold tracking-tight text-zinc-900">
                 {metric.label}
               </div>
               <div className="text-xs text-muted-foreground">
@@ -1450,7 +1450,7 @@ function DetailsPanel({
               <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
                 Measuring points
               </div>
-              <div className="font-serif text-lg font-semibold">
+              <div className="text-[15px] font-semibold tracking-tight text-zinc-900">
                 {metric.label}
               </div>
               <div className="text-xs text-muted-foreground">
@@ -1473,7 +1473,7 @@ function DetailsPanel({
             <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
               Period total
             </div>
-            <div className="mt-1 font-serif text-2xl font-semibold text-foreground">
+            <div className="mt-1 text-2xl font-bold tracking-tight text-zinc-900 tabular-nums">
               {formatNumber(total)}{" "}
               <span className="text-sm font-normal text-muted-foreground">
                 {metric.unit}
