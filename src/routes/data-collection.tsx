@@ -16,7 +16,14 @@ import {
   Search,
   Download,
   Eye,
+  Calendar as CalendarIcon,
+  ChevronDown,
 } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveHotelId, type Hotel, type MonthlyEntry } from "@/lib/hotel";
 import { HotelSwitcher } from "@/components/hotel-switcher";
