@@ -1688,7 +1688,7 @@ function FillDataPanel({
           ) : (
             <Button
               onClick={handleSave}
-              disabled={saving || (mode === "invoice" && invoiceExtracted === null)}
+              disabled={saving}
               className="rounded-full bg-emerald-600 px-5 text-white hover:bg-emerald-700"
             >
               {saving ? "Saving…" : "Save data"}
