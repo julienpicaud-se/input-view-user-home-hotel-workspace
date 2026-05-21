@@ -864,8 +864,14 @@ function DetailedData({
               filtered.map((r) => (
                 <tr
                   key={r.id}
-                  className="border-b border-border/40 transition-colors hover:bg-muted/30"
+                  onClick={() => onRowClick?.(r.metricKey, r.year, r.month)}
+                  className={cn(
+                    "border-b border-border/40 transition-colors hover:bg-muted/30",
+                    onRowClick && "cursor-pointer",
+                  )}
+                  title={onRowClick ? "Click to edit" : undefined}
                 >
+
                   <td className="px-5 py-3 font-medium text-foreground">
                     {r.activity}
                   </td>
