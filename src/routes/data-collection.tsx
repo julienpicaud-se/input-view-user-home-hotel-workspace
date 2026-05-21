@@ -1172,3 +1172,176 @@ function FillDataPanel({
     </div>
   );
 }
+
+// ---------- Side panel: view measuring point details ----------
+interface MeasuringPoint {
+  id: string;
+  label: string;
+  value: number;
+  unit: string;
+  source: string;
+  recordedAt: string;
+  notes: string | null;
+}
+
+function DetailsPanel({
+  hotel,
+  metric,
+  year,
+  month,
+  entry,
+  onClose,
+}: {
+  hotel: Hotel | null;
+  metric: MetricDef;
+  year: number;
+  month: number;
+  entry: MonthlyEntry | null;
+  onClose: () => void;
+}) {
+  const Icon = metric.Icon;
+
+  // Build the list of measuring points. Today we store a single aggregated
+  // value per metric/period in monthly_entries, so we surface it as one
+  // measuring point. The list shape is ready for several points per period.
+  const points: MeasuringPoint[] = React.useMemo(() => {
+    if (!entry) return [];
+    const v = entry[metric.key];
+    if (v === null || v === undefined) return [];
+    return [
+      {
+        id: `${entry.id}-${metric.key}-1`,
+        label: `${metric.label} — total`,
+        value: Number(v),
+        unit: metric.unit,
+        source: entry.attachment_url ? "Invoice / attachment" : "Manual entry",
+        recordedAt: entry.updated_at ?? entry.created_at ?? "",
+        notes: entry.notes ?? null,
+      },
+    ];
+  }, [entry, metric]);
+
+  const total = points.reduce((acc, p) => acc + p.value, 0);
+
+  return (
+    <div className="fixed inset-0 z-50 flex">
+      <button
+        type="button"
+        aria-label="Close panel"
+        onClick={onClose}
+        className="flex-1 bg-foreground/30 backdrop-blur-sm"
+      />
+      <aside className="flex h-full w-full max-w-lg flex-col border-l border-border bg-background shadow-2xl">
+        <header className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
+          <div className="flex items-center gap-3">
+            <div
+              className={cn(
+                "flex h-10 w-10 items-center justify-center rounded-xl border",
+                metric.tone,
+              )}
+            >
+              <Icon className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                Measuring points
+              </div>
+              <div className="font-serif text-lg font-semibold">
+                {metric.label}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {MONTH_NAMES[month - 1]} {year} · {hotel?.name ?? "Hotel"}
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </header>
+
+        <div className="flex-1 space-y-4 overflow-y-auto px-5 py-5">
+          <div className="rounded-xl border border-border bg-muted/30 px-4 py-3">
+            <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+              Period total
+            </div>
+            <div className="mt-1 font-serif text-2xl font-semibold text-foreground">
+              {formatNumber(total)}{" "}
+              <span className="text-sm font-normal text-muted-foreground">
+                {metric.unit}
+              </span>
+            </div>
+            <div className="mt-1 text-xs text-muted-foreground">
+              Sum of {points.length} measuring point
+              {points.length === 1 ? "" : "s"} for {metric.activity.toLowerCase()}.
+            </div>
+          </div>
+
+          {points.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border bg-card px-4 py-8 text-center text-sm text-muted-foreground">
+              No measuring points recorded for this period yet.
+            </div>
+          ) : (
+            <ul className="space-y-3">
+              {points.map((p, idx) => (
+                <li
+                  key={p.id}
+                  className="rounded-xl border border-border bg-card px-4 py-3 shadow-sm"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                        Measuring point {idx + 1}
+                      </div>
+                      <div className="mt-0.5 font-medium text-foreground">
+                        {p.label}
+                      </div>
+                    </div>
+                    <div className="text-right font-mono text-sm text-foreground">
+                      {formatNumber(p.value)}{" "}
+                      <span className="text-muted-foreground">{p.unit}</span>
+                    </div>
+                  </div>
+                  <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] text-muted-foreground">
+                    <div>
+                      <span className="font-medium text-foreground/80">
+                        Source:
+                      </span>{" "}
+                      {p.source}
+                    </div>
+                    <div className="text-right">
+                      <span className="font-medium text-foreground/80">
+                        Recorded:
+                      </span>{" "}
+                      {p.recordedAt ? p.recordedAt.slice(0, 10) : "—"}
+                    </div>
+                  </div>
+                  {p.notes && (
+                    <div className="mt-2 rounded-md bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                      {p.notes}
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <div className="rounded-xl border border-dashed border-border bg-card/50 px-4 py-3 text-xs text-muted-foreground">
+            Multiple measuring points per period (e.g. separate meters,
+            sub-buildings, or invoices) will appear here as they are added.
+          </div>
+        </div>
+
+        <footer className="flex items-center justify-end gap-2 border-t border-border px-5 py-4">
+          <Button variant="outline" onClick={onClose}>
+            Close
+          </Button>
+        </footer>
+      </aside>
+    </div>
+  );
+}
