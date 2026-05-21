@@ -279,7 +279,7 @@ function TabBar({ active }: { active: "coverage" | "detailed" }) {
     { key: "detailed", label: "Detailed Data" },
   ];
   return (
-    <div className="mb-6 inline-flex w-full justify-start gap-1 rounded-2xl border border-border bg-card p-1.5 sm:w-auto">
+    <div className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-white p-1">
       {tabs.map((t) => {
         const isActive = t.key === active;
         return (
@@ -288,10 +288,10 @@ function TabBar({ active }: { active: "coverage" | "detailed" }) {
             to="/data-collection"
             search={{ tab: t.key }}
             className={cn(
-              "inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-medium transition-colors",
+              "inline-flex items-center justify-center rounded-full px-4 py-1.5 text-[13px] font-medium transition-colors",
               isActive
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                ? "bg-emerald-600 text-white"
+                : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900",
             )}
           >
             {t.label}
