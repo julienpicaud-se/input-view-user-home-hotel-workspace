@@ -379,7 +379,7 @@ function CoverageMatrix({
                     {months.map((m) => {
                       const status = cellStatus(metric.key, m.year, m.month);
                       const clickable =
-                        status === "missing" || status === "draft";
+                        status === "missing" || status === "in_progress";
                       return (
                         <td
                           key={`${metric.key}-${m.year}-${m.month}`}
@@ -399,11 +399,11 @@ function CoverageMatrix({
                                 : "cursor-default",
                             )}
                           >
-                            {status === "draft" && (
+                            {status === "in_progress" && (
                               <Clock className="h-3 w-3 text-white" />
                             )}
                             {status === "missing" && (
-                              <AlertCircle className="h-3 w-3 text-white" />
+                              <AlertCircle className="h-3 w-3 text-muted-foreground" />
                             )}
                           </button>
                         </td>
