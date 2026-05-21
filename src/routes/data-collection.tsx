@@ -1349,6 +1349,37 @@ function FillDataPanel({
   const [notes, setNotes] = React.useState<string>(existing?.notes ?? "");
   const [saving, setSaving] = React.useState(false);
 
+  // Time range — defaults to the single (year, month) passed in
+  const toMonthStr = (y: number, m: number) => `${y}-${String(m).padStart(2, "0")}`;
+  const [rangeStart, setRangeStart] = React.useState<string>(toMonthStr(year, month));
+  const [rangeEnd, setRangeEnd] = React.useState<string>(toMonthStr(year, month));
+
+  function parseMonth(s: string): { y: number; m: number } | null {
+    const match = /^(\d{4})-(\d{2})$/.exec(s);
+    if (!match) return null;
+    return { y: Number(match[1]), m: Number(match[2]) };
+  }
+  function monthsInRange(): { y: number; m: number }[] {
+    const s = parseMonth(rangeStart);
+    const e = parseMonth(rangeEnd);
+    if (!s || !e) return [];
+    const startIdx = s.y * 12 + (s.m - 1);
+    const endIdx = e.y * 12 + (e.m - 1);
+    const [a, b] = startIdx <= endIdx ? [startIdx, endIdx] : [endIdx, startIdx];
+    const out: { y: number; m: number }[] = [];
+    for (let i = a; i <= b; i++) {
+      out.push({ y: Math.floor(i / 12), m: (i % 12) + 1 });
+    }
+    return out;
+  }
+  const rangeMonths = monthsInRange();
+  const rangeLabel =
+    rangeMonths.length === 0
+      ? "—"
+      : rangeMonths.length === 1
+        ? `${MONTH_NAMES[rangeMonths[0].m - 1]} ${rangeMonths[0].y}`
+        : `${MONTH_NAMES[rangeMonths[0].m - 1]} ${rangeMonths[0].y} → ${MONTH_NAMES[rangeMonths[rangeMonths.length - 1].m - 1]} ${rangeMonths[rangeMonths.length - 1].y}`;
+
   // Survey state
   const [surveyRecipient, setSurveyRecipient] = React.useState("");
   const [surveyDue, setSurveyDue] = React.useState("");
@@ -1366,6 +1397,10 @@ function FillDataPanel({
       toast.error("Enter a valid non-negative number");
       return;
     }
+    if (rangeMonths.length === 0) {
+      toast.error("Pick a valid time range");
+      return;
+    }
     setSaving(true);
     try {
       const sourceNote =
@@ -1376,23 +1411,37 @@ function FillDataPanel({
             : null;
       const finalNotes = [notes, sourceNote].filter(Boolean).join(" · ") || null;
 
-      if (existing) {
-        const patch = { [metric.key]: num, notes: finalNotes } as never;
-        const { error } = await supabase
+      // Split the total evenly across the months in the range.
+      const perMonth = num / rangeMonths.length;
+
+      for (const { y, m } of rangeMonths) {
+        const { data: found, error: selErr } = await supabase
           .from("monthly_entries")
-          .update(patch)
-          .eq("id", existing.id);
-        if (error) throw error;
-      } else {
-        const row = {
-          hotel_id: hotelId,
-          year,
-          month,
-          [metric.key]: num,
-          notes: finalNotes,
-        } as never;
-        const { error } = await supabase.from("monthly_entries").insert(row);
-        if (error) throw error;
+          .select("id")
+          .eq("hotel_id", hotelId)
+          .eq("year", y)
+          .eq("month", m)
+          .maybeSingle();
+        if (selErr) throw selErr;
+
+        if (found?.id) {
+          const patch = { [metric.key]: perMonth, notes: finalNotes } as never;
+          const { error } = await supabase
+            .from("monthly_entries")
+            .update(patch)
+            .eq("id", found.id);
+          if (error) throw error;
+        } else {
+          const row = {
+            hotel_id: hotelId,
+            year: y,
+            month: m,
+            [metric.key]: perMonth,
+            notes: finalNotes,
+          } as never;
+          const { error } = await supabase.from("monthly_entries").insert(row);
+          if (error) throw error;
+        }
       }
       onSaved();
     } catch (e) {
