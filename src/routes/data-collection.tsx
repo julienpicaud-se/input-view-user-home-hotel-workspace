@@ -679,12 +679,15 @@ function DetailedData({
   entries,
   metricFilter,
   periodFilter,
+  onRowClick,
 }: {
   hotel: Hotel | null;
   entries: MonthlyEntry[];
   metricFilter?: MetricKey;
   periodFilter?: string;
+  onRowClick?: (metricKey: MetricKey, year: number, month: number) => void;
 }) {
+
   const rows: Row[] = React.useMemo(() => {
     const out: Row[] = [];
     for (const e of entries) {
