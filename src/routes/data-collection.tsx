@@ -211,6 +211,9 @@ function DataCollectionPage() {
             onCellClick={(metric, year, month) =>
               setEditing({ metric, year, month })
             }
+            onViewCell={(metric, year, month) =>
+              setViewing({ metric, year, month })
+            }
           />
         ) : (
           <DetailedData
