@@ -435,7 +435,7 @@ function CoverageMatrix({
             <thead>
               <tr>
                 <th className="sticky left-0 z-10 bg-white px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-500">
-                  Data type
+                  Activity data
                 </th>
                 {periods.map((p) => (
                   <th
