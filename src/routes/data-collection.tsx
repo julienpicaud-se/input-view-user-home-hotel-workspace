@@ -856,11 +856,13 @@ function KpiCard({
   value,
   hint,
   tone,
+  progress,
 }: {
   label: string;
   value: string;
   hint: string;
   tone: string;
+  progress?: number;
 }) {
   return (
     <div className="rounded-xl border border-zinc-200 bg-white p-5">
@@ -870,7 +872,15 @@ function KpiCard({
       <div className={cn("mt-2 text-[28px] font-bold tracking-tight tabular-nums", tone)}>
         {value}
       </div>
-      <div className="mt-1 text-xs text-zinc-500">{hint}</div>
+      {typeof progress === "number" && (
+        <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-zinc-100">
+          <div
+            className="h-full rounded-full bg-emerald-500 transition-all"
+            style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+          />
+        </div>
+      )}
+      <div className="mt-1.5 text-xs text-zinc-500">{hint}</div>
     </div>
   );
 }
