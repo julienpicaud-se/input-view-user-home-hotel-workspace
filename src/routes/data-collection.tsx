@@ -399,35 +399,50 @@ function CoverageMatrix({
                     </td>
                     {months.map((m) => {
                       const status = cellStatus(metric.key, m.year, m.month);
-                      const clickable =
-                        status === "missing" || status === "in_progress";
+                      const period = `${m.year}-${String(m.month).padStart(2, "0")}`;
+                      const monthLabel = `${MONTH_NAMES[m.month - 1]} ${m.year}`;
+                      const commonClass = cn(
+                        "mx-auto flex h-6 w-6 items-center justify-center rounded-full transition-transform cursor-pointer hover:scale-125 hover:ring-2 hover:ring-primary/40",
+                        statusDot(status),
+                      );
+                      const icon =
+                        status === "in_progress" ? (
+                          <Clock className="h-3 w-3 text-white" />
+                        ) : status === "missing" ? (
+                          <AlertCircle className="h-3 w-3 text-muted-foreground" />
+                        ) : null;
                       return (
                         <td
                           key={`${metric.key}-${m.year}-${m.month}`}
                           className="px-1 py-3 text-center"
                         >
-                          <button
-                            type="button"
-                            onClick={() =>
-                              onCellClick(metric, m.year, m.month)
-                            }
-                            title={`${MONTH_NAMES[m.month - 1]} ${m.year} — ${statusLabel(status)}${clickable ? " (click to add)" : ""}`}
-                            className={cn(
-                              "mx-auto flex h-6 w-6 items-center justify-center rounded-full transition-transform",
-                              statusDot(status),
-                              clickable
-                                ? "cursor-pointer hover:scale-125 hover:ring-2 hover:ring-primary/40"
-                                : "cursor-default",
-                            )}
-                          >
-                            {status === "in_progress" && (
-                              <Clock className="h-3 w-3 text-white" />
-                            )}
-                            {status === "missing" && (
-                              <AlertCircle className="h-3 w-3 text-muted-foreground" />
-                            )}
-                          </button>
+                          {status === "done" ? (
+                            <Link
+                              to="/data-collection"
+                              search={{
+                                tab: "detailed",
+                                metric: metric.key,
+                                period,
+                              }}
+                              title={`${monthLabel} — Done (view in Detailed Data)`}
+                              className={commonClass}
+                            >
+                              {icon}
+                            </Link>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                onCellClick(metric, m.year, m.month)
+                              }
+                              title={`${monthLabel} — ${statusLabel(status)} (click to add)`}
+                              className={commonClass}
+                            >
+                              {icon}
+                            </button>
+                          )}
                         </td>
+
                       );
                     })}
                   </tr>
