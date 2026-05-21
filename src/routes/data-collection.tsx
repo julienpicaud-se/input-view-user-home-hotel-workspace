@@ -191,72 +191,84 @@ function DataCollectionPage() {
   } | null>(null);
 
   return (
-    <PageContainer>
-      <TabBar active={tab} />
+    <div className="min-h-screen bg-[#F6F7F8]">
+      <div className="mx-auto w-full max-w-7xl px-6 py-8 md:px-10 md:py-10">
+        <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="text-[28px] font-bold leading-tight tracking-tight text-zinc-900 sm:text-[32px]">
+              Data collection
+            </h1>
+            <p className="mt-1.5 text-sm text-zinc-500">
+              Track monthly coverage and review every raw ESG record for{" "}
+              {hotel?.name ?? "your hotel"}.
+            </p>
+          </div>
+          <TabBar active={tab} />
+        </header>
 
+        {loading ? (
+          <div className="rounded-xl border border-zinc-200 bg-white p-12 text-center text-sm text-zinc-500">
+            Loading data…
+          </div>
+        ) : tab === "coverage" ? (
+          <CoverageMatrix
+            hotelId={hotelId}
+            hotel={hotel}
+            entries={entries}
+            onCellClick={(metric, year, month) =>
+              setEditing({ metric, year, month })
+            }
+          />
+        ) : (
+          <DetailedData
+            hotel={hotel}
+            entries={entries}
+            metricFilter={metricFilter}
+            periodFilter={periodFilter}
+            onViewDetails={(metricKey, year, month) => {
+              const m = METRICS.find((x) => x.key === metricKey);
+              if (m) setViewing({ metric: m, year, month });
+            }}
+            onRefresh={load}
+          />
+        )}
 
-      {loading ? (
-        <div className="rounded-2xl border border-border bg-card p-12 text-center text-sm text-muted-foreground">
-          Loading data…
-        </div>
-      ) : tab === "coverage" ? (
-        <CoverageMatrix
-          hotelId={hotelId}
-          hotel={hotel}
-          entries={entries}
-          onCellClick={(metric, year, month) =>
-            setEditing({ metric, year, month })
-          }
-        />
-      ) : (
-        <DetailedData
-          hotel={hotel}
-          entries={entries}
-          metricFilter={metricFilter}
-          periodFilter={periodFilter}
-          onViewDetails={(metricKey, year, month) => {
-            const m = METRICS.find((x) => x.key === metricKey);
-            if (m) setViewing({ metric: m, year, month });
-          }}
-          onRefresh={load}
-        />
-      )}
+        {editing && (
+          <FillDataPanel
+            hotelId={hotelId}
+            metric={editing.metric}
+            year={editing.year}
+            month={editing.month}
+            existing={
+              entries.find(
+                (e) => e.year === editing.year && e.month === editing.month,
+              ) ?? null
+            }
+            onClose={() => setEditing(null)}
+            onSaved={async () => {
+              setEditing(null);
+              await load();
+              toast.success("Data saved");
+            }}
+          />
+        )}
 
-      {editing && (
-        <FillDataPanel
-          hotelId={hotelId}
-          metric={editing.metric}
-          year={editing.year}
-          month={editing.month}
-          existing={
-            entries.find(
-              (e) => e.year === editing.year && e.month === editing.month,
-            ) ?? null
-          }
-          onClose={() => setEditing(null)}
-          onSaved={async () => {
-            setEditing(null);
-            await load();
-            toast.success("Data saved");
-          }}
-        />
-      )}
-
-      {viewing && (
-        <DetailsPanel
-          hotel={hotel}
-          metric={viewing.metric}
-          year={viewing.year}
-          month={viewing.month}
-          entry={
-            entries.find(
-              (e) => e.year === viewing.year && e.month === viewing.month,
-            ) ?? null
-          }
-          onClose={() => setViewing(null)}
-        />
-      )}
-    </PageContainer>
+        {viewing && (
+          <DetailsPanel
+            hotel={hotel}
+            metric={viewing.metric}
+            year={viewing.year}
+            month={viewing.month}
+            entry={
+              entries.find(
+                (e) => e.year === viewing.year && e.month === viewing.month,
+              ) ?? null
+            }
+            onClose={() => setViewing(null)}
+          />
+        )}
+      </div>
+    </div>
   );
 }
 
