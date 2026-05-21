@@ -402,7 +402,7 @@ function CoverageMatrix({
         <KpiCard
           label="Records"
           value={formatNumber(entries.length)}
-          tone="text-sky-600"
+          tone="text-zinc-900"
           hint="Monthly entries submitted"
         />
         <KpiCard
