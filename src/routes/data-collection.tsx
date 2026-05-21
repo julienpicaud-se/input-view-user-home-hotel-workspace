@@ -1573,6 +1573,33 @@ function FillDataPanel({
         </div>
 
         <div className="flex-1 space-y-4 overflow-y-auto px-5 py-5">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="range-start">Start month</Label>
+              <Input
+                id="range-start"
+                type="month"
+                value={rangeStart}
+                onChange={(e) => setRangeStart(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="range-end">End month</Label>
+              <Input
+                id="range-end"
+                type="month"
+                value={rangeEnd}
+                onChange={(e) => setRangeEnd(e.target.value)}
+              />
+            </div>
+            {rangeMonths.length > 1 && (
+              <p className="col-span-2 text-[11px] text-zinc-500">
+                Covers {rangeMonths.length} months — the value will be split
+                evenly across each month.
+              </p>
+            )}
+          </div>
+
           {mode === "manual" && (
             <>
               <div className="rounded-xl border border-zinc-200 bg-zinc-50/60 px-4 py-3 text-xs text-zinc-600">
@@ -1582,8 +1609,8 @@ function FillDataPanel({
                 </div>
                 <p className="mt-1">
                   Enter the total {metric.activity.toLowerCase()} for{" "}
-                  {MONTH_NAMES[month - 1]} {year}. Once saved, it will appear in
-                  the Coverage Matrix and feed into the dashboards.
+                  {rangeLabel}. Once saved, it will appear in the Coverage
+                  Matrix and feed into the dashboards.
                 </p>
               </div>
 
