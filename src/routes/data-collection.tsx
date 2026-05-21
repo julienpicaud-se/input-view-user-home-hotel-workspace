@@ -26,9 +26,7 @@ import {
 } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveHotelId, type Hotel, type MonthlyEntry } from "@/lib/hotel";
-import { HotelSwitcher } from "@/components/hotel-switcher";
 import { MONTH_SHORT, MONTH_NAMES, formatNumber } from "@/lib/format";
-import { PageContainer, PageHeader } from "@/components/page-shell";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -191,72 +189,84 @@ function DataCollectionPage() {
   } | null>(null);
 
   return (
-    <PageContainer>
-      <TabBar active={tab} />
+    <div className="min-h-screen bg-[#F6F7F8]">
+      <div className="mx-auto w-full max-w-7xl px-6 py-8 md:px-10 md:py-10">
+        <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="text-[28px] font-bold leading-tight tracking-tight text-zinc-900 sm:text-[32px]">
+              Data collection
+            </h1>
+            <p className="mt-1.5 text-sm text-zinc-500">
+              Track monthly coverage and review every raw ESG record for{" "}
+              {hotel?.name ?? "your hotel"}.
+            </p>
+          </div>
+          <TabBar active={tab} />
+        </header>
 
+        {loading ? (
+          <div className="rounded-xl border border-zinc-200 bg-white p-12 text-center text-sm text-zinc-500">
+            Loading data…
+          </div>
+        ) : tab === "coverage" ? (
+          <CoverageMatrix
+            hotelId={hotelId}
+            hotel={hotel}
+            entries={entries}
+            onCellClick={(metric, year, month) =>
+              setEditing({ metric, year, month })
+            }
+          />
+        ) : (
+          <DetailedData
+            hotel={hotel}
+            entries={entries}
+            metricFilter={metricFilter}
+            periodFilter={periodFilter}
+            onViewDetails={(metricKey, year, month) => {
+              const m = METRICS.find((x) => x.key === metricKey);
+              if (m) setViewing({ metric: m, year, month });
+            }}
+            onRefresh={load}
+          />
+        )}
 
-      {loading ? (
-        <div className="rounded-2xl border border-border bg-card p-12 text-center text-sm text-muted-foreground">
-          Loading data…
-        </div>
-      ) : tab === "coverage" ? (
-        <CoverageMatrix
-          hotelId={hotelId}
-          hotel={hotel}
-          entries={entries}
-          onCellClick={(metric, year, month) =>
-            setEditing({ metric, year, month })
-          }
-        />
-      ) : (
-        <DetailedData
-          hotel={hotel}
-          entries={entries}
-          metricFilter={metricFilter}
-          periodFilter={periodFilter}
-          onViewDetails={(metricKey, year, month) => {
-            const m = METRICS.find((x) => x.key === metricKey);
-            if (m) setViewing({ metric: m, year, month });
-          }}
-          onRefresh={load}
-        />
-      )}
+        {editing && (
+          <FillDataPanel
+            hotelId={hotelId}
+            metric={editing.metric}
+            year={editing.year}
+            month={editing.month}
+            existing={
+              entries.find(
+                (e) => e.year === editing.year && e.month === editing.month,
+              ) ?? null
+            }
+            onClose={() => setEditing(null)}
+            onSaved={async () => {
+              setEditing(null);
+              await load();
+              toast.success("Data saved");
+            }}
+          />
+        )}
 
-      {editing && (
-        <FillDataPanel
-          hotelId={hotelId}
-          metric={editing.metric}
-          year={editing.year}
-          month={editing.month}
-          existing={
-            entries.find(
-              (e) => e.year === editing.year && e.month === editing.month,
-            ) ?? null
-          }
-          onClose={() => setEditing(null)}
-          onSaved={async () => {
-            setEditing(null);
-            await load();
-            toast.success("Data saved");
-          }}
-        />
-      )}
-
-      {viewing && (
-        <DetailsPanel
-          hotel={hotel}
-          metric={viewing.metric}
-          year={viewing.year}
-          month={viewing.month}
-          entry={
-            entries.find(
-              (e) => e.year === viewing.year && e.month === viewing.month,
-            ) ?? null
-          }
-          onClose={() => setViewing(null)}
-        />
-      )}
-    </PageContainer>
+        {viewing && (
+          <DetailsPanel
+            hotel={hotel}
+            metric={viewing.metric}
+            year={viewing.year}
+            month={viewing.month}
+            entry={
+              entries.find(
+                (e) => e.year === viewing.year && e.month === viewing.month,
+              ) ?? null
+            }
+            onClose={() => setViewing(null)}
+          />
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -267,7 +277,7 @@ function TabBar({ active }: { active: "coverage" | "detailed" }) {
     { key: "detailed", label: "Detailed Data" },
   ];
   return (
-    <div className="mb-6 inline-flex w-full justify-start gap-1 rounded-2xl border border-border bg-card p-1.5 sm:w-auto">
+    <div className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-white p-1">
       {tabs.map((t) => {
         const isActive = t.key === active;
         return (
@@ -276,10 +286,10 @@ function TabBar({ active }: { active: "coverage" | "detailed" }) {
             to="/data-collection"
             search={{ tab: t.key }}
             className={cn(
-              "inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-medium transition-colors",
+              "inline-flex items-center justify-center rounded-full px-4 py-1.5 text-[13px] font-medium transition-colors",
               isActive
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                ? "bg-emerald-600 text-white"
+                : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900",
             )}
           >
             {t.label}
@@ -390,7 +400,7 @@ function CoverageMatrix({
         <KpiCard
           label="Records"
           value={formatNumber(entries.length)}
-          tone="text-sky-600"
+          tone="text-zinc-900"
           hint="Monthly entries submitted"
         />
         <KpiCard
@@ -401,11 +411,11 @@ function CoverageMatrix({
         />
       </div>
 
-      <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+      <div className="rounded-xl border border-zinc-200 bg-white p-5">
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 className="font-serif text-lg font-semibold">Coverage Matrix</h2>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <h2 className="text-[15px] font-semibold tracking-tight text-zinc-900">Coverage matrix</h2>
+            <p className="mt-1 text-xs text-zinc-500">
               {rangeLabel} · {hotel?.name ?? "Hotel"} · Click a missing or
               draft cell to add data.
             </p>
@@ -428,16 +438,16 @@ function CoverageMatrix({
           <table className="w-full min-w-[760px] border-separate border-spacing-0 text-sm">
             <thead>
               <tr>
-                <th className="sticky left-0 z-10 bg-card px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <th className="sticky left-0 z-10 bg-white px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-500">
                   Data type
                 </th>
                 {periods.map((p) => (
                   <th
                     key={p.key}
-                    className="px-2 py-2 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
+                    className="px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-500"
                   >
                     <div>{p.label}</div>
-                    <div className="text-[9px] font-normal text-muted-foreground/70">
+                    <div className="text-[9px] font-normal text-zinc-400">
                       {p.sublabel}
                     </div>
                   </th>
@@ -448,22 +458,22 @@ function CoverageMatrix({
               {METRICS.map((metric) => {
                 const Icon = metric.Icon;
                 return (
-                  <tr key={metric.key} className="border-t border-border/60">
-                    <td className="sticky left-0 z-10 bg-card px-3 py-3">
-                      <div className="flex items-center gap-2">
+                  <tr key={metric.key} className="border-t border-zinc-100">
+                    <td className="sticky left-0 z-10 bg-white px-3 py-3">
+                      <div className="flex items-center gap-2.5">
                         <div
                           className={cn(
-                            "flex h-7 w-7 items-center justify-center rounded-lg border",
+                            "flex h-7 w-7 items-center justify-center rounded-md border",
                             metric.tone,
                           )}
                         >
                           <Icon className="h-3.5 w-3.5" />
                         </div>
                         <div className="leading-tight">
-                          <div className="text-sm font-medium text-foreground">
+                          <div className="text-[13px] font-medium text-zinc-900">
                             {metric.label}
                           </div>
-                          <div className="text-[10px] text-muted-foreground">
+                          <div className="text-[10px] text-zinc-500">
                             ({metric.unit})
                           </div>
                         </div>
@@ -529,7 +539,7 @@ function CoverageMatrix({
             </tbody>
           </table>
         </div>
-        <div className="mt-3 flex justify-end border-t border-border/40 pt-3">
+        <div className="mt-3 flex justify-end border-t border-zinc-100 pt-3">
           <Legend />
         </div>
       </div>
@@ -619,7 +629,7 @@ function GranularityToggle({
     <div
       role="tablist"
       aria-label="Granularity"
-      className="inline-flex h-8 items-center rounded-lg bg-muted/60 p-0.5 text-xs"
+      className="inline-flex h-8 items-center rounded-full border border-zinc-200 bg-white p-0.5 text-xs"
     >
       {options.map((o) => {
         const active = value === o.key;
@@ -631,10 +641,10 @@ function GranularityToggle({
             aria-selected={active}
             onClick={() => onChange(o.key)}
             className={cn(
-              "h-7 rounded-md px-2.5 font-medium transition",
+              "h-7 rounded-full px-3 font-medium transition",
               active
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground",
+                ? "bg-emerald-600 text-white"
+                : "text-zinc-600 hover:text-zinc-900",
             )}
             title={o.label}
           >
@@ -705,11 +715,11 @@ function RangeSelector({
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="inline-flex h-8 items-center gap-2 rounded-lg border border-border bg-background px-3 text-xs font-medium text-foreground transition hover:border-primary/40 hover:bg-muted/60"
+          className="inline-flex h-8 items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-700 transition hover:border-emerald-500/40 hover:text-zinc-900"
         >
-          <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground" />
+          <CalendarIcon className="h-3.5 w-3.5 text-zinc-400" />
           {label}
-          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+          <ChevronDown className="h-3.5 w-3.5 text-zinc-400" />
         </button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-[300px] p-3">
@@ -835,14 +845,14 @@ function KpiCard({
   tone: string;
 }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-      <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+    <div className="rounded-xl border border-zinc-200 bg-white p-5">
+      <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-500">
         {label}
       </div>
-      <div className={cn("mt-2 font-serif text-3xl font-semibold", tone)}>
+      <div className={cn("mt-2 text-[28px] font-bold tracking-tight tabular-nums", tone)}>
         {value}
       </div>
-      <div className="mt-1 text-xs text-muted-foreground">{hint}</div>
+      <div className="mt-1 text-xs text-zinc-500">{hint}</div>
     </div>
   );
 }
@@ -1013,11 +1023,11 @@ function DetailedData({
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-card shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 px-5 py-4">
+    <div className="rounded-xl border border-zinc-200 bg-white">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 px-5 py-4">
         <div>
-          <h2 className="font-serif text-lg font-semibold">Detailed Data</h2>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <h2 className="text-[15px] font-semibold tracking-tight text-zinc-900">Detailed data</h2>
+          <p className="mt-1 text-xs text-zinc-500">
             {formatNumber(filtered.length)} record
             {filtered.length === 1 ? "" : "s"} ·{" "}
             {hotel?.name ?? "Hotel"} · Click any value to edit
@@ -1025,20 +1035,19 @@ function DetailedData({
         </div>
         <div className="flex items-center gap-2">
           <div className="relative">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400" />
             <Input
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search activity…"
-              className="h-9 w-56 pl-8 text-sm"
+              className="h-9 w-56 rounded-full border-zinc-200 pl-8 text-sm"
             />
           </div>
           <Button
             type="button"
-            variant="outline"
             size="sm"
             onClick={exportCsv}
-            className="gap-1.5"
+            className="gap-1.5 rounded-full bg-emerald-600 px-4 text-white hover:bg-emerald-700"
           >
             <Download className="h-3.5 w-3.5" />
             Export CSV
@@ -1047,24 +1056,24 @@ function DetailedData({
       </div>
 
       {hasFilters && (
-        <div className="flex flex-wrap items-center gap-2 border-b border-border/60 bg-muted/30 px-5 py-3 text-xs">
-          <span className="font-medium text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-2 border-b border-zinc-100 bg-zinc-50/60 px-5 py-3 text-xs">
+          <span className="font-medium text-zinc-500">
             Filtered by:
           </span>
           {activeMetric && (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 font-medium text-foreground">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-2.5 py-1 font-medium text-zinc-900">
               {activeMetric.label}
             </span>
           )}
           {activePeriodLabel && (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 font-medium text-foreground">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-2.5 py-1 font-medium text-zinc-900">
               {activePeriodLabel}
             </span>
           )}
           <Link
             to="/data-collection"
             search={{ tab: "detailed" }}
-            className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-muted-foreground transition hover:text-foreground"
+            className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-zinc-500 transition hover:text-zinc-900"
           >
             <X className="h-3 w-3" />
             Clear
@@ -1075,7 +1084,7 @@ function DetailedData({
       <div className="overflow-x-auto">
         <table className="w-full min-w-[920px] text-sm">
           <thead>
-            <tr className="border-b border-border/60 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <tr className="border-b border-zinc-100 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-500">
               <th className="px-5 py-3">Activity data</th>
               <th className="px-3 py-3">Start date</th>
               <th className="px-3 py-3">End date</th>
@@ -1090,7 +1099,7 @@ function DetailedData({
               <tr>
                 <td
                   colSpan={7}
-                  className="px-5 py-12 text-center text-sm text-muted-foreground"
+                  className="px-5 py-12 text-center text-sm text-zinc-500"
                 >
                   No records found.
                 </td>
@@ -1102,18 +1111,18 @@ function DetailedData({
                 return (
                   <tr
                     key={r.id}
-                    className="border-b border-border/40 transition-colors hover:bg-muted/30"
+                    className="border-b border-zinc-100 transition-colors hover:bg-zinc-50/60"
                   >
-                    <td className="px-5 py-3 font-medium text-foreground">
+                    <td className="px-5 py-3 font-medium text-zinc-900">
                       {r.activity}
                     </td>
-                    <td className="px-3 py-3 text-muted-foreground">
+                    <td className="px-3 py-3 text-zinc-500 tabular-nums">
                       {r.startDate}
                     </td>
-                    <td className="px-3 py-3 text-muted-foreground">
+                    <td className="px-3 py-3 text-zinc-500 tabular-nums">
                       {r.endDate}
                     </td>
-                    <td className="px-3 py-3 text-right font-mono text-foreground">
+                    <td className="px-3 py-3 text-right font-mono text-zinc-900 tabular-nums">
                       {isEditing ? (
                         <Input
                           type="number"
@@ -1140,32 +1149,30 @@ function DetailedData({
                         <button
                           type="button"
                           onClick={() => beginEdit(r)}
-                          className="-mx-1 rounded px-1 py-0.5 text-right font-mono hover:bg-muted/70 hover:ring-1 hover:ring-primary/30"
+                          className="-mx-1 rounded px-1 py-0.5 text-right font-mono hover:bg-zinc-100 hover:ring-1 hover:ring-emerald-500/30"
                           title="Click to edit"
                         >
                           {formatNumber(r.value)}
                         </button>
                       )}
                     </td>
-                    <td className="px-3 py-3 text-muted-foreground">
+                    <td className="px-3 py-3 text-zinc-500">
                       {r.metric}
                     </td>
-                    <td className="px-5 py-3 text-muted-foreground">
+                    <td className="px-5 py-3 text-zinc-500">
                       {r.entity}
                     </td>
                     <td className="px-3 py-3 text-right">
-                      <Button
+                      <button
                         type="button"
-                        variant="outline"
-                        size="sm"
                         onClick={() =>
                           onViewDetails(r.metricKey, r.year, r.month)
                         }
-                        className="gap-1.5"
+                        className="inline-flex h-8 items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-700 transition hover:border-emerald-500/40 hover:text-emerald-700"
                       >
                         <Eye className="h-3.5 w-3.5" />
                         View details
-                      </Button>
+                      </button>
                     </td>
                   </tr>
                 );
@@ -1264,7 +1271,7 @@ function FillDataPanel({
               <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
                 Add data
               </div>
-              <div className="font-serif text-lg font-semibold">
+              <div className="text-[15px] font-semibold tracking-tight text-zinc-900">
                 {metric.label}
               </div>
               <div className="text-xs text-muted-foreground">
@@ -1441,7 +1448,7 @@ function DetailsPanel({
               <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
                 Measuring points
               </div>
-              <div className="font-serif text-lg font-semibold">
+              <div className="text-[15px] font-semibold tracking-tight text-zinc-900">
                 {metric.label}
               </div>
               <div className="text-xs text-muted-foreground">
@@ -1464,7 +1471,7 @@ function DetailsPanel({
             <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
               Period total
             </div>
-            <div className="mt-1 font-serif text-2xl font-semibold text-foreground">
+            <div className="mt-1 text-2xl font-bold tracking-tight text-zinc-900 tabular-nums">
               {formatNumber(total)}{" "}
               <span className="text-sm font-normal text-muted-foreground">
                 {metric.unit}
