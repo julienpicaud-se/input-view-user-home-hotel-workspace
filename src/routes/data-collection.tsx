@@ -1456,30 +1456,11 @@ function FillDataPanel({
     onClose();
   }
 
-  function handleInvoiceUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setInvoiceFile(file);
-    setExtracting(true);
-    // Simulated extraction — replace with real OCR/extraction later
-    window.setTimeout(() => {
-      const fake = Math.round(
-        (metric.key === "occupied_room_nights" ? 2400 : 12500) *
-          (0.85 + Math.random() * 0.3),
-      );
-      setInvoiceExtracted(fake);
-      setValue(String(fake));
-      setExtracting(false);
-      toast.success("Value extracted from invoice");
-    }, 900);
-  }
-
   const Icon = metric.Icon;
 
   const modes: { key: Mode; label: string; Icon: typeof PencilLine; desc: string }[] = [
     { key: "manual", label: "Manual", Icon: PencilLine, desc: "Type the value" },
     { key: "survey", label: "Survey", Icon: ClipboardList, desc: "Request from teammate" },
-    { key: "invoice", label: "Invoice", Icon: Receipt, desc: "Upload a document" },
   ];
 
   return (
