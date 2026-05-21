@@ -422,12 +422,10 @@ function CoverageMatrix({
 
 function statusLabel(s: CellStatus): string {
   switch (s) {
-    case "approved":
-      return "Approved";
-    case "submitted":
-      return "Submitted";
-    case "draft":
-      return "Draft";
+    case "done":
+      return "Done";
+    case "in_progress":
+      return "In progress";
     case "missing":
       return "Missing";
   }
@@ -435,11 +433,9 @@ function statusLabel(s: CellStatus): string {
 
 function statusDot(s: CellStatus): string {
   switch (s) {
-    case "approved":
+    case "done":
       return "bg-emerald-500";
-    case "submitted":
-      return "bg-sky-500";
-    case "draft":
+    case "in_progress":
       return "bg-amber-500";
     case "missing":
       return "bg-muted border border-dashed border-muted-foreground/40";
@@ -448,9 +444,8 @@ function statusDot(s: CellStatus): string {
 
 function Legend() {
   const items: { s: CellStatus; label: string }[] = [
-    { s: "approved", label: "Approved" },
-    { s: "submitted", label: "Submitted" },
-    { s: "draft", label: "Draft" },
+    { s: "done", label: "Done" },
+    { s: "in_progress", label: "In progress" },
     { s: "missing", label: "Missing" },
   ];
   return (
