@@ -390,6 +390,17 @@ function CoverageMatrix({
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-end">
+        <RangeSelector
+          start={rangeStart}
+          end={rangeEnd}
+          onChange={(s, e) => {
+            setRangeStart(s);
+            setRangeEnd(e);
+          }}
+        />
+      </div>
+
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <KpiCard
           label="Coverage"
@@ -423,16 +434,9 @@ function CoverageMatrix({
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <GranularityToggle value={granularity} onChange={setGranularity} />
-            <RangeSelector
-              start={rangeStart}
-              end={rangeEnd}
-              onChange={(s, e) => {
-                setRangeStart(s);
-                setRangeEnd(e);
-              }}
-            />
           </div>
         </div>
+
 
 
         <div className="overflow-x-auto">
