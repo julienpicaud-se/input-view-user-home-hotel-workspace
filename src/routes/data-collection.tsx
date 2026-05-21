@@ -22,6 +22,7 @@ import {
   ClipboardList,
   Receipt,
   Upload,
+  RotateCcw,
 } from "lucide-react";
 import {
   Popover,
@@ -390,7 +391,7 @@ function CoverageMatrix({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-start">
+      <div className="flex items-center justify-start gap-2">
         <RangeSelector
           start={rangeStart}
           end={rangeEnd}
@@ -399,6 +400,19 @@ function CoverageMatrix({
             setRangeEnd(e);
           }}
         />
+        <button
+          type="button"
+          onClick={() => {
+            const now = new Date();
+            setRangeEnd({ year: now.getFullYear(), month: now.getMonth() + 1 });
+            const d = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+            setRangeStart({ year: d.getFullYear(), month: d.getMonth() + 1 });
+          }}
+          className="inline-flex h-8 items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-600 transition hover:border-emerald-500/40 hover:text-zinc-900"
+        >
+          <RotateCcw className="h-3 w-3" />
+          Reset to last 12 months
+        </button>
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -1071,7 +1085,7 @@ function DetailedData({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-start">
+      <div className="flex items-center justify-start gap-2">
         <RangeSelector
           start={rangeStart}
           end={rangeEnd}
@@ -1080,6 +1094,19 @@ function DetailedData({
             setRangeEnd(e);
           }}
         />
+        <button
+          type="button"
+          onClick={() => {
+            const now = new Date();
+            setRangeEnd({ year: now.getFullYear(), month: now.getMonth() + 1 });
+            const d = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+            setRangeStart({ year: d.getFullYear(), month: d.getMonth() + 1 });
+          }}
+          className="inline-flex h-8 items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-600 transition hover:border-emerald-500/40 hover:text-zinc-900"
+        >
+          <RotateCcw className="h-3 w-3" />
+          Reset to last 12 months
+        </button>
       </div>
 
       <div className="rounded-xl border border-zinc-200 bg-white">
