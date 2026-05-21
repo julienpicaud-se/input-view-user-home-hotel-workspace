@@ -428,7 +428,7 @@ function CoverageMatrix({
               draft cell to add data.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             <GranularityToggle value={granularity} onChange={setGranularity} />
             <RangeSelector
               start={rangeStart}
@@ -438,9 +438,9 @@ function CoverageMatrix({
                 setRangeEnd(e);
               }}
             />
-            <Legend />
           </div>
         </div>
+
 
         <div className="overflow-x-auto">
           <table className="w-full min-w-[760px] border-separate border-spacing-0 text-sm">
