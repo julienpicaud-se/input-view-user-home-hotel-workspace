@@ -809,9 +809,20 @@ function statusDot(s: CellStatus): string {
     case "done":
       return "bg-emerald-500";
     case "in_progress":
-      return "bg-amber-500";
+      return "bg-amber-400";
     case "missing":
-      return "bg-muted border border-dashed border-muted-foreground/40";
+      return "bg-zinc-100 border border-dashed border-zinc-300";
+  }
+}
+
+function statusPill(s: CellStatus): string {
+  switch (s) {
+    case "done":
+      return "bg-emerald-50 text-emerald-700 border-emerald-100";
+    case "in_progress":
+      return "bg-amber-50 text-amber-700 border-amber-100";
+    case "missing":
+      return "bg-rose-50 text-rose-700 border-rose-100";
   }
 }
 
@@ -822,10 +833,16 @@ function Legend() {
     { s: "missing", label: "Missing" },
   ];
   return (
-    <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
+    <div className="flex flex-wrap items-center gap-2">
       {items.map((it) => (
-        <span key={it.s} className="inline-flex items-center gap-1.5">
-          <span className={cn("h-3 w-3 rounded-full", statusDot(it.s))} />
+        <span
+          key={it.s}
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-medium",
+            statusPill(it.s),
+          )}
+        >
+          <span className={cn("h-1.5 w-1.5 rounded-full", statusDot(it.s))} />
           {it.label}
         </span>
       ))}
