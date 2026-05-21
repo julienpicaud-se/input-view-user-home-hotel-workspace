@@ -1684,10 +1684,10 @@ function DetailsPanel({
         type="button"
         aria-label="Close panel"
         onClick={onClose}
-        className="flex-1 bg-foreground/30 backdrop-blur-sm"
+        className="flex-1 bg-zinc-900/30 backdrop-blur-sm"
       />
-      <aside className="flex h-full w-full max-w-lg flex-col border-l border-border bg-background shadow-2xl">
-        <header className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
+      <aside className="flex h-full w-full max-w-lg flex-col border-l border-zinc-200 bg-white shadow-2xl">
+        <header className="flex items-start justify-between gap-3 border-b border-zinc-100 px-6 py-5">
           <div className="flex items-center gap-3">
             <div
               className={cn(
@@ -1698,13 +1698,13 @@ function DetailsPanel({
               <Icon className="h-5 w-5" />
             </div>
             <div>
-              <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
                 Measuring points
               </div>
               <div className="text-[15px] font-semibold tracking-tight text-zinc-900">
                 {metric.label}
               </div>
-              <div className="text-xs text-muted-foreground">
+              <div className="text-xs text-zinc-500">
                 {MONTH_NAMES[month - 1]} {year} · {hotel?.name ?? "Hotel"}
               </div>
             </div>
@@ -1712,71 +1712,69 @@ function DetailsPanel({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+            className="rounded-full p-1.5 text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-900"
             aria-label="Close"
           >
             <X className="h-4 w-4" />
           </button>
         </header>
 
-        <div className="flex-1 space-y-4 overflow-y-auto px-5 py-5">
-          <div className="rounded-xl border border-border bg-muted/30 px-4 py-3">
-            <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+        <div className="flex-1 space-y-3 overflow-y-auto px-6 py-5">
+          <div className="rounded-xl border border-zinc-200 bg-white px-4 py-3.5">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
               Period total
             </div>
             <div className="mt-1 text-2xl font-bold tracking-tight text-zinc-900 tabular-nums">
               {formatNumber(total)}{" "}
-              <span className="text-sm font-normal text-muted-foreground">
+              <span className="text-sm font-medium text-zinc-500">
                 {metric.unit}
               </span>
             </div>
-            <div className="mt-1 text-xs text-muted-foreground">
+            <div className="mt-1 text-xs text-zinc-500">
               Sum of {points.length} measuring point
               {points.length === 1 ? "" : "s"} for {metric.activity.toLowerCase()}.
             </div>
           </div>
 
           {points.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border bg-card px-4 py-8 text-center text-sm text-muted-foreground">
+            <div className="rounded-xl border border-dashed border-zinc-200 bg-white px-4 py-8 text-center text-sm text-zinc-500">
               No measuring points recorded for this period yet.
             </div>
           ) : (
-            <ul className="space-y-3">
+            <ul className="space-y-2.5">
               {points.map((p, idx) => (
                 <li
                   key={p.id}
-                  className="rounded-xl border border-border bg-card px-4 py-3 shadow-sm"
+                  className="rounded-xl border border-zinc-200 bg-white px-4 py-3 transition hover:border-emerald-500/40"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                      <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
                         Measuring point {idx + 1}
                       </div>
-                      <div className="mt-0.5 font-medium text-foreground">
+                      <div className="mt-0.5 text-sm font-semibold text-zinc-900">
                         {p.label}
                       </div>
                     </div>
-                    <div className="text-right font-mono text-sm text-foreground">
+                    <div className="text-right text-sm font-semibold tabular-nums text-zinc-900">
                       {formatNumber(p.value)}{" "}
-                      <span className="text-muted-foreground">{p.unit}</span>
+                      <span className="font-normal text-zinc-500">{p.unit}</span>
                     </div>
                   </div>
-                  <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] text-muted-foreground">
-                    <div>
-                      <span className="font-medium text-foreground/80">
-                        Source:
-                      </span>{" "}
-                      {p.source}
-                    </div>
-                    <div className="text-right">
-                      <span className="font-medium text-foreground/80">
-                        Recorded:
-                      </span>{" "}
-                      {p.recordedAt ? p.recordedAt.slice(0, 10) : "—"}
-                    </div>
+                  <div className="mt-2.5 flex items-center justify-between gap-2 text-[11px] text-zinc-500">
+                    <span>
+                      <span className="text-zinc-400">Source:</span>{" "}
+                      <span className="text-zinc-700">{p.source}</span>
+                    </span>
+                    <span>
+                      <span className="text-zinc-400">Recorded:</span>{" "}
+                      <span className="text-zinc-700 tabular-nums">
+                        {p.recordedAt ? p.recordedAt.slice(0, 10) : "—"}
+                      </span>
+                    </span>
                   </div>
                   {p.notes && (
-                    <div className="mt-2 rounded-md bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                    <div className="mt-2 rounded-lg border border-zinc-100 bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
                       {p.notes}
                     </div>
                   )}
@@ -1785,16 +1783,20 @@ function DetailsPanel({
             </ul>
           )}
 
-          <div className="rounded-xl border border-dashed border-border bg-card/50 px-4 py-3 text-xs text-muted-foreground">
+          <div className="rounded-xl border border-dashed border-zinc-200 bg-white px-4 py-3 text-[11px] text-zinc-500">
             Multiple measuring points per period (e.g. separate meters,
             sub-buildings, or invoices) will appear here as they are added.
           </div>
         </div>
 
-        <footer className="flex items-center justify-end gap-2 border-t border-border px-5 py-4">
-          <Button variant="outline" onClick={onClose}>
+        <footer className="flex items-center justify-end gap-2 border-t border-zinc-100 px-6 py-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-9 items-center rounded-full border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50"
+          >
             Close
-          </Button>
+          </button>
         </footer>
       </aside>
     </div>
