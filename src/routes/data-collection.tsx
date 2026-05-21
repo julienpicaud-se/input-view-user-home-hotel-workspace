@@ -229,6 +229,14 @@ function DataCollectionPage() {
               const m = METRICS.find((x) => x.key === metricKey);
               if (m) setViewing({ metric: m, year, month });
             }}
+            onAddData={() => {
+              const now = new Date();
+              setEditing({
+                metric: METRICS[0],
+                year: now.getFullYear(),
+                month: now.getMonth() + 1,
+              });
+            }}
             onRefresh={load}
           />
         )}
@@ -926,6 +934,7 @@ function DetailedData({
   metricFilter,
   periodFilter,
   onViewDetails,
+  onAddData,
   onRefresh,
 }: {
   hotel: Hotel | null;
@@ -933,6 +942,7 @@ function DetailedData({
   metricFilter?: MetricKey;
   periodFilter?: string;
   onViewDetails: (metricKey: MetricKey, year: number, month: number) => void;
+  onAddData: () => void;
   onRefresh: () => Promise<void> | void;
 }) {
 
@@ -1161,6 +1171,7 @@ function DetailedData({
           <Button
             type="button"
             size="sm"
+            onClick={onAddData}
             className="gap-1.5 rounded-full bg-emerald-600 px-4 text-white hover:bg-emerald-700"
           >
             <Plus className="h-3.5 w-3.5" />
