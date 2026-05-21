@@ -934,6 +934,7 @@ function DetailedData({
   metricFilter,
   periodFilter,
   onViewDetails,
+  onAddData,
   onRefresh,
 }: {
   hotel: Hotel | null;
@@ -941,6 +942,7 @@ function DetailedData({
   metricFilter?: MetricKey;
   periodFilter?: string;
   onViewDetails: (metricKey: MetricKey, year: number, month: number) => void;
+  onAddData: () => void;
   onRefresh: () => Promise<void> | void;
 }) {
 
