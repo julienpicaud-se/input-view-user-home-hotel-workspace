@@ -193,10 +193,10 @@ function DataCollectionPage() {
       <div className="mx-auto w-full max-w-7xl px-6 py-8 md:px-10 md:py-10">
         <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-[28px] font-bold leading-tight tracking-tight text-zinc-900 sm:text-[32px]">
+            <h1 className="text-[34px] font-bold leading-[1.1] tracking-tight text-zinc-900 sm:text-[38px]">
               Data collection
             </h1>
-            <p className="mt-1.5 text-sm text-zinc-500">
+            <p className="mt-2 text-sm text-zinc-500">
               Track monthly coverage and review every raw ESG record for{" "}
               {hotel?.name ?? "your hotel"}.
             </p>
@@ -394,8 +394,9 @@ function CoverageMatrix({
         <KpiCard
           label="Coverage"
           value={`${coveragePct}%`}
-          tone="text-emerald-600"
+          tone="text-zinc-900"
           hint={`${covered} of ${total} cells filled`}
+          progress={coveragePct}
         />
         <KpiCard
           label="Records"
@@ -491,14 +492,14 @@ function CoverageMatrix({
                           ? `${p.tooltipLabel} — ${doneCount}/${p.months.length} months ${statusLabel(status).toLowerCase()}`
                           : `${p.tooltipLabel} — ${statusLabel(status)}`;
                       const commonClass = cn(
-                        "mx-auto flex h-6 w-6 items-center justify-center rounded-full transition-transform cursor-pointer hover:scale-125 hover:ring-2 hover:ring-primary/40",
+                        "mx-auto flex h-6 w-6 items-center justify-center rounded-full transition cursor-pointer hover:scale-110 hover:ring-2 hover:ring-emerald-500/30",
                         statusDot(status),
                       );
                       const icon =
                         status === "in_progress" ? (
                           <Clock className="h-3 w-3 text-white" />
                         ) : status === "missing" ? (
-                          <AlertCircle className="h-3 w-3 text-muted-foreground" />
+                          <AlertCircle className="h-3 w-3 text-zinc-400" />
                         ) : null;
                       return (
                         <td
@@ -809,9 +810,20 @@ function statusDot(s: CellStatus): string {
     case "done":
       return "bg-emerald-500";
     case "in_progress":
-      return "bg-amber-500";
+      return "bg-amber-400";
     case "missing":
-      return "bg-muted border border-dashed border-muted-foreground/40";
+      return "bg-zinc-100 border border-dashed border-zinc-300";
+  }
+}
+
+function statusPill(s: CellStatus): string {
+  switch (s) {
+    case "done":
+      return "bg-emerald-50 text-emerald-700 border-emerald-100";
+    case "in_progress":
+      return "bg-amber-50 text-amber-700 border-amber-100";
+    case "missing":
+      return "bg-rose-50 text-rose-700 border-rose-100";
   }
 }
 
@@ -822,10 +834,16 @@ function Legend() {
     { s: "missing", label: "Missing" },
   ];
   return (
-    <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
+    <div className="flex flex-wrap items-center gap-2">
       {items.map((it) => (
-        <span key={it.s} className="inline-flex items-center gap-1.5">
-          <span className={cn("h-3 w-3 rounded-full", statusDot(it.s))} />
+        <span
+          key={it.s}
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-medium",
+            statusPill(it.s),
+          )}
+        >
+          <span className={cn("h-1.5 w-1.5 rounded-full", statusDot(it.s))} />
           {it.label}
         </span>
       ))}
@@ -838,11 +856,13 @@ function KpiCard({
   value,
   hint,
   tone,
+  progress,
 }: {
   label: string;
   value: string;
   hint: string;
   tone: string;
+  progress?: number;
 }) {
   return (
     <div className="rounded-xl border border-zinc-200 bg-white p-5">
@@ -852,7 +872,15 @@ function KpiCard({
       <div className={cn("mt-2 text-[28px] font-bold tracking-tight tabular-nums", tone)}>
         {value}
       </div>
-      <div className="mt-1 text-xs text-zinc-500">{hint}</div>
+      {typeof progress === "number" && (
+        <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-zinc-100">
+          <div
+            className="h-full rounded-full bg-emerald-500 transition-all"
+            style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+          />
+        </div>
+      )}
+      <div className="mt-1.5 text-xs text-zinc-500">{hint}</div>
     </div>
   );
 }
