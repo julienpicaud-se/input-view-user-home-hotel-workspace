@@ -460,22 +460,22 @@ function CoverageMatrix({
               {METRICS.map((metric) => {
                 const Icon = metric.Icon;
                 return (
-                  <tr key={metric.key} className="border-t border-border/60">
-                    <td className="sticky left-0 z-10 bg-card px-3 py-3">
-                      <div className="flex items-center gap-2">
+                  <tr key={metric.key} className="border-t border-zinc-100">
+                    <td className="sticky left-0 z-10 bg-white px-3 py-3">
+                      <div className="flex items-center gap-2.5">
                         <div
                           className={cn(
-                            "flex h-7 w-7 items-center justify-center rounded-lg border",
+                            "flex h-7 w-7 items-center justify-center rounded-md border",
                             metric.tone,
                           )}
                         >
                           <Icon className="h-3.5 w-3.5" />
                         </div>
                         <div className="leading-tight">
-                          <div className="text-sm font-medium text-foreground">
+                          <div className="text-[13px] font-medium text-zinc-900">
                             {metric.label}
                           </div>
-                          <div className="text-[10px] text-muted-foreground">
+                          <div className="text-[10px] text-zinc-500">
                             ({metric.unit})
                           </div>
                         </div>
