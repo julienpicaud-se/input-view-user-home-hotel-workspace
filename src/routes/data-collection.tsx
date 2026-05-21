@@ -1408,7 +1408,8 @@ function FillDataPanel({
           : mode === "survey"
             ? `Source: survey response`
             : null;
-      const finalNotes = [notes, sourceNote].filter(Boolean).join(" · ") || null;
+      const unitNote = unit && unit !== metric.unit ? `Unit: ${unit}` : null;
+      const finalNotes = [notes, unitNote, sourceNote].filter(Boolean).join(" · ") || null;
 
       // Split the total evenly across the months in the range.
       const perMonth = num / rangeMonths.length;
