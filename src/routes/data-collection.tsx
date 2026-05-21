@@ -1399,11 +1399,7 @@ function FillDataPanel({
     setSaving(true);
     try {
       const sourceNote =
-        mode === "invoice"
-          ? `Source: invoice (${invoiceFile?.name ?? "uploaded file"})`
-          : mode === "survey"
-            ? `Source: survey response`
-            : null;
+        mode === "survey" ? `Source: survey response` : null;
       const unitNote = unit && unit !== metric.unit ? `Unit: ${unit}` : null;
       const finalNotes = [notes, unitNote, sourceNote].filter(Boolean).join(" · ") || null;
 
