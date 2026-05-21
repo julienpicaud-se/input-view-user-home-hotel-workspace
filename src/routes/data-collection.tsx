@@ -1349,25 +1349,24 @@ function FillDataPanel({
   const [notes, setNotes] = React.useState<string>(existing?.notes ?? "");
   const [saving, setSaving] = React.useState(false);
 
-  // Time range — defaults to the single (year, month) passed in
-  const toMonthStr = (y: number, m: number) => `${y}-${String(m).padStart(2, "0")}`;
-  const [rangeStart, setRangeStart] = React.useState<string>(toMonthStr(year, month));
-  const [rangeEnd, setRangeEnd] = React.useState<string>(toMonthStr(year, month));
+  // Time range — actual start/end dates. Default: first->last day of the given month.
+  const toDateStr = (d: Date) => d.toISOString().slice(0, 10);
+  const defaultStart = new Date(year, month - 1, 1);
+  const defaultEnd = new Date(year, month, 0);
+  const [startDate, setStartDate] = React.useState<string>(toDateStr(defaultStart));
+  const [endDate, setEndDate] = React.useState<string>(toDateStr(defaultEnd));
+  const [unit, setUnit] = React.useState<string>(metric.unit);
 
-  function parseMonth(s: string): { y: number; m: number } | null {
-    const match = /^(\d{4})-(\d{2})$/.exec(s);
-    if (!match) return null;
-    return { y: Number(match[1]), m: Number(match[2]) };
-  }
   function monthsInRange(): { y: number; m: number }[] {
-    const s = parseMonth(rangeStart);
-    const e = parseMonth(rangeEnd);
-    if (!s || !e) return [];
-    const startIdx = s.y * 12 + (s.m - 1);
-    const endIdx = e.y * 12 + (e.m - 1);
-    const [a, b] = startIdx <= endIdx ? [startIdx, endIdx] : [endIdx, startIdx];
+    if (!startDate || !endDate) return [];
+    const s = new Date(startDate);
+    const e = new Date(endDate);
+    if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) return [];
+    const [a, b] = s <= e ? [s, e] : [e, s];
+    const startIdx = a.getFullYear() * 12 + a.getMonth();
+    const endIdx = b.getFullYear() * 12 + b.getMonth();
     const out: { y: number; m: number }[] = [];
-    for (let i = a; i <= b; i++) {
+    for (let i = startIdx; i <= endIdx; i++) {
       out.push({ y: Math.floor(i / 12), m: (i % 12) + 1 });
     }
     return out;
@@ -1409,7 +1408,8 @@ function FillDataPanel({
           : mode === "survey"
             ? `Source: survey response`
             : null;
-      const finalNotes = [notes, sourceNote].filter(Boolean).join(" · ") || null;
+      const unitNote = unit && unit !== metric.unit ? `Unit: ${unit}` : null;
+      const finalNotes = [notes, unitNote, sourceNote].filter(Boolean).join(" · ") || null;
 
       // Split the total evenly across the months in the range.
       const perMonth = num / rangeMonths.length;
@@ -1575,21 +1575,43 @@ function FillDataPanel({
         <div className="flex-1 space-y-4 overflow-y-auto px-5 py-5">
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1.5">
-              <Label htmlFor="range-start">Start month</Label>
+              <Label htmlFor="start-date">Start date</Label>
               <Input
-                id="range-start"
-                type="month"
-                value={rangeStart}
-                onChange={(e) => setRangeStart(e.target.value)}
+                id="start-date"
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="range-end">End month</Label>
+              <Label htmlFor="end-date">End date</Label>
               <Input
-                id="range-end"
-                type="month"
-                value={rangeEnd}
-                onChange={(e) => setRangeEnd(e.target.value)}
+                id="end-date"
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="value-top">Value</Label>
+              <Input
+                id="value-top"
+                type="number"
+                inputMode="decimal"
+                min={0}
+                step="any"
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                placeholder={`e.g. ${metric.key === "occupied_room_nights" ? "2400" : "12500"}`}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="unit">Unit of measure</Label>
+              <Input
+                id="unit"
+                value={unit}
+                onChange={(e) => setUnit(e.target.value)}
+                placeholder={metric.unit}
               />
             </div>
             {rangeMonths.length > 1 && (
@@ -1614,20 +1636,6 @@ function FillDataPanel({
                 </p>
               </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="value">Value ({metric.unit})</Label>
-                <Input
-                  id="value"
-                  type="number"
-                  inputMode="decimal"
-                  min={0}
-                  step="any"
-                  value={value}
-                  onChange={(e) => setValue(e.target.value)}
-                  placeholder={`e.g. ${metric.key === "occupied_room_nights" ? "2400" : "12500"}`}
-                  autoFocus
-                />
-              </div>
 
               <div className="space-y-1.5">
                 <Label htmlFor="notes">Notes (optional)</Label>
