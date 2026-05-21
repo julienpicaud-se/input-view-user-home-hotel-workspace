@@ -1070,7 +1070,19 @@ function DetailedData({
   }
 
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white">
+    <div className="space-y-6">
+      <div className="flex items-center justify-start">
+        <RangeSelector
+          start={rangeStart}
+          end={rangeEnd}
+          onChange={(s, e) => {
+            setRangeStart(s);
+            setRangeEnd(e);
+          }}
+        />
+      </div>
+
+      <div className="rounded-xl border border-zinc-200 bg-white">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 px-5 py-4">
         <div>
           <h2 className="text-[15px] font-semibold tracking-tight text-zinc-900">Detailed data</h2>
