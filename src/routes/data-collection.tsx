@@ -282,11 +282,7 @@ function CoverageMatrix({
     year: number,
     month: number,
   ): CellStatus {
-    const e = entryByKey.get(`${year}-${month}`);
-    if (e && e[metric] !== null && e[metric] !== undefined) {
-      return statusFor(hotelId, year, month, metric);
-    }
-    return statusFor(hotelId, year, month, metric);
+    return deriveStatus(entryByKey.get(`${year}-${month}`), metric);
   }
 
   // Aggregate KPIs
