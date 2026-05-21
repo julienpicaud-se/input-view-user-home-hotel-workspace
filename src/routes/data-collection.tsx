@@ -1101,7 +1101,7 @@ function DetailedData({
               <tr>
                 <td
                   colSpan={7}
-                  className="px-5 py-12 text-center text-sm text-muted-foreground"
+                  className="px-5 py-12 text-center text-sm text-zinc-500"
                 >
                   No records found.
                 </td>
@@ -1113,18 +1113,18 @@ function DetailedData({
                 return (
                   <tr
                     key={r.id}
-                    className="border-b border-border/40 transition-colors hover:bg-muted/30"
+                    className="border-b border-zinc-100 transition-colors hover:bg-zinc-50/60"
                   >
-                    <td className="px-5 py-3 font-medium text-foreground">
+                    <td className="px-5 py-3 font-medium text-zinc-900">
                       {r.activity}
                     </td>
-                    <td className="px-3 py-3 text-muted-foreground">
+                    <td className="px-3 py-3 text-zinc-500 tabular-nums">
                       {r.startDate}
                     </td>
-                    <td className="px-3 py-3 text-muted-foreground">
+                    <td className="px-3 py-3 text-zinc-500 tabular-nums">
                       {r.endDate}
                     </td>
-                    <td className="px-3 py-3 text-right font-mono text-foreground">
+                    <td className="px-3 py-3 text-right font-mono text-zinc-900 tabular-nums">
                       {isEditing ? (
                         <Input
                           type="number"
@@ -1151,32 +1151,30 @@ function DetailedData({
                         <button
                           type="button"
                           onClick={() => beginEdit(r)}
-                          className="-mx-1 rounded px-1 py-0.5 text-right font-mono hover:bg-muted/70 hover:ring-1 hover:ring-primary/30"
+                          className="-mx-1 rounded px-1 py-0.5 text-right font-mono hover:bg-zinc-100 hover:ring-1 hover:ring-emerald-500/30"
                           title="Click to edit"
                         >
                           {formatNumber(r.value)}
                         </button>
                       )}
                     </td>
-                    <td className="px-3 py-3 text-muted-foreground">
+                    <td className="px-3 py-3 text-zinc-500">
                       {r.metric}
                     </td>
-                    <td className="px-5 py-3 text-muted-foreground">
+                    <td className="px-5 py-3 text-zinc-500">
                       {r.entity}
                     </td>
                     <td className="px-3 py-3 text-right">
-                      <Button
+                      <button
                         type="button"
-                        variant="outline"
-                        size="sm"
                         onClick={() =>
                           onViewDetails(r.metricKey, r.year, r.month)
                         }
-                        className="gap-1.5"
+                        className="inline-flex h-8 items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-700 transition hover:border-emerald-500/40 hover:text-emerald-700"
                       >
                         <Eye className="h-3.5 w-3.5" />
                         View details
-                      </Button>
+                      </button>
                     </td>
                   </tr>
                 );
