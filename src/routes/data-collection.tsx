@@ -18,6 +18,8 @@ import {
   Eye,
   Calendar as CalendarIcon,
   ChevronDown,
+  ChevronUp,
+  ChevronsUpDown,
   PencilLine,
   ClipboardList,
   Receipt,
@@ -992,6 +994,32 @@ function DetailedData({
       .includes(q.toLowerCase());
   });
 
+  type SortKey = "activity" | "startDate" | "endDate" | "value" | "metric" | "entity";
+  const [sortKey, setSortKey] = React.useState<SortKey>("startDate");
+  const [sortDir, setSortDir] = React.useState<"asc" | "desc">("desc");
+
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir(key === "value" || key === "startDate" || key === "endDate" ? "desc" : "asc");
+    }
+  }
+
+  const sorted = React.useMemo(() => {
+    const arr = [...filtered];
+    arr.sort((a, b) => {
+      const av = a[sortKey];
+      const bv = b[sortKey];
+      let cmp = 0;
+      if (typeof av === "number" && typeof bv === "number") cmp = av - bv;
+      else cmp = String(av).localeCompare(String(bv));
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return arr;
+  }, [filtered, sortKey, sortDir]);
+
   const activeMetric = metricFilter
     ? METRICS.find((m) => m.key === metricFilter)
     : null;
@@ -1181,17 +1209,17 @@ function DetailedData({
         <table className="w-full min-w-[920px] text-sm">
           <thead>
             <tr className="border-b border-zinc-100 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-500">
-              <th className="px-5 py-3">Activity data</th>
-              <th className="px-3 py-3">Start date</th>
-              <th className="px-3 py-3">End date</th>
-              <th className="px-3 py-3 text-right">Value</th>
-              <th className="px-3 py-3">Metric</th>
-              <th className="px-5 py-3">Entity name</th>
+              <SortableTh label="Activity data" sortKey="activity" currentKey={sortKey} dir={sortDir} onSort={toggleSort} className="px-5 py-3" />
+              <SortableTh label="Start date" sortKey="startDate" currentKey={sortKey} dir={sortDir} onSort={toggleSort} className="px-3 py-3" />
+              <SortableTh label="End date" sortKey="endDate" currentKey={sortKey} dir={sortDir} onSort={toggleSort} className="px-3 py-3" />
+              <SortableTh label="Value" sortKey="value" currentKey={sortKey} dir={sortDir} onSort={toggleSort} className="px-3 py-3" align="right" />
+              <SortableTh label="Metric" sortKey="metric" currentKey={sortKey} dir={sortDir} onSort={toggleSort} className="px-3 py-3" />
+              <SortableTh label="Entity name" sortKey="entity" currentKey={sortKey} dir={sortDir} onSort={toggleSort} className="px-5 py-3" />
               <th className="px-3 py-3 text-right" />
             </tr>
           </thead>
           <tbody>
-            {filtered.length === 0 ? (
+            {sorted.length === 0 ? (
               <tr>
                 <td
                   colSpan={7}
@@ -1201,7 +1229,7 @@ function DetailedData({
                 </td>
               </tr>
             ) : (
-              filtered.map((r) => {
+              sorted.map((r) => {
                 const isEditing = editingId === r.id;
                 const isSaving = savingId === r.id;
                 return (
@@ -1874,5 +1902,46 @@ function DetailsPanel({
         </footer>
       </aside>
     </div>
+  );
+}
+
+function SortableTh({
+  label,
+  sortKey,
+  currentKey,
+  dir,
+  onSort,
+  className,
+  align,
+}: {
+  label: string;
+  sortKey: "activity" | "startDate" | "endDate" | "value" | "metric" | "entity";
+  currentKey: string;
+  dir: "asc" | "desc";
+  onSort: (k: "activity" | "startDate" | "endDate" | "value" | "metric" | "entity") => void;
+  className?: string;
+  align?: "left" | "right";
+}) {
+  const active = currentKey === sortKey;
+  const isRight = align === "right";
+  return (
+    <th className={`${className ?? ""} ${isRight ? "text-right" : ""}`}>
+      <button
+        type="button"
+        onClick={() => onSort(sortKey)}
+        className={`inline-flex items-center gap-1 uppercase tracking-[0.08em] transition-colors hover:text-zinc-900 ${active ? "text-zinc-900" : "text-zinc-500"} ${isRight ? "flex-row-reverse" : ""}`}
+      >
+        {label}
+        {active ? (
+          dir === "asc" ? (
+            <ChevronUp className="h-3 w-3" />
+          ) : (
+            <ChevronDown className="h-3 w-3" />
+          )
+        ) : (
+          <ChevronsUpDown className="h-3 w-3 opacity-50" />
+        )}
+      </button>
+    </th>
   );
 }
