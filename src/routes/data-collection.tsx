@@ -1099,14 +1099,14 @@ function DetailedData({
           type="button"
           onClick={() => {
             const now = new Date();
-            setRangeEnd({ year: now.getFullYear(), month: now.getMonth() + 1 });
-            const d = new Date(now.getFullYear(), now.getMonth() - 11, 1);
-            setRangeStart({ year: d.getFullYear(), month: d.getMonth() + 1 });
+            setRangeStart({ year: now.getFullYear(), month: now.getMonth() + 1 });
+            const d = new Date(now.getFullYear(), now.getMonth() + 11, 1);
+            setRangeEnd({ year: d.getFullYear(), month: d.getMonth() + 1 });
           }}
           className="inline-flex h-8 items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-600 transition hover:border-emerald-500/40 hover:text-zinc-900"
         >
           <RotateCcw className="h-3 w-3" />
-          Reset to last 12 months
+          Reset to next 12 months
         </button>
       </div>
 
