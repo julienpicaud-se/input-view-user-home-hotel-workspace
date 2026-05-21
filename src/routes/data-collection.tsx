@@ -15,6 +15,7 @@ import {
   ArrowLeft,
   Search,
   Download,
+  Eye,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveHotelId, type Hotel, type MonthlyEntry } from "@/lib/hotel";
