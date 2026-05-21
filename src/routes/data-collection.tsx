@@ -705,13 +705,15 @@ function DetailedData({
   entries,
   metricFilter,
   periodFilter,
-  onRowClick,
+  onViewDetails,
+  onRefresh,
 }: {
   hotel: Hotel | null;
   entries: MonthlyEntry[];
   metricFilter?: MetricKey;
   periodFilter?: string;
-  onRowClick?: (metricKey: MetricKey, year: number, month: number) => void;
+  onViewDetails: (metricKey: MetricKey, year: number, month: number) => void;
+  onRefresh: () => Promise<void> | void;
 }) {
 
   const rows: Row[] = React.useMemo(() => {
@@ -737,7 +739,6 @@ function DetailedData({
           period,
           year: e.year,
           month: e.month,
-
         });
       }
     }
@@ -767,6 +768,53 @@ function DetailedData({
     : null;
   const hasFilters = Boolean(activeMetric || activePeriodLabel);
 
+  // Inline edit state — keyed by row id
+  const [editingId, setEditingId] = React.useState<string | null>(null);
+  const [draft, setDraft] = React.useState<string>("");
+  const [savingId, setSavingId] = React.useState<string | null>(null);
+
+  function beginEdit(r: Row) {
+    setEditingId(r.id);
+    setDraft(String(r.value));
+  }
+  function cancelEdit() {
+    setEditingId(null);
+    setDraft("");
+  }
+  async function commitEdit(r: Row) {
+    const num = Number(draft);
+    if (draft === "" || Number.isNaN(num) || num < 0) {
+      toast.error("Enter a valid non-negative number");
+      return;
+    }
+    if (num === r.value) {
+      cancelEdit();
+      return;
+    }
+    setSavingId(r.id);
+    try {
+      const entry = entries.find(
+        (e) => e.year === r.year && e.month === r.month,
+      );
+      if (!entry) throw new Error("Entry not found");
+      const patch = { [r.metricKey]: num } as never;
+      const { error } = await supabase
+        .from("monthly_entries")
+        .update(patch)
+        .eq("id", entry.id);
+      if (error) throw error;
+      toast.success("Value updated");
+      await onRefresh();
+    } catch (e) {
+      toast.error("Could not save value");
+      // eslint-disable-next-line no-console
+      console.error(e);
+    } finally {
+      setSavingId(null);
+      setEditingId(null);
+      setDraft("");
+    }
+  }
 
   function exportCsv() {
     const header = [
@@ -809,7 +857,7 @@ function DetailedData({
           <p className="mt-1 text-xs text-muted-foreground">
             {formatNumber(filtered.length)} record
             {filtered.length === 1 ? "" : "s"} ·{" "}
-            {hotel?.name ?? "Hotel"}
+            {hotel?.name ?? "Hotel"} · Click any value to edit
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -862,7 +910,7 @@ function DetailedData({
       )}
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[820px] text-sm">
+        <table className="w-full min-w-[920px] text-sm">
           <thead>
             <tr className="border-b border-border/60 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
               <th className="px-5 py-3">Activity data</th>
@@ -871,50 +919,94 @@ function DetailedData({
               <th className="px-3 py-3 text-right">Value</th>
               <th className="px-3 py-3">Metric</th>
               <th className="px-5 py-3">Entity name</th>
+              <th className="px-3 py-3 text-right" />
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={7}
                   className="px-5 py-12 text-center text-sm text-muted-foreground"
                 >
                   No records found.
                 </td>
               </tr>
             ) : (
-              filtered.map((r) => (
-                <tr
-                  key={r.id}
-                  onClick={() => onRowClick?.(r.metricKey, r.year, r.month)}
-                  className={cn(
-                    "border-b border-border/40 transition-colors hover:bg-muted/30",
-                    onRowClick && "cursor-pointer",
-                  )}
-                  title={onRowClick ? "Click to edit" : undefined}
-                >
-
-                  <td className="px-5 py-3 font-medium text-foreground">
-                    {r.activity}
-                  </td>
-                  <td className="px-3 py-3 text-muted-foreground">
-                    {r.startDate}
-                  </td>
-                  <td className="px-3 py-3 text-muted-foreground">
-                    {r.endDate}
-                  </td>
-                  <td className="px-3 py-3 text-right font-mono text-foreground">
-                    {formatNumber(r.value)}
-                  </td>
-                  <td className="px-3 py-3 text-muted-foreground">
-                    {r.metric}
-                  </td>
-                  <td className="px-5 py-3 text-muted-foreground">
-                    {r.entity}
-                  </td>
-                </tr>
-              ))
+              filtered.map((r) => {
+                const isEditing = editingId === r.id;
+                const isSaving = savingId === r.id;
+                return (
+                  <tr
+                    key={r.id}
+                    className="border-b border-border/40 transition-colors hover:bg-muted/30"
+                  >
+                    <td className="px-5 py-3 font-medium text-foreground">
+                      {r.activity}
+                    </td>
+                    <td className="px-3 py-3 text-muted-foreground">
+                      {r.startDate}
+                    </td>
+                    <td className="px-3 py-3 text-muted-foreground">
+                      {r.endDate}
+                    </td>
+                    <td className="px-3 py-3 text-right font-mono text-foreground">
+                      {isEditing ? (
+                        <Input
+                          type="number"
+                          inputMode="decimal"
+                          min={0}
+                          step="any"
+                          value={draft}
+                          autoFocus
+                          disabled={isSaving}
+                          onChange={(e) => setDraft(e.target.value)}
+                          onBlur={() => void commitEdit(r)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              void commitEdit(r);
+                            } else if (e.key === "Escape") {
+                              e.preventDefault();
+                              cancelEdit();
+                            }
+                          }}
+                          className="h-8 w-28 ml-auto text-right font-mono text-sm"
+                        />
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => beginEdit(r)}
+                          className="-mx-1 rounded px-1 py-0.5 text-right font-mono hover:bg-muted/70 hover:ring-1 hover:ring-primary/30"
+                          title="Click to edit"
+                        >
+                          {formatNumber(r.value)}
+                        </button>
+                      )}
+                    </td>
+                    <td className="px-3 py-3 text-muted-foreground">
+                      {r.metric}
+                    </td>
+                    <td className="px-5 py-3 text-muted-foreground">
+                      {r.entity}
+                    </td>
+                    <td className="px-3 py-3 text-right">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          onViewDetails(r.metricKey, r.year, r.month)
+                        }
+                        className="gap-1.5"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                        View details
+                      </Button>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
