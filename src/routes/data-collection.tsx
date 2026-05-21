@@ -1349,25 +1349,24 @@ function FillDataPanel({
   const [notes, setNotes] = React.useState<string>(existing?.notes ?? "");
   const [saving, setSaving] = React.useState(false);
 
-  // Time range — defaults to the single (year, month) passed in
-  const toMonthStr = (y: number, m: number) => `${y}-${String(m).padStart(2, "0")}`;
-  const [rangeStart, setRangeStart] = React.useState<string>(toMonthStr(year, month));
-  const [rangeEnd, setRangeEnd] = React.useState<string>(toMonthStr(year, month));
+  // Time range — actual start/end dates. Default: first->last day of the given month.
+  const toDateStr = (d: Date) => d.toISOString().slice(0, 10);
+  const defaultStart = new Date(year, month - 1, 1);
+  const defaultEnd = new Date(year, month, 0);
+  const [startDate, setStartDate] = React.useState<string>(toDateStr(defaultStart));
+  const [endDate, setEndDate] = React.useState<string>(toDateStr(defaultEnd));
+  const [unit, setUnit] = React.useState<string>(metric.unit);
 
-  function parseMonth(s: string): { y: number; m: number } | null {
-    const match = /^(\d{4})-(\d{2})$/.exec(s);
-    if (!match) return null;
-    return { y: Number(match[1]), m: Number(match[2]) };
-  }
   function monthsInRange(): { y: number; m: number }[] {
-    const s = parseMonth(rangeStart);
-    const e = parseMonth(rangeEnd);
-    if (!s || !e) return [];
-    const startIdx = s.y * 12 + (s.m - 1);
-    const endIdx = e.y * 12 + (e.m - 1);
-    const [a, b] = startIdx <= endIdx ? [startIdx, endIdx] : [endIdx, startIdx];
+    if (!startDate || !endDate) return [];
+    const s = new Date(startDate);
+    const e = new Date(endDate);
+    if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) return [];
+    const [a, b] = s <= e ? [s, e] : [e, s];
+    const startIdx = a.getFullYear() * 12 + a.getMonth();
+    const endIdx = b.getFullYear() * 12 + b.getMonth();
     const out: { y: number; m: number }[] = [];
-    for (let i = a; i <= b; i++) {
+    for (let i = startIdx; i <= endIdx; i++) {
       out.push({ y: Math.floor(i / 12), m: (i % 12) + 1 });
     }
     return out;
