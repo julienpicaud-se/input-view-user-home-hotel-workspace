@@ -15,6 +15,7 @@ import {
   ArrowLeft,
   Search,
   Download,
+  Eye,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveHotelId, type Hotel, type MonthlyEntry } from "@/lib/hotel";
@@ -168,8 +169,15 @@ function DataCollectionPage() {
     void load();
   }, [load]);
 
-  // Side panel state for filling in missing data
+  // Side panel state for filling in missing data (Coverage Matrix)
   const [editing, setEditing] = React.useState<{
+    metric: MetricDef;
+    year: number;
+    month: number;
+  } | null>(null);
+
+  // Side panel state for viewing measuring points (Detailed Data)
+  const [viewing, setViewing] = React.useState<{
     metric: MetricDef;
     year: number;
     month: number;
@@ -217,12 +225,12 @@ function DataCollectionPage() {
           entries={entries}
           metricFilter={metricFilter}
           periodFilter={periodFilter}
-          onRowClick={(metricKey, year, month) => {
+          onViewDetails={(metricKey, year, month) => {
             const m = METRICS.find((x) => x.key === metricKey);
-            if (m) setEditing({ metric: m, year, month });
+            if (m) setViewing({ metric: m, year, month });
           }}
+          onRefresh={load}
         />
-
       )}
 
       {editing && (
@@ -242,6 +250,21 @@ function DataCollectionPage() {
             await load();
             toast.success("Data saved");
           }}
+        />
+      )}
+
+      {viewing && (
+        <DetailsPanel
+          hotel={hotel}
+          metric={viewing.metric}
+          year={viewing.year}
+          month={viewing.month}
+          entry={
+            entries.find(
+              (e) => e.year === viewing.year && e.month === viewing.month,
+            ) ?? null
+          }
+          onClose={() => setViewing(null)}
         />
       )}
     </PageContainer>
@@ -682,13 +705,15 @@ function DetailedData({
   entries,
   metricFilter,
   periodFilter,
-  onRowClick,
+  onViewDetails,
+  onRefresh,
 }: {
   hotel: Hotel | null;
   entries: MonthlyEntry[];
   metricFilter?: MetricKey;
   periodFilter?: string;
-  onRowClick?: (metricKey: MetricKey, year: number, month: number) => void;
+  onViewDetails: (metricKey: MetricKey, year: number, month: number) => void;
+  onRefresh: () => Promise<void> | void;
 }) {
 
   const rows: Row[] = React.useMemo(() => {
@@ -714,7 +739,6 @@ function DetailedData({
           period,
           year: e.year,
           month: e.month,
-
         });
       }
     }
@@ -744,6 +768,53 @@ function DetailedData({
     : null;
   const hasFilters = Boolean(activeMetric || activePeriodLabel);
 
+  // Inline edit state — keyed by row id
+  const [editingId, setEditingId] = React.useState<string | null>(null);
+  const [draft, setDraft] = React.useState<string>("");
+  const [savingId, setSavingId] = React.useState<string | null>(null);
+
+  function beginEdit(r: Row) {
+    setEditingId(r.id);
+    setDraft(String(r.value));
+  }
+  function cancelEdit() {
+    setEditingId(null);
+    setDraft("");
+  }
+  async function commitEdit(r: Row) {
+    const num = Number(draft);
+    if (draft === "" || Number.isNaN(num) || num < 0) {
+      toast.error("Enter a valid non-negative number");
+      return;
+    }
+    if (num === r.value) {
+      cancelEdit();
+      return;
+    }
+    setSavingId(r.id);
+    try {
+      const entry = entries.find(
+        (e) => e.year === r.year && e.month === r.month,
+      );
+      if (!entry) throw new Error("Entry not found");
+      const patch = { [r.metricKey]: num } as never;
+      const { error } = await supabase
+        .from("monthly_entries")
+        .update(patch)
+        .eq("id", entry.id);
+      if (error) throw error;
+      toast.success("Value updated");
+      await onRefresh();
+    } catch (e) {
+      toast.error("Could not save value");
+      // eslint-disable-next-line no-console
+      console.error(e);
+    } finally {
+      setSavingId(null);
+      setEditingId(null);
+      setDraft("");
+    }
+  }
 
   function exportCsv() {
     const header = [
@@ -786,7 +857,7 @@ function DetailedData({
           <p className="mt-1 text-xs text-muted-foreground">
             {formatNumber(filtered.length)} record
             {filtered.length === 1 ? "" : "s"} ·{" "}
-            {hotel?.name ?? "Hotel"}
+            {hotel?.name ?? "Hotel"} · Click any value to edit
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -839,7 +910,7 @@ function DetailedData({
       )}
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[820px] text-sm">
+        <table className="w-full min-w-[920px] text-sm">
           <thead>
             <tr className="border-b border-border/60 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
               <th className="px-5 py-3">Activity data</th>
@@ -848,50 +919,94 @@ function DetailedData({
               <th className="px-3 py-3 text-right">Value</th>
               <th className="px-3 py-3">Metric</th>
               <th className="px-5 py-3">Entity name</th>
+              <th className="px-3 py-3 text-right" />
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={7}
                   className="px-5 py-12 text-center text-sm text-muted-foreground"
                 >
                   No records found.
                 </td>
               </tr>
             ) : (
-              filtered.map((r) => (
-                <tr
-                  key={r.id}
-                  onClick={() => onRowClick?.(r.metricKey, r.year, r.month)}
-                  className={cn(
-                    "border-b border-border/40 transition-colors hover:bg-muted/30",
-                    onRowClick && "cursor-pointer",
-                  )}
-                  title={onRowClick ? "Click to edit" : undefined}
-                >
-
-                  <td className="px-5 py-3 font-medium text-foreground">
-                    {r.activity}
-                  </td>
-                  <td className="px-3 py-3 text-muted-foreground">
-                    {r.startDate}
-                  </td>
-                  <td className="px-3 py-3 text-muted-foreground">
-                    {r.endDate}
-                  </td>
-                  <td className="px-3 py-3 text-right font-mono text-foreground">
-                    {formatNumber(r.value)}
-                  </td>
-                  <td className="px-3 py-3 text-muted-foreground">
-                    {r.metric}
-                  </td>
-                  <td className="px-5 py-3 text-muted-foreground">
-                    {r.entity}
-                  </td>
-                </tr>
-              ))
+              filtered.map((r) => {
+                const isEditing = editingId === r.id;
+                const isSaving = savingId === r.id;
+                return (
+                  <tr
+                    key={r.id}
+                    className="border-b border-border/40 transition-colors hover:bg-muted/30"
+                  >
+                    <td className="px-5 py-3 font-medium text-foreground">
+                      {r.activity}
+                    </td>
+                    <td className="px-3 py-3 text-muted-foreground">
+                      {r.startDate}
+                    </td>
+                    <td className="px-3 py-3 text-muted-foreground">
+                      {r.endDate}
+                    </td>
+                    <td className="px-3 py-3 text-right font-mono text-foreground">
+                      {isEditing ? (
+                        <Input
+                          type="number"
+                          inputMode="decimal"
+                          min={0}
+                          step="any"
+                          value={draft}
+                          autoFocus
+                          disabled={isSaving}
+                          onChange={(e) => setDraft(e.target.value)}
+                          onBlur={() => void commitEdit(r)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              void commitEdit(r);
+                            } else if (e.key === "Escape") {
+                              e.preventDefault();
+                              cancelEdit();
+                            }
+                          }}
+                          className="h-8 w-28 ml-auto text-right font-mono text-sm"
+                        />
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => beginEdit(r)}
+                          className="-mx-1 rounded px-1 py-0.5 text-right font-mono hover:bg-muted/70 hover:ring-1 hover:ring-primary/30"
+                          title="Click to edit"
+                        >
+                          {formatNumber(r.value)}
+                        </button>
+                      )}
+                    </td>
+                    <td className="px-3 py-3 text-muted-foreground">
+                      {r.metric}
+                    </td>
+                    <td className="px-5 py-3 text-muted-foreground">
+                      {r.entity}
+                    </td>
+                    <td className="px-3 py-3 text-right">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          onViewDetails(r.metricKey, r.year, r.month)
+                        }
+                        className="gap-1.5"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                        View details
+                      </Button>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
@@ -1051,6 +1166,179 @@ function FillDataPanel({
           </Button>
           <Button onClick={handleSave} disabled={saving}>
             {saving ? "Saving…" : "Save data"}
+          </Button>
+        </footer>
+      </aside>
+    </div>
+  );
+}
+
+// ---------- Side panel: view measuring point details ----------
+interface MeasuringPoint {
+  id: string;
+  label: string;
+  value: number;
+  unit: string;
+  source: string;
+  recordedAt: string;
+  notes: string | null;
+}
+
+function DetailsPanel({
+  hotel,
+  metric,
+  year,
+  month,
+  entry,
+  onClose,
+}: {
+  hotel: Hotel | null;
+  metric: MetricDef;
+  year: number;
+  month: number;
+  entry: MonthlyEntry | null;
+  onClose: () => void;
+}) {
+  const Icon = metric.Icon;
+
+  // Build the list of measuring points. Today we store a single aggregated
+  // value per metric/period in monthly_entries, so we surface it as one
+  // measuring point. The list shape is ready for several points per period.
+  const points: MeasuringPoint[] = React.useMemo(() => {
+    if (!entry) return [];
+    const v = entry[metric.key];
+    if (v === null || v === undefined) return [];
+    return [
+      {
+        id: `${entry.id}-${metric.key}-1`,
+        label: `${metric.label} — total`,
+        value: Number(v),
+        unit: metric.unit,
+        source: entry.attachment_url ? "Invoice / attachment" : "Manual entry",
+        recordedAt: entry.updated_at ?? entry.created_at ?? "",
+        notes: entry.notes ?? null,
+      },
+    ];
+  }, [entry, metric]);
+
+  const total = points.reduce((acc, p) => acc + p.value, 0);
+
+  return (
+    <div className="fixed inset-0 z-50 flex">
+      <button
+        type="button"
+        aria-label="Close panel"
+        onClick={onClose}
+        className="flex-1 bg-foreground/30 backdrop-blur-sm"
+      />
+      <aside className="flex h-full w-full max-w-lg flex-col border-l border-border bg-background shadow-2xl">
+        <header className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
+          <div className="flex items-center gap-3">
+            <div
+              className={cn(
+                "flex h-10 w-10 items-center justify-center rounded-xl border",
+                metric.tone,
+              )}
+            >
+              <Icon className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                Measuring points
+              </div>
+              <div className="font-serif text-lg font-semibold">
+                {metric.label}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {MONTH_NAMES[month - 1]} {year} · {hotel?.name ?? "Hotel"}
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </header>
+
+        <div className="flex-1 space-y-4 overflow-y-auto px-5 py-5">
+          <div className="rounded-xl border border-border bg-muted/30 px-4 py-3">
+            <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+              Period total
+            </div>
+            <div className="mt-1 font-serif text-2xl font-semibold text-foreground">
+              {formatNumber(total)}{" "}
+              <span className="text-sm font-normal text-muted-foreground">
+                {metric.unit}
+              </span>
+            </div>
+            <div className="mt-1 text-xs text-muted-foreground">
+              Sum of {points.length} measuring point
+              {points.length === 1 ? "" : "s"} for {metric.activity.toLowerCase()}.
+            </div>
+          </div>
+
+          {points.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border bg-card px-4 py-8 text-center text-sm text-muted-foreground">
+              No measuring points recorded for this period yet.
+            </div>
+          ) : (
+            <ul className="space-y-3">
+              {points.map((p, idx) => (
+                <li
+                  key={p.id}
+                  className="rounded-xl border border-border bg-card px-4 py-3 shadow-sm"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                        Measuring point {idx + 1}
+                      </div>
+                      <div className="mt-0.5 font-medium text-foreground">
+                        {p.label}
+                      </div>
+                    </div>
+                    <div className="text-right font-mono text-sm text-foreground">
+                      {formatNumber(p.value)}{" "}
+                      <span className="text-muted-foreground">{p.unit}</span>
+                    </div>
+                  </div>
+                  <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] text-muted-foreground">
+                    <div>
+                      <span className="font-medium text-foreground/80">
+                        Source:
+                      </span>{" "}
+                      {p.source}
+                    </div>
+                    <div className="text-right">
+                      <span className="font-medium text-foreground/80">
+                        Recorded:
+                      </span>{" "}
+                      {p.recordedAt ? p.recordedAt.slice(0, 10) : "—"}
+                    </div>
+                  </div>
+                  {p.notes && (
+                    <div className="mt-2 rounded-md bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                      {p.notes}
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <div className="rounded-xl border border-dashed border-border bg-card/50 px-4 py-3 text-xs text-muted-foreground">
+            Multiple measuring points per period (e.g. separate meters,
+            sub-buildings, or invoices) will appear here as they are added.
+          </div>
+        </div>
+
+        <footer className="flex items-center justify-end gap-2 border-t border-border px-5 py-4">
+          <Button variant="outline" onClick={onClose}>
+            Close
           </Button>
         </footer>
       </aside>
