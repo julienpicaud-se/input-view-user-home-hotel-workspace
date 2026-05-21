@@ -700,19 +700,21 @@ function FillDataPanel({
     setSaving(true);
     try {
       if (existing) {
+        const patch = { [metric.key]: num, notes: notes || null } as never;
         const { error } = await supabase
           .from("monthly_entries")
-          .update({ [metric.key]: num, notes: notes || null })
+          .update(patch)
           .eq("id", existing.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("monthly_entries").insert({
+        const row = {
           hotel_id: hotelId,
           year,
           month,
           [metric.key]: num,
           notes: notes || null,
-        });
+        } as never;
+        const { error } = await supabase.from("monthly_entries").insert(row);
         if (error) throw error;
       }
       onSaved();
