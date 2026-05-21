@@ -1517,7 +1517,7 @@ function FillDataPanel({
                 {metric.label}
               </div>
               <div className="text-xs text-zinc-500">
-                {MONTH_NAMES[month - 1]} {year}
+                {rangeLabel}
               </div>
             </div>
           </div>
