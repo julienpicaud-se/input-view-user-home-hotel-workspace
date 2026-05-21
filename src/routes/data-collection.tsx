@@ -192,26 +192,8 @@ function DataCollectionPage() {
 
   return (
     <PageContainer>
-      <PageHeader
-        eyebrow="Hotel data"
-        title="Data Collection"
-        subtitle="Track collection progress month over month and browse every raw record submitted for this hotel."
-        actions={
-          <div className="flex items-center gap-2">
-            <Link
-              to="/workspace"
-              search={{ tab: "overview" } as never}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2 text-xs font-medium text-muted-foreground transition hover:border-primary/40 hover:text-foreground"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              Workspace
-            </Link>
-            <HotelSwitcher />
-          </div>
-        }
-      />
-
       <TabBar active={tab} />
+
 
       {loading ? (
         <div className="rounded-2xl border border-border bg-card p-12 text-center text-sm text-muted-foreground">
