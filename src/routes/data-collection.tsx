@@ -1635,20 +1635,6 @@ function FillDataPanel({
                 </p>
               </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="value">Value ({metric.unit})</Label>
-                <Input
-                  id="value"
-                  type="number"
-                  inputMode="decimal"
-                  min={0}
-                  step="any"
-                  value={value}
-                  onChange={(e) => setValue(e.target.value)}
-                  placeholder={`e.g. ${metric.key === "occupied_room_nights" ? "2400" : "12500"}`}
-                  autoFocus
-                />
-              </div>
 
               <div className="space-y-1.5">
                 <Label htmlFor="notes">Notes (optional)</Label>
