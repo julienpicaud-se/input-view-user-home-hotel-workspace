@@ -712,6 +712,9 @@ function DetailedData({
           entity: hotel?.name ?? "—",
           metricKey: m.key,
           period,
+          year: e.year,
+          month: e.month,
+
         });
       }
     }
