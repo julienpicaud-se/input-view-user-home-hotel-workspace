@@ -1574,21 +1574,43 @@ function FillDataPanel({
         <div className="flex-1 space-y-4 overflow-y-auto px-5 py-5">
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1.5">
-              <Label htmlFor="range-start">Start month</Label>
+              <Label htmlFor="start-date">Start date</Label>
               <Input
-                id="range-start"
-                type="month"
-                value={rangeStart}
-                onChange={(e) => setRangeStart(e.target.value)}
+                id="start-date"
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="range-end">End month</Label>
+              <Label htmlFor="end-date">End date</Label>
               <Input
-                id="range-end"
-                type="month"
-                value={rangeEnd}
-                onChange={(e) => setRangeEnd(e.target.value)}
+                id="end-date"
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="value-top">Value</Label>
+              <Input
+                id="value-top"
+                type="number"
+                inputMode="decimal"
+                min={0}
+                step="any"
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                placeholder={`e.g. ${metric.key === "occupied_room_nights" ? "2400" : "12500"}`}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="unit">Unit of measure</Label>
+              <Input
+                id="unit"
+                value={unit}
+                onChange={(e) => setUnit(e.target.value)}
+                placeholder={metric.unit}
               />
             </div>
             {rangeMonths.length > 1 && (
