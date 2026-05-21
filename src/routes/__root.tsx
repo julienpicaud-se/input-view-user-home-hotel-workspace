@@ -203,6 +203,18 @@ function ModeAwareShell() {
     return <Outlet />;
   }
 
+  // Data Collection runs standalone — no sidebar, no floating switchers.
+  const isDataCollectionPath = path === "/data-collection";
+  if (isDataCollectionPath) {
+    return (
+      <div className="min-h-screen w-full bg-background text-foreground">
+        <main>
+          <Outlet />
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen w-full bg-background text-foreground">
       <AppSidebar />
@@ -222,4 +234,5 @@ function ModeAwareShell() {
     </div>
   );
 }
+
 
