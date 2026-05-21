@@ -1653,7 +1653,7 @@ function FillDataPanel({
                 <p className="mt-1">
                   Send a one-question survey to a teammate (e.g. the property
                   manager). They'll receive a link to enter the {metric.unit}{" "}
-                  value for {MONTH_NAMES[month - 1]} {year}.
+                  value for {rangeLabel}.
                 </p>
               </div>
 
