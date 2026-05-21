@@ -717,11 +717,11 @@ function RangeSelector({
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="inline-flex h-8 items-center gap-2 rounded-lg border border-border bg-background px-3 text-xs font-medium text-foreground transition hover:border-primary/40 hover:bg-muted/60"
+          className="inline-flex h-8 items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-700 transition hover:border-emerald-500/40 hover:text-zinc-900"
         >
-          <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground" />
+          <CalendarIcon className="h-3.5 w-3.5 text-zinc-400" />
           {label}
-          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+          <ChevronDown className="h-3.5 w-3.5 text-zinc-400" />
         </button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-[300px] p-3">
