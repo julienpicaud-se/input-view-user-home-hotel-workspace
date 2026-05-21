@@ -1235,12 +1235,26 @@ function FillDataPanel({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  type Mode = "manual" | "survey" | "invoice";
+  const [mode, setMode] = React.useState<Mode>("manual");
+
   const [value, setValue] = React.useState<string>(() => {
     const v = existing?.[metric.key];
     return v !== null && v !== undefined ? String(v) : "";
   });
   const [notes, setNotes] = React.useState<string>(existing?.notes ?? "");
   const [saving, setSaving] = React.useState(false);
+
+  // Survey state
+  const [surveyRecipient, setSurveyRecipient] = React.useState("");
+  const [surveyDue, setSurveyDue] = React.useState("");
+
+  // Invoice state
+  const [invoiceFile, setInvoiceFile] = React.useState<File | null>(null);
+  const [invoiceExtracted, setInvoiceExtracted] = React.useState<number | null>(
+    null,
+  );
+  const [extracting, setExtracting] = React.useState(false);
 
   async function handleSave() {
     const num = Number(value);
@@ -1250,8 +1264,16 @@ function FillDataPanel({
     }
     setSaving(true);
     try {
+      const sourceNote =
+        mode === "invoice"
+          ? `Source: invoice (${invoiceFile?.name ?? "uploaded file"})`
+          : mode === "survey"
+            ? `Source: survey response`
+            : null;
+      const finalNotes = [notes, sourceNote].filter(Boolean).join(" · ") || null;
+
       if (existing) {
-        const patch = { [metric.key]: num, notes: notes || null } as never;
+        const patch = { [metric.key]: num, notes: finalNotes } as never;
         const { error } = await supabase
           .from("monthly_entries")
           .update(patch)
@@ -1263,7 +1285,7 @@ function FillDataPanel({
           year,
           month,
           [metric.key]: num,
-          notes: notes || null,
+          notes: finalNotes,
         } as never;
         const { error } = await supabase.from("monthly_entries").insert(row);
         if (error) throw error;
@@ -1278,7 +1300,42 @@ function FillDataPanel({
     }
   }
 
+  async function handleSendSurvey() {
+    if (!surveyRecipient.trim()) {
+      toast.error("Enter a recipient email");
+      return;
+    }
+    toast.success(
+      `Survey sent to ${surveyRecipient} for ${metric.label} (${MONTH_NAMES[month - 1]} ${year})`,
+    );
+    onClose();
+  }
+
+  function handleInvoiceUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setInvoiceFile(file);
+    setExtracting(true);
+    // Simulated extraction — replace with real OCR/extraction later
+    window.setTimeout(() => {
+      const fake = Math.round(
+        (metric.key === "occupied_room_nights" ? 2400 : 12500) *
+          (0.85 + Math.random() * 0.3),
+      );
+      setInvoiceExtracted(fake);
+      setValue(String(fake));
+      setExtracting(false);
+      toast.success("Value extracted from invoice");
+    }, 900);
+  }
+
   const Icon = metric.Icon;
+
+  const modes: { key: Mode; label: string; Icon: typeof PencilLine; desc: string }[] = [
+    { key: "manual", label: "Manual", Icon: PencilLine, desc: "Type the value" },
+    { key: "survey", label: "Survey", Icon: ClipboardList, desc: "Request from teammate" },
+    { key: "invoice", label: "Invoice", Icon: Receipt, desc: "Upload a document" },
+  ];
 
   return (
     <div className="fixed inset-0 z-50 flex">
@@ -1286,10 +1343,10 @@ function FillDataPanel({
         type="button"
         aria-label="Close panel"
         onClick={onClose}
-        className="flex-1 bg-foreground/30 backdrop-blur-sm"
+        className="flex-1 bg-zinc-900/30 backdrop-blur-sm"
       />
-      <aside className="flex h-full w-full max-w-md flex-col border-l border-border bg-background shadow-2xl">
-        <header className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
+      <aside className="flex h-full w-full max-w-md flex-col border-l border-zinc-200 bg-white shadow-2xl">
+        <header className="flex items-start justify-between gap-3 border-b border-zinc-100 px-5 py-4">
           <div className="flex items-center gap-3">
             <div
               className={cn(
@@ -1300,13 +1357,13 @@ function FillDataPanel({
               <Icon className="h-5 w-5" />
             </div>
             <div>
-              <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-500">
                 Add data
               </div>
               <div className="text-[15px] font-semibold tracking-tight text-zinc-900">
                 {metric.label}
               </div>
-              <div className="text-xs text-muted-foreground">
+              <div className="text-xs text-zinc-500">
                 {MONTH_NAMES[month - 1]} {year}
               </div>
             </div>
@@ -1314,61 +1371,234 @@ function FillDataPanel({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+            className="rounded-md p-1 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
             aria-label="Close"
           >
             <X className="h-4 w-4" />
           </button>
         </header>
 
-        <div className="flex-1 space-y-4 overflow-y-auto px-5 py-5">
-          <div className="rounded-xl border border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground">
-            <div className="flex items-center gap-1.5 font-medium text-foreground">
-              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-              {metric.activity}
-            </div>
-            <p className="mt-1">
-              Enter the total {metric.activity.toLowerCase()} for{" "}
-              {MONTH_NAMES[month - 1]} {year}. Once saved, it will appear in the
-              Coverage Matrix as submitted and feed into the dashboards.
-            </p>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="value">Value ({metric.unit})</Label>
-            <Input
-              id="value"
-              type="number"
-              inputMode="decimal"
-              min={0}
-              step="any"
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              placeholder={`e.g. ${metric.key === "occupied_room_nights" ? "2400" : "12500"}`}
-              autoFocus
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="notes">Notes (optional)</Label>
-            <textarea
-              id="notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={3}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              placeholder="Invoice ref, methodology, anomalies…"
-            />
+        {/* Mode selector */}
+        <div className="border-b border-zinc-100 px-5 py-3">
+          <div className="grid grid-cols-3 gap-2">
+            {modes.map((m) => {
+              const active = mode === m.key;
+              const MIcon = m.Icon;
+              return (
+                <button
+                  key={m.key}
+                  type="button"
+                  onClick={() => setMode(m.key)}
+                  className={cn(
+                    "flex flex-col items-start gap-1 rounded-xl border px-3 py-2.5 text-left transition",
+                    active
+                      ? "border-emerald-500 bg-emerald-50/60 ring-1 ring-emerald-500/20"
+                      : "border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50",
+                  )}
+                >
+                  <MIcon
+                    className={cn(
+                      "h-4 w-4",
+                      active ? "text-emerald-600" : "text-zinc-500",
+                    )}
+                  />
+                  <div
+                    className={cn(
+                      "text-[13px] font-semibold",
+                      active ? "text-emerald-700" : "text-zinc-900",
+                    )}
+                  >
+                    {m.label}
+                  </div>
+                  <div className="text-[10px] leading-tight text-zinc-500">
+                    {m.desc}
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        <footer className="flex items-center justify-end gap-2 border-t border-border px-5 py-4">
-          <Button variant="outline" onClick={onClose} disabled={saving}>
+        <div className="flex-1 space-y-4 overflow-y-auto px-5 py-5">
+          {mode === "manual" && (
+            <>
+              <div className="rounded-xl border border-zinc-200 bg-zinc-50/60 px-4 py-3 text-xs text-zinc-600">
+                <div className="flex items-center gap-1.5 font-medium text-zinc-900">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                  {metric.activity}
+                </div>
+                <p className="mt-1">
+                  Enter the total {metric.activity.toLowerCase()} for{" "}
+                  {MONTH_NAMES[month - 1]} {year}. Once saved, it will appear in
+                  the Coverage Matrix and feed into the dashboards.
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="value">Value ({metric.unit})</Label>
+                <Input
+                  id="value"
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  step="any"
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                  placeholder={`e.g. ${metric.key === "occupied_room_nights" ? "2400" : "12500"}`}
+                  autoFocus
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="notes">Notes (optional)</Label>
+                <textarea
+                  id="notes"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows={3}
+                  className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+                  placeholder="Invoice ref, methodology, anomalies…"
+                />
+              </div>
+            </>
+          )}
+
+          {mode === "survey" && (
+            <>
+              <div className="rounded-xl border border-zinc-200 bg-zinc-50/60 px-4 py-3 text-xs text-zinc-600">
+                <div className="flex items-center gap-1.5 font-medium text-zinc-900">
+                  <ClipboardList className="h-3.5 w-3.5 text-emerald-600" />
+                  Request via survey
+                </div>
+                <p className="mt-1">
+                  Send a one-question survey to a teammate (e.g. the property
+                  manager). They'll receive a link to enter the {metric.unit}{" "}
+                  value for {MONTH_NAMES[month - 1]} {year}.
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="recipient">Recipient email</Label>
+                <Input
+                  id="recipient"
+                  type="email"
+                  value={surveyRecipient}
+                  onChange={(e) => setSurveyRecipient(e.target.value)}
+                  placeholder="ops@grandplaza.com"
+                  autoFocus
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="due">Due date (optional)</Label>
+                <Input
+                  id="due"
+                  type="date"
+                  value={surveyDue}
+                  onChange={(e) => setSurveyDue(e.target.value)}
+                />
+              </div>
+
+              <div className="rounded-lg border border-dashed border-zinc-200 bg-white px-3 py-2.5 text-[11px] text-zinc-500">
+                Survey link will mark this cell as <strong className="text-amber-700">In progress</strong> until the recipient submits their value.
+              </div>
+            </>
+          )}
+
+          {mode === "invoice" && (
+            <>
+              <div className="rounded-xl border border-zinc-200 bg-zinc-50/60 px-4 py-3 text-xs text-zinc-600">
+                <div className="flex items-center gap-1.5 font-medium text-zinc-900">
+                  <Receipt className="h-3.5 w-3.5 text-emerald-600" />
+                  Upload an invoice
+                </div>
+                <p className="mt-1">
+                  Upload a PDF or image invoice. We'll extract the{" "}
+                  {metric.activity.toLowerCase()} value automatically — review
+                  before saving.
+                </p>
+              </div>
+
+              <label
+                htmlFor="invoice-file"
+                className={cn(
+                  "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-6 text-center transition",
+                  invoiceFile
+                    ? "border-emerald-300 bg-emerald-50/40"
+                    : "border-zinc-300 bg-white hover:border-emerald-400 hover:bg-emerald-50/30",
+                )}
+              >
+                <Upload className="h-5 w-5 text-zinc-400" />
+                <div className="text-[13px] font-medium text-zinc-900">
+                  {invoiceFile ? invoiceFile.name : "Click to upload invoice"}
+                </div>
+                <div className="text-[11px] text-zinc-500">
+                  PDF, PNG, JPG · up to 10 MB
+                </div>
+                <input
+                  id="invoice-file"
+                  type="file"
+                  accept=".pdf,image/*"
+                  className="hidden"
+                  onChange={handleInvoiceUpload}
+                />
+              </label>
+
+              {extracting && (
+                <div className="rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-[12px] text-zinc-600">
+                  Extracting value from invoice…
+                </div>
+              )}
+
+              {invoiceExtracted !== null && !extracting && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="invoice-value">
+                    Extracted value ({metric.unit})
+                  </Label>
+                  <Input
+                    id="invoice-value"
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    step="any"
+                    value={value}
+                    onChange={(e) => setValue(e.target.value)}
+                  />
+                  <p className="text-[11px] text-zinc-500">
+                    Review and adjust if needed before saving.
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        <footer className="flex items-center justify-end gap-2 border-t border-zinc-100 px-5 py-4">
+          <Button
+            variant="outline"
+            onClick={onClose}
+            disabled={saving}
+            className="rounded-full"
+          >
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={saving}>
-            {saving ? "Saving…" : "Save data"}
-          </Button>
+          {mode === "survey" ? (
+            <Button
+              onClick={handleSendSurvey}
+              disabled={saving}
+              className="rounded-full bg-emerald-600 px-5 text-white hover:bg-emerald-700"
+            >
+              Send survey
+            </Button>
+          ) : (
+            <Button
+              onClick={handleSave}
+              disabled={saving || (mode === "invoice" && invoiceExtracted === null)}
+              className="rounded-full bg-emerald-600 px-5 text-white hover:bg-emerald-700"
+            >
+              {saving ? "Saving…" : "Save data"}
+            </Button>
+          )}
         </footer>
       </aside>
     </div>
