@@ -631,7 +631,7 @@ function GranularityToggle({
     <div
       role="tablist"
       aria-label="Granularity"
-      className="inline-flex h-8 items-center rounded-lg bg-muted/60 p-0.5 text-xs"
+      className="inline-flex h-8 items-center rounded-full border border-zinc-200 bg-white p-0.5 text-xs"
     >
       {options.map((o) => {
         const active = value === o.key;
@@ -643,10 +643,10 @@ function GranularityToggle({
             aria-selected={active}
             onClick={() => onChange(o.key)}
             className={cn(
-              "h-7 rounded-md px-2.5 font-medium transition",
+              "h-7 rounded-full px-3 font-medium transition",
               active
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground",
+                ? "bg-emerald-600 text-white"
+                : "text-zinc-600 hover:text-zinc-900",
             )}
             title={o.label}
           >
