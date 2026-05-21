@@ -217,7 +217,12 @@ function DataCollectionPage() {
           entries={entries}
           metricFilter={metricFilter}
           periodFilter={periodFilter}
+          onRowClick={(metricKey, year, month) => {
+            const m = METRICS.find((x) => x.key === metricKey);
+            if (m) setEditing({ metric: m, year, month });
+          }}
         />
+
       )}
 
       {editing && (
@@ -667,19 +672,25 @@ interface Row {
   entity: string;
   metricKey: MetricKey;
   period: string;
+  year: number;
+  month: number;
 }
+
 
 function DetailedData({
   hotel,
   entries,
   metricFilter,
   periodFilter,
+  onRowClick,
 }: {
   hotel: Hotel | null;
   entries: MonthlyEntry[];
   metricFilter?: MetricKey;
   periodFilter?: string;
+  onRowClick?: (metricKey: MetricKey, year: number, month: number) => void;
 }) {
+
   const rows: Row[] = React.useMemo(() => {
     const out: Row[] = [];
     for (const e of entries) {
@@ -701,6 +712,9 @@ function DetailedData({
           entity: hotel?.name ?? "—",
           metricKey: m.key,
           period,
+          year: e.year,
+          month: e.month,
+
         });
       }
     }
@@ -850,8 +864,14 @@ function DetailedData({
               filtered.map((r) => (
                 <tr
                   key={r.id}
-                  className="border-b border-border/40 transition-colors hover:bg-muted/30"
+                  onClick={() => onRowClick?.(r.metricKey, r.year, r.month)}
+                  className={cn(
+                    "border-b border-border/40 transition-colors hover:bg-muted/30",
+                    onRowClick && "cursor-pointer",
+                  )}
+                  title={onRowClick ? "Click to edit" : undefined}
                 >
+
                   <td className="px-5 py-3 font-medium text-foreground">
                     {r.activity}
                   </td>
