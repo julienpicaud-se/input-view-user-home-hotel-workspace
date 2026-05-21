@@ -507,18 +507,16 @@ function CoverageMatrix({
                           className="px-1 py-3 text-center"
                         >
                           {status === "done" ? (
-                            <Link
-                              to="/data-collection"
-                              search={{
-                                tab: "detailed",
-                                metric: metric.key,
-                                period,
-                              }}
-                              title={`${tooltip} (view in Detailed Data)`}
+                            <button
+                              type="button"
+                              onClick={() =>
+                                onViewCell(metric, first.year, first.month)
+                              }
+                              title={`${tooltip} (click to view)`}
                               className={commonClass}
                             >
                               {icon}
-                            </Link>
+                            </button>
                           ) : (
                             <button
                               type="button"
