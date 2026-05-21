@@ -193,10 +193,10 @@ function DataCollectionPage() {
       <div className="mx-auto w-full max-w-7xl px-6 py-8 md:px-10 md:py-10">
         <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-[28px] font-bold leading-tight tracking-tight text-zinc-900 sm:text-[32px]">
+            <h1 className="text-[34px] font-bold leading-[1.1] tracking-tight text-zinc-900 sm:text-[38px]">
               Data collection
             </h1>
-            <p className="mt-1.5 text-sm text-zinc-500">
+            <p className="mt-2 text-sm text-zinc-500">
               Track monthly coverage and review every raw ESG record for{" "}
               {hotel?.name ?? "your hotel"}.
             </p>
