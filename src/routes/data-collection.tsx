@@ -547,7 +547,11 @@ function CoverageMatrix({
             </tbody>
           </table>
         </div>
+        <div className="mt-3 flex justify-end border-t border-border/40 pt-3">
+          <Legend />
+        </div>
       </div>
+
     </div>
   );
 }
