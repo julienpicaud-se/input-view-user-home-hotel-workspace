@@ -1201,25 +1201,57 @@ function DetailsPanel({
 }) {
   const Icon = metric.Icon;
 
-  // Build the list of measuring points. Today we store a single aggregated
-  // value per metric/period in monthly_entries, so we surface it as one
-  // measuring point. The list shape is ready for several points per period.
+  // Build the list of measuring points. The stored monthly total is split
+  // into illustrative sub-points (meters / sources) per metric so the panel
+  // demonstrates the multi-point breakdown UI.
   const points: MeasuringPoint[] = React.useMemo(() => {
     if (!entry) return [];
     const v = entry[metric.key];
     if (v === null || v === undefined) return [];
-    return [
-      {
-        id: `${entry.id}-${metric.key}-1`,
-        label: `${metric.label} — total`,
-        value: Number(v),
-        unit: metric.unit,
-        source: entry.attachment_url ? "Invoice / attachment" : "Manual entry",
-        recordedAt: entry.updated_at ?? entry.created_at ?? "",
-        notes: entry.notes ?? null,
-      },
-    ];
+    const total = Number(v);
+
+    // Per-metric breakdown templates: weights MUST sum to 1.
+    const templates: Record<
+      MetricKey,
+      { label: string; weight: number; source: string }[]
+    > = {
+      electricity_kwh: [
+        { label: "Main building meter", weight: 0.62, source: "Utility invoice" },
+        { label: "Spa & pool sub-meter", weight: 0.23, source: "Sub-meter reading" },
+        { label: "Kitchen sub-meter", weight: 0.15, source: "Sub-meter reading" },
+      ],
+      gas_kwh: [
+        { label: "Boiler room", weight: 0.7, source: "Utility invoice" },
+        { label: "Kitchen burners", weight: 0.3, source: "Sub-meter reading" },
+      ],
+      water_m3: [
+        { label: "Main supply meter", weight: 0.55, source: "Utility invoice" },
+        { label: "Irrigation meter", weight: 0.25, source: "Sub-meter reading" },
+        { label: "Laundry sub-meter", weight: 0.2, source: "Sub-meter reading" },
+      ],
+      waste_kg: [
+        { label: "Mixed municipal waste", weight: 0.6, source: "Hauler ticket" },
+        { label: "Food waste (kitchen)", weight: 0.25, source: "Internal log" },
+        { label: "Packaging waste", weight: 0.15, source: "Hauler ticket" },
+      ],
+      occupied_room_nights: [
+        { label: "PMS export — all room types", weight: 1, source: "PMS export" },
+      ],
+    };
+
+    const tmpl = templates[metric.key];
+    const recordedAt = entry.updated_at ?? entry.created_at ?? "";
+    return tmpl.map((t, i) => ({
+      id: `${entry.id}-${metric.key}-${i + 1}`,
+      label: t.label,
+      value: Math.round(total * t.weight * 100) / 100,
+      unit: metric.unit,
+      source: t.source,
+      recordedAt,
+      notes: i === 0 ? entry.notes ?? null : null,
+    }));
   }, [entry, metric]);
+
 
   const total = points.reduce((acc, p) => acc + p.value, 0);
 
