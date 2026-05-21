@@ -1349,6 +1349,37 @@ function FillDataPanel({
   const [notes, setNotes] = React.useState<string>(existing?.notes ?? "");
   const [saving, setSaving] = React.useState(false);
 
+  // Time range — defaults to the single (year, month) passed in
+  const toMonthStr = (y: number, m: number) => `${y}-${String(m).padStart(2, "0")}`;
+  const [rangeStart, setRangeStart] = React.useState<string>(toMonthStr(year, month));
+  const [rangeEnd, setRangeEnd] = React.useState<string>(toMonthStr(year, month));
+
+  function parseMonth(s: string): { y: number; m: number } | null {
+    const match = /^(\d{4})-(\d{2})$/.exec(s);
+    if (!match) return null;
+    return { y: Number(match[1]), m: Number(match[2]) };
+  }
+  function monthsInRange(): { y: number; m: number }[] {
+    const s = parseMonth(rangeStart);
+    const e = parseMonth(rangeEnd);
+    if (!s || !e) return [];
+    const startIdx = s.y * 12 + (s.m - 1);
+    const endIdx = e.y * 12 + (e.m - 1);
+    const [a, b] = startIdx <= endIdx ? [startIdx, endIdx] : [endIdx, startIdx];
+    const out: { y: number; m: number }[] = [];
+    for (let i = a; i <= b; i++) {
+      out.push({ y: Math.floor(i / 12), m: (i % 12) + 1 });
+    }
+    return out;
+  }
+  const rangeMonths = monthsInRange();
+  const rangeLabel =
+    rangeMonths.length === 0
+      ? "—"
+      : rangeMonths.length === 1
+        ? `${MONTH_NAMES[rangeMonths[0].m - 1]} ${rangeMonths[0].y}`
+        : `${MONTH_NAMES[rangeMonths[0].m - 1]} ${rangeMonths[0].y} → ${MONTH_NAMES[rangeMonths[rangeMonths.length - 1].m - 1]} ${rangeMonths[rangeMonths.length - 1].y}`;
+
   // Survey state
   const [surveyRecipient, setSurveyRecipient] = React.useState("");
   const [surveyDue, setSurveyDue] = React.useState("");
@@ -1366,6 +1397,10 @@ function FillDataPanel({
       toast.error("Enter a valid non-negative number");
       return;
     }
+    if (rangeMonths.length === 0) {
+      toast.error("Pick a valid time range");
+      return;
+    }
     setSaving(true);
     try {
       const sourceNote =
@@ -1376,23 +1411,37 @@ function FillDataPanel({
             : null;
       const finalNotes = [notes, sourceNote].filter(Boolean).join(" · ") || null;
 
-      if (existing) {
-        const patch = { [metric.key]: num, notes: finalNotes } as never;
-        const { error } = await supabase
+      // Split the total evenly across the months in the range.
+      const perMonth = num / rangeMonths.length;
+
+      for (const { y, m } of rangeMonths) {
+        const { data: found, error: selErr } = await supabase
           .from("monthly_entries")
-          .update(patch)
-          .eq("id", existing.id);
-        if (error) throw error;
-      } else {
-        const row = {
-          hotel_id: hotelId,
-          year,
-          month,
-          [metric.key]: num,
-          notes: finalNotes,
-        } as never;
-        const { error } = await supabase.from("monthly_entries").insert(row);
-        if (error) throw error;
+          .select("id")
+          .eq("hotel_id", hotelId)
+          .eq("year", y)
+          .eq("month", m)
+          .maybeSingle();
+        if (selErr) throw selErr;
+
+        if (found?.id) {
+          const patch = { [metric.key]: perMonth, notes: finalNotes } as never;
+          const { error } = await supabase
+            .from("monthly_entries")
+            .update(patch)
+            .eq("id", found.id);
+          if (error) throw error;
+        } else {
+          const row = {
+            hotel_id: hotelId,
+            year: y,
+            month: m,
+            [metric.key]: perMonth,
+            notes: finalNotes,
+          } as never;
+          const { error } = await supabase.from("monthly_entries").insert(row);
+          if (error) throw error;
+        }
       }
       onSaved();
     } catch (e) {
@@ -1410,7 +1459,7 @@ function FillDataPanel({
       return;
     }
     toast.success(
-      `Survey sent to ${surveyRecipient} for ${metric.label} (${MONTH_NAMES[month - 1]} ${year})`,
+      `Survey sent to ${surveyRecipient} for ${metric.label} (${rangeLabel})`,
     );
     onClose();
   }
@@ -1468,7 +1517,7 @@ function FillDataPanel({
                 {metric.label}
               </div>
               <div className="text-xs text-zinc-500">
-                {MONTH_NAMES[month - 1]} {year}
+                {rangeLabel}
               </div>
             </div>
           </div>
@@ -1524,6 +1573,33 @@ function FillDataPanel({
         </div>
 
         <div className="flex-1 space-y-4 overflow-y-auto px-5 py-5">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="range-start">Start month</Label>
+              <Input
+                id="range-start"
+                type="month"
+                value={rangeStart}
+                onChange={(e) => setRangeStart(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="range-end">End month</Label>
+              <Input
+                id="range-end"
+                type="month"
+                value={rangeEnd}
+                onChange={(e) => setRangeEnd(e.target.value)}
+              />
+            </div>
+            {rangeMonths.length > 1 && (
+              <p className="col-span-2 text-[11px] text-zinc-500">
+                Covers {rangeMonths.length} months — the value will be split
+                evenly across each month.
+              </p>
+            )}
+          </div>
+
           {mode === "manual" && (
             <>
               <div className="rounded-xl border border-zinc-200 bg-zinc-50/60 px-4 py-3 text-xs text-zinc-600">
@@ -1533,8 +1609,8 @@ function FillDataPanel({
                 </div>
                 <p className="mt-1">
                   Enter the total {metric.activity.toLowerCase()} for{" "}
-                  {MONTH_NAMES[month - 1]} {year}. Once saved, it will appear in
-                  the Coverage Matrix and feed into the dashboards.
+                  {rangeLabel}. Once saved, it will appear in the Coverage
+                  Matrix and feed into the dashboards.
                 </p>
               </div>
 
@@ -1577,7 +1653,7 @@ function FillDataPanel({
                 <p className="mt-1">
                   Send a one-question survey to a teammate (e.g. the property
                   manager). They'll receive a link to enter the {metric.unit}{" "}
-                  value for {MONTH_NAMES[month - 1]} {year}.
+                  value for {rangeLabel}.
                 </p>
               </div>
 
