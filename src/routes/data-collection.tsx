@@ -26,9 +26,7 @@ import {
 } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveHotelId, type Hotel, type MonthlyEntry } from "@/lib/hotel";
-import { HotelSwitcher } from "@/components/hotel-switcher";
 import { MONTH_SHORT, MONTH_NAMES, formatNumber } from "@/lib/format";
-import { PageContainer, PageHeader } from "@/components/page-shell";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
