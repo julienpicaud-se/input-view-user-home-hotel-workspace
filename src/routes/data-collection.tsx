@@ -26,8 +26,22 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+const METRIC_KEYS = [
+  "electricity_kwh",
+  "gas_kwh",
+  "water_m3",
+  "waste_kg",
+  "occupied_room_nights",
+] as const;
+
 const searchSchema = z.object({
   tab: z.enum(["coverage", "detailed"]).catch("coverage"),
+  metric: z.enum(METRIC_KEYS).optional().catch(undefined),
+  period: z
+    .string()
+    .regex(/^\d{4}-\d{2}$/)
+    .optional()
+    .catch(undefined),
 });
 
 export const Route = createFileRoute("/data-collection")({
