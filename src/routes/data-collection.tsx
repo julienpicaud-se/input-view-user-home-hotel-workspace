@@ -1459,7 +1459,7 @@ function FillDataPanel({
       return;
     }
     toast.success(
-      `Survey sent to ${surveyRecipient} for ${metric.label} (${MONTH_NAMES[month - 1]} ${year})`,
+      `Survey sent to ${surveyRecipient} for ${metric.label} (${rangeLabel})`,
     );
     onClose();
   }
