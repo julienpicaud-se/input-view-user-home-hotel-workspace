@@ -662,6 +662,32 @@ function DetailedData({
         </div>
       </div>
 
+      {hasFilters && (
+        <div className="flex flex-wrap items-center gap-2 border-b border-border/60 bg-muted/30 px-5 py-3 text-xs">
+          <span className="font-medium text-muted-foreground">
+            Filtered by:
+          </span>
+          {activeMetric && (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 font-medium text-foreground">
+              {activeMetric.label}
+            </span>
+          )}
+          {activePeriodLabel && (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 font-medium text-foreground">
+              {activePeriodLabel}
+            </span>
+          )}
+          <Link
+            to="/data-collection"
+            search={{ tab: "detailed" }}
+            className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-muted-foreground transition hover:text-foreground"
+          >
+            <X className="h-3 w-3" />
+            Clear
+          </Link>
+        </div>
+      )}
+
       <div className="overflow-x-auto">
         <table className="w-full min-w-[820px] text-sm">
           <thead>
