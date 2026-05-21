@@ -105,7 +105,7 @@ const METRICS: MetricDef[] = [
   },
 ];
 
-type CellStatus = "approved" | "submitted" | "draft" | "missing";
+type CellStatus = "done" | "in_progress" | "missing";
 
 // Deterministic pseudo-random so the demo statuses feel real & stable.
 function statusFor(hotelId: string, year: number, month: number, key: MetricKey): CellStatus {
@@ -115,10 +115,9 @@ function statusFor(hotelId: string, year: number, month: number, key: MetricKey)
     month * 7 +
     key.length * 3;
   const r = (Math.sin(seed) + 1) / 2;
-  if (r < 0.08) return "missing";
-  if (r < 0.18) return "draft";
-  if (r < 0.32) return "submitted";
-  return "approved";
+  if (r < 0.15) return "missing";
+  if (r < 0.32) return "in_progress";
+  return "done";
 }
 
 // ---------- Page ----------
@@ -380,7 +379,7 @@ function CoverageMatrix({
                     {months.map((m) => {
                       const status = cellStatus(metric.key, m.year, m.month);
                       const clickable =
-                        status === "missing" || status === "draft";
+                        status === "missing" || status === "in_progress";
                       return (
                         <td
                           key={`${metric.key}-${m.year}-${m.month}`}
@@ -400,11 +399,11 @@ function CoverageMatrix({
                                 : "cursor-default",
                             )}
                           >
-                            {status === "draft" && (
+                            {status === "in_progress" && (
                               <Clock className="h-3 w-3 text-white" />
                             )}
                             {status === "missing" && (
-                              <AlertCircle className="h-3 w-3 text-white" />
+                              <AlertCircle className="h-3 w-3 text-muted-foreground" />
                             )}
                           </button>
                         </td>
@@ -423,12 +422,10 @@ function CoverageMatrix({
 
 function statusLabel(s: CellStatus): string {
   switch (s) {
-    case "approved":
-      return "Approved";
-    case "submitted":
-      return "Submitted";
-    case "draft":
-      return "Draft";
+    case "done":
+      return "Done";
+    case "in_progress":
+      return "In progress";
     case "missing":
       return "Missing";
   }
@@ -436,11 +433,9 @@ function statusLabel(s: CellStatus): string {
 
 function statusDot(s: CellStatus): string {
   switch (s) {
-    case "approved":
+    case "done":
       return "bg-emerald-500";
-    case "submitted":
-      return "bg-sky-500";
-    case "draft":
+    case "in_progress":
       return "bg-amber-500";
     case "missing":
       return "bg-muted border border-dashed border-muted-foreground/40";
@@ -449,9 +444,8 @@ function statusDot(s: CellStatus): string {
 
 function Legend() {
   const items: { s: CellStatus; label: string }[] = [
-    { s: "approved", label: "Approved" },
-    { s: "submitted", label: "Submitted" },
-    { s: "draft", label: "Draft" },
+    { s: "done", label: "Done" },
+    { s: "in_progress", label: "In progress" },
     { s: "missing", label: "Missing" },
   ];
   return (
