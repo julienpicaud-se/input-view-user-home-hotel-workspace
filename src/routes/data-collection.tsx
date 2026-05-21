@@ -23,6 +23,7 @@ import {
   Receipt,
   Upload,
   RotateCcw,
+  Plus,
 } from "lucide-react";
 import {
   Popover,
