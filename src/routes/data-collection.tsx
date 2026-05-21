@@ -672,7 +672,10 @@ interface Row {
   entity: string;
   metricKey: MetricKey;
   period: string;
+  year: number;
+  month: number;
 }
+
 
 function DetailedData({
   hotel,
