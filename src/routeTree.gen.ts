@@ -17,6 +17,7 @@ import { Route as LogRouteImport } from './routes/log'
 import { Route as HotelRouteImport } from './routes/hotel'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as EasyRouteImport } from './routes/easy'
+import { Route as DataCollectionRouteImport } from './routes/data-collection'
 import { Route as BenchmarksRouteImport } from './routes/benchmarks'
 import { Route as AssistantRouteImport } from './routes/assistant'
 import { Route as AiRouteImport } from './routes/ai'
@@ -69,6 +70,11 @@ const HistoryRoute = HistoryRouteImport.update({
 const EasyRoute = EasyRouteImport.update({
   id: '/easy',
   path: '/easy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DataCollectionRoute = DataCollectionRouteImport.update({
+  id: '/data-collection',
+  path: '/data-collection',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BenchmarksRoute = BenchmarksRouteImport.update({
@@ -142,6 +148,7 @@ export interface FileRoutesByFullPath {
   '/ai': typeof AiRouteWithChildren
   '/assistant': typeof AssistantRoute
   '/benchmarks': typeof BenchmarksRoute
+  '/data-collection': typeof DataCollectionRoute
   '/easy': typeof EasyRouteWithChildren
   '/history': typeof HistoryRoute
   '/hotel': typeof HotelRoute
@@ -165,6 +172,7 @@ export interface FileRoutesByTo {
   '/ai': typeof AiRouteWithChildren
   '/assistant': typeof AssistantRoute
   '/benchmarks': typeof BenchmarksRoute
+  '/data-collection': typeof DataCollectionRoute
   '/history': typeof HistoryRoute
   '/hotel': typeof HotelRoute
   '/log': typeof LogRoute
@@ -187,6 +195,7 @@ export interface FileRoutesById {
   '/ai': typeof AiRouteWithChildren
   '/assistant': typeof AssistantRoute
   '/benchmarks': typeof BenchmarksRoute
+  '/data-collection': typeof DataCollectionRoute
   '/easy': typeof EasyRouteWithChildren
   '/history': typeof HistoryRoute
   '/hotel': typeof HotelRoute
@@ -212,6 +221,7 @@ export interface FileRouteTypes {
     | '/ai'
     | '/assistant'
     | '/benchmarks'
+    | '/data-collection'
     | '/easy'
     | '/history'
     | '/hotel'
@@ -235,6 +245,7 @@ export interface FileRouteTypes {
     | '/ai'
     | '/assistant'
     | '/benchmarks'
+    | '/data-collection'
     | '/history'
     | '/hotel'
     | '/log'
@@ -256,6 +267,7 @@ export interface FileRouteTypes {
     | '/ai'
     | '/assistant'
     | '/benchmarks'
+    | '/data-collection'
     | '/easy'
     | '/history'
     | '/hotel'
@@ -280,6 +292,7 @@ export interface RootRouteChildren {
   AiRoute: typeof AiRouteWithChildren
   AssistantRoute: typeof AssistantRoute
   BenchmarksRoute: typeof BenchmarksRoute
+  DataCollectionRoute: typeof DataCollectionRoute
   EasyRoute: typeof EasyRouteWithChildren
   HistoryRoute: typeof HistoryRoute
   HotelRoute: typeof HotelRoute
@@ -346,6 +359,13 @@ declare module '@tanstack/react-router' {
       path: '/easy'
       fullPath: '/easy'
       preLoaderRoute: typeof EasyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/data-collection': {
+      id: '/data-collection'
+      path: '/data-collection'
+      fullPath: '/data-collection'
+      preLoaderRoute: typeof DataCollectionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/benchmarks': {
@@ -499,6 +519,7 @@ const rootRouteChildren: RootRouteChildren = {
   AiRoute: AiRouteWithChildren,
   AssistantRoute: AssistantRoute,
   BenchmarksRoute: BenchmarksRoute,
+  DataCollectionRoute: DataCollectionRoute,
   EasyRoute: EasyRouteWithChildren,
   HistoryRoute: HistoryRoute,
   HotelRoute: HotelRoute,
@@ -511,12 +532,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
