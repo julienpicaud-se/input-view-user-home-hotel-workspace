@@ -18,6 +18,10 @@ import {
   Eye,
   Calendar as CalendarIcon,
   ChevronDown,
+  PencilLine,
+  ClipboardList,
+  Receipt,
+  Upload,
 } from "lucide-react";
 import {
   Popover,
