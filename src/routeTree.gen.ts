@@ -9,87 +9,12 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as WorkspaceRouteImport } from './routes/workspace'
-import { Route as TheoryRouteImport } from './routes/theory'
-import { Route as SimpleRouteImport } from './routes/simple'
-import { Route as ProfileRouteImport } from './routes/profile'
-import { Route as LogRouteImport } from './routes/log'
-import { Route as HotelRouteImport } from './routes/hotel'
-import { Route as HistoryRouteImport } from './routes/history'
-import { Route as EasyRouteImport } from './routes/easy'
 import { Route as DataCollectionRouteImport } from './routes/data-collection'
-import { Route as BenchmarksRouteImport } from './routes/benchmarks'
-import { Route as AssistantRouteImport } from './routes/assistant'
-import { Route as AiRouteImport } from './routes/ai'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as SimpleIndexRouteImport } from './routes/simple.index'
-import { Route as EasyIndexRouteImport } from './routes/easy.index'
-import { Route as TheoryWorkspaceRouteImport } from './routes/theory.workspace'
-import { Route as SimpleWorkspaceRouteImport } from './routes/simple.workspace'
-import { Route as SimpleSettingsRouteImport } from './routes/simple.settings'
-import { Route as SimpleLogRouteImport } from './routes/simple.log'
-import { Route as SimpleInsightsRouteImport } from './routes/simple.insights'
-import { Route as EasyWorkspaceRouteImport } from './routes/easy.workspace'
-import { Route as AiWorkspaceRouteImport } from './routes/ai.workspace'
 
-const WorkspaceRoute = WorkspaceRouteImport.update({
-  id: '/workspace',
-  path: '/workspace',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TheoryRoute = TheoryRouteImport.update({
-  id: '/theory',
-  path: '/theory',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SimpleRoute = SimpleRouteImport.update({
-  id: '/simple',
-  path: '/simple',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProfileRoute = ProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LogRoute = LogRouteImport.update({
-  id: '/log',
-  path: '/log',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HotelRoute = HotelRouteImport.update({
-  id: '/hotel',
-  path: '/hotel',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HistoryRoute = HistoryRouteImport.update({
-  id: '/history',
-  path: '/history',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EasyRoute = EasyRouteImport.update({
-  id: '/easy',
-  path: '/easy',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const DataCollectionRoute = DataCollectionRouteImport.update({
   id: '/data-collection',
   path: '/data-collection',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BenchmarksRoute = BenchmarksRouteImport.update({
-  id: '/benchmarks',
-  path: '/benchmarks',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AssistantRoute = AssistantRouteImport.update({
-  id: '/assistant',
-  path: '/assistant',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AiRoute = AiRouteImport.update({
-  id: '/ai',
-  path: '/ai',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -97,296 +22,40 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SimpleIndexRoute = SimpleIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => SimpleRoute,
-} as any)
-const EasyIndexRoute = EasyIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => EasyRoute,
-} as any)
-const TheoryWorkspaceRoute = TheoryWorkspaceRouteImport.update({
-  id: '/workspace',
-  path: '/workspace',
-  getParentRoute: () => TheoryRoute,
-} as any)
-const SimpleWorkspaceRoute = SimpleWorkspaceRouteImport.update({
-  id: '/workspace',
-  path: '/workspace',
-  getParentRoute: () => SimpleRoute,
-} as any)
-const SimpleSettingsRoute = SimpleSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => SimpleRoute,
-} as any)
-const SimpleLogRoute = SimpleLogRouteImport.update({
-  id: '/log',
-  path: '/log',
-  getParentRoute: () => SimpleRoute,
-} as any)
-const SimpleInsightsRoute = SimpleInsightsRouteImport.update({
-  id: '/insights',
-  path: '/insights',
-  getParentRoute: () => SimpleRoute,
-} as any)
-const EasyWorkspaceRoute = EasyWorkspaceRouteImport.update({
-  id: '/workspace',
-  path: '/workspace',
-  getParentRoute: () => EasyRoute,
-} as any)
-const AiWorkspaceRoute = AiWorkspaceRouteImport.update({
-  id: '/workspace',
-  path: '/workspace',
-  getParentRoute: () => AiRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/ai': typeof AiRouteWithChildren
-  '/assistant': typeof AssistantRoute
-  '/benchmarks': typeof BenchmarksRoute
   '/data-collection': typeof DataCollectionRoute
-  '/easy': typeof EasyRouteWithChildren
-  '/history': typeof HistoryRoute
-  '/hotel': typeof HotelRoute
-  '/log': typeof LogRoute
-  '/profile': typeof ProfileRoute
-  '/simple': typeof SimpleRouteWithChildren
-  '/theory': typeof TheoryRouteWithChildren
-  '/workspace': typeof WorkspaceRoute
-  '/ai/workspace': typeof AiWorkspaceRoute
-  '/easy/workspace': typeof EasyWorkspaceRoute
-  '/simple/insights': typeof SimpleInsightsRoute
-  '/simple/log': typeof SimpleLogRoute
-  '/simple/settings': typeof SimpleSettingsRoute
-  '/simple/workspace': typeof SimpleWorkspaceRoute
-  '/theory/workspace': typeof TheoryWorkspaceRoute
-  '/easy/': typeof EasyIndexRoute
-  '/simple/': typeof SimpleIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/ai': typeof AiRouteWithChildren
-  '/assistant': typeof AssistantRoute
-  '/benchmarks': typeof BenchmarksRoute
   '/data-collection': typeof DataCollectionRoute
-  '/history': typeof HistoryRoute
-  '/hotel': typeof HotelRoute
-  '/log': typeof LogRoute
-  '/profile': typeof ProfileRoute
-  '/theory': typeof TheoryRouteWithChildren
-  '/workspace': typeof WorkspaceRoute
-  '/ai/workspace': typeof AiWorkspaceRoute
-  '/easy/workspace': typeof EasyWorkspaceRoute
-  '/simple/insights': typeof SimpleInsightsRoute
-  '/simple/log': typeof SimpleLogRoute
-  '/simple/settings': typeof SimpleSettingsRoute
-  '/simple/workspace': typeof SimpleWorkspaceRoute
-  '/theory/workspace': typeof TheoryWorkspaceRoute
-  '/easy': typeof EasyIndexRoute
-  '/simple': typeof SimpleIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/ai': typeof AiRouteWithChildren
-  '/assistant': typeof AssistantRoute
-  '/benchmarks': typeof BenchmarksRoute
   '/data-collection': typeof DataCollectionRoute
-  '/easy': typeof EasyRouteWithChildren
-  '/history': typeof HistoryRoute
-  '/hotel': typeof HotelRoute
-  '/log': typeof LogRoute
-  '/profile': typeof ProfileRoute
-  '/simple': typeof SimpleRouteWithChildren
-  '/theory': typeof TheoryRouteWithChildren
-  '/workspace': typeof WorkspaceRoute
-  '/ai/workspace': typeof AiWorkspaceRoute
-  '/easy/workspace': typeof EasyWorkspaceRoute
-  '/simple/insights': typeof SimpleInsightsRoute
-  '/simple/log': typeof SimpleLogRoute
-  '/simple/settings': typeof SimpleSettingsRoute
-  '/simple/workspace': typeof SimpleWorkspaceRoute
-  '/theory/workspace': typeof TheoryWorkspaceRoute
-  '/easy/': typeof EasyIndexRoute
-  '/simple/': typeof SimpleIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/ai'
-    | '/assistant'
-    | '/benchmarks'
-    | '/data-collection'
-    | '/easy'
-    | '/history'
-    | '/hotel'
-    | '/log'
-    | '/profile'
-    | '/simple'
-    | '/theory'
-    | '/workspace'
-    | '/ai/workspace'
-    | '/easy/workspace'
-    | '/simple/insights'
-    | '/simple/log'
-    | '/simple/settings'
-    | '/simple/workspace'
-    | '/theory/workspace'
-    | '/easy/'
-    | '/simple/'
+  fullPaths: '/' | '/data-collection'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/ai'
-    | '/assistant'
-    | '/benchmarks'
-    | '/data-collection'
-    | '/history'
-    | '/hotel'
-    | '/log'
-    | '/profile'
-    | '/theory'
-    | '/workspace'
-    | '/ai/workspace'
-    | '/easy/workspace'
-    | '/simple/insights'
-    | '/simple/log'
-    | '/simple/settings'
-    | '/simple/workspace'
-    | '/theory/workspace'
-    | '/easy'
-    | '/simple'
-  id:
-    | '__root__'
-    | '/'
-    | '/ai'
-    | '/assistant'
-    | '/benchmarks'
-    | '/data-collection'
-    | '/easy'
-    | '/history'
-    | '/hotel'
-    | '/log'
-    | '/profile'
-    | '/simple'
-    | '/theory'
-    | '/workspace'
-    | '/ai/workspace'
-    | '/easy/workspace'
-    | '/simple/insights'
-    | '/simple/log'
-    | '/simple/settings'
-    | '/simple/workspace'
-    | '/theory/workspace'
-    | '/easy/'
-    | '/simple/'
+  to: '/' | '/data-collection'
+  id: '__root__' | '/' | '/data-collection'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AiRoute: typeof AiRouteWithChildren
-  AssistantRoute: typeof AssistantRoute
-  BenchmarksRoute: typeof BenchmarksRoute
   DataCollectionRoute: typeof DataCollectionRoute
-  EasyRoute: typeof EasyRouteWithChildren
-  HistoryRoute: typeof HistoryRoute
-  HotelRoute: typeof HotelRoute
-  LogRoute: typeof LogRoute
-  ProfileRoute: typeof ProfileRoute
-  SimpleRoute: typeof SimpleRouteWithChildren
-  TheoryRoute: typeof TheoryRouteWithChildren
-  WorkspaceRoute: typeof WorkspaceRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/workspace': {
-      id: '/workspace'
-      path: '/workspace'
-      fullPath: '/workspace'
-      preLoaderRoute: typeof WorkspaceRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/theory': {
-      id: '/theory'
-      path: '/theory'
-      fullPath: '/theory'
-      preLoaderRoute: typeof TheoryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/simple': {
-      id: '/simple'
-      path: '/simple'
-      fullPath: '/simple'
-      preLoaderRoute: typeof SimpleRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/profile': {
-      id: '/profile'
-      path: '/profile'
-      fullPath: '/profile'
-      preLoaderRoute: typeof ProfileRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/log': {
-      id: '/log'
-      path: '/log'
-      fullPath: '/log'
-      preLoaderRoute: typeof LogRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/hotel': {
-      id: '/hotel'
-      path: '/hotel'
-      fullPath: '/hotel'
-      preLoaderRoute: typeof HotelRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/history': {
-      id: '/history'
-      path: '/history'
-      fullPath: '/history'
-      preLoaderRoute: typeof HistoryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/easy': {
-      id: '/easy'
-      path: '/easy'
-      fullPath: '/easy'
-      preLoaderRoute: typeof EasyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/data-collection': {
       id: '/data-collection'
       path: '/data-collection'
       fullPath: '/data-collection'
       preLoaderRoute: typeof DataCollectionRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/benchmarks': {
-      id: '/benchmarks'
-      path: '/benchmarks'
-      fullPath: '/benchmarks'
-      preLoaderRoute: typeof BenchmarksRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/assistant': {
-      id: '/assistant'
-      path: '/assistant'
-      fullPath: '/assistant'
-      preLoaderRoute: typeof AssistantRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ai': {
-      id: '/ai'
-      path: '/ai'
-      fullPath: '/ai'
-      preLoaderRoute: typeof AiRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -396,138 +65,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/simple/': {
-      id: '/simple/'
-      path: '/'
-      fullPath: '/simple/'
-      preLoaderRoute: typeof SimpleIndexRouteImport
-      parentRoute: typeof SimpleRoute
-    }
-    '/easy/': {
-      id: '/easy/'
-      path: '/'
-      fullPath: '/easy/'
-      preLoaderRoute: typeof EasyIndexRouteImport
-      parentRoute: typeof EasyRoute
-    }
-    '/theory/workspace': {
-      id: '/theory/workspace'
-      path: '/workspace'
-      fullPath: '/theory/workspace'
-      preLoaderRoute: typeof TheoryWorkspaceRouteImport
-      parentRoute: typeof TheoryRoute
-    }
-    '/simple/workspace': {
-      id: '/simple/workspace'
-      path: '/workspace'
-      fullPath: '/simple/workspace'
-      preLoaderRoute: typeof SimpleWorkspaceRouteImport
-      parentRoute: typeof SimpleRoute
-    }
-    '/simple/settings': {
-      id: '/simple/settings'
-      path: '/settings'
-      fullPath: '/simple/settings'
-      preLoaderRoute: typeof SimpleSettingsRouteImport
-      parentRoute: typeof SimpleRoute
-    }
-    '/simple/log': {
-      id: '/simple/log'
-      path: '/log'
-      fullPath: '/simple/log'
-      preLoaderRoute: typeof SimpleLogRouteImport
-      parentRoute: typeof SimpleRoute
-    }
-    '/simple/insights': {
-      id: '/simple/insights'
-      path: '/insights'
-      fullPath: '/simple/insights'
-      preLoaderRoute: typeof SimpleInsightsRouteImport
-      parentRoute: typeof SimpleRoute
-    }
-    '/easy/workspace': {
-      id: '/easy/workspace'
-      path: '/workspace'
-      fullPath: '/easy/workspace'
-      preLoaderRoute: typeof EasyWorkspaceRouteImport
-      parentRoute: typeof EasyRoute
-    }
-    '/ai/workspace': {
-      id: '/ai/workspace'
-      path: '/workspace'
-      fullPath: '/ai/workspace'
-      preLoaderRoute: typeof AiWorkspaceRouteImport
-      parentRoute: typeof AiRoute
-    }
   }
 }
 
-interface AiRouteChildren {
-  AiWorkspaceRoute: typeof AiWorkspaceRoute
-}
-
-const AiRouteChildren: AiRouteChildren = {
-  AiWorkspaceRoute: AiWorkspaceRoute,
-}
-
-const AiRouteWithChildren = AiRoute._addFileChildren(AiRouteChildren)
-
-interface EasyRouteChildren {
-  EasyWorkspaceRoute: typeof EasyWorkspaceRoute
-  EasyIndexRoute: typeof EasyIndexRoute
-}
-
-const EasyRouteChildren: EasyRouteChildren = {
-  EasyWorkspaceRoute: EasyWorkspaceRoute,
-  EasyIndexRoute: EasyIndexRoute,
-}
-
-const EasyRouteWithChildren = EasyRoute._addFileChildren(EasyRouteChildren)
-
-interface SimpleRouteChildren {
-  SimpleInsightsRoute: typeof SimpleInsightsRoute
-  SimpleLogRoute: typeof SimpleLogRoute
-  SimpleSettingsRoute: typeof SimpleSettingsRoute
-  SimpleWorkspaceRoute: typeof SimpleWorkspaceRoute
-  SimpleIndexRoute: typeof SimpleIndexRoute
-}
-
-const SimpleRouteChildren: SimpleRouteChildren = {
-  SimpleInsightsRoute: SimpleInsightsRoute,
-  SimpleLogRoute: SimpleLogRoute,
-  SimpleSettingsRoute: SimpleSettingsRoute,
-  SimpleWorkspaceRoute: SimpleWorkspaceRoute,
-  SimpleIndexRoute: SimpleIndexRoute,
-}
-
-const SimpleRouteWithChildren =
-  SimpleRoute._addFileChildren(SimpleRouteChildren)
-
-interface TheoryRouteChildren {
-  TheoryWorkspaceRoute: typeof TheoryWorkspaceRoute
-}
-
-const TheoryRouteChildren: TheoryRouteChildren = {
-  TheoryWorkspaceRoute: TheoryWorkspaceRoute,
-}
-
-const TheoryRouteWithChildren =
-  TheoryRoute._addFileChildren(TheoryRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AiRoute: AiRouteWithChildren,
-  AssistantRoute: AssistantRoute,
-  BenchmarksRoute: BenchmarksRoute,
   DataCollectionRoute: DataCollectionRoute,
-  EasyRoute: EasyRouteWithChildren,
-  HistoryRoute: HistoryRoute,
-  HotelRoute: HotelRoute,
-  LogRoute: LogRoute,
-  ProfileRoute: ProfileRoute,
-  SimpleRoute: SimpleRouteWithChildren,
-  TheoryRoute: TheoryRouteWithChildren,
-  WorkspaceRoute: WorkspaceRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
