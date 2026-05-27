@@ -187,35 +187,164 @@ function FlyoutMockPage() {
       </header>
 
       <main className="mx-auto max-w-7xl px-6 py-8">
-        <div className="rounded-xl border bg-background p-6">
-          <div className="mb-4 flex items-center justify-between">
-            <div className="flex gap-2">
-              <button className="rounded-md bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary">
-                Data Summary
-              </button>
-              <button className="rounded-md px-3 py-1.5 text-sm text-muted-foreground">
-                Activities
-              </button>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {/* LEVEL 1 */}
+          <div>
+            <div className="mb-3 text-center text-xs uppercase tracking-widest text-muted-foreground">
+              Level 1
             </div>
-            <Button onClick={() => setOpen(true)} className="gap-2">
-              <Plus className="size-4" /> Add activity
-            </Button>
+            <div className="rounded-xl border bg-background shadow-sm">
+              <div className="flex items-center justify-between border-b px-5 py-4">
+                <div className="font-semibold">Electric Power</div>
+                <div className="flex items-center gap-3">
+                  <span className="text-lg font-semibold text-amber-600">68%</span>
+                  <button className="rounded-md p-1 hover:bg-muted" aria-label="Close">
+                    <X className="size-4" />
+                  </button>
+                </div>
+              </div>
+              <div className="border-b px-5 py-3">
+                <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  Reporting period
+                </div>
+                <div className="text-base font-semibold">March 2026</div>
+              </div>
+              <div className="px-5 py-4">
+                <div className="mb-2 text-[11px] uppercase tracking-wide text-muted-foreground">
+                  March 1 – March 31, 2026
+                </div>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-muted/40 text-[11px] uppercase tracking-wide text-muted-foreground">
+                      <th className="py-2 text-left font-medium">Measure</th>
+                      <th className="py-2 text-right font-medium">Total Value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      ["Usage", "15,000", "kWh"],
+                      ["Spend", "10,000", "USD"],
+                      ["Peak demand", "420", "kW"],
+                    ].map(([m, v, u]) => (
+                      <tr key={m} className="border-b last:border-0">
+                        <td className="py-3">{m}</td>
+                        <td className="py-3 text-right">
+                          <span className="font-semibold">{v}</span>{" "}
+                          <span className="text-xs text-muted-foreground">{u}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                {/* Add Data CTA on Level 1 */}
+                <div className="mt-4 flex justify-end">
+                  <Button onClick={() => setOpen(true)} className="gap-2" size="sm">
+                    <Plus className="size-4" /> Add data
+                  </Button>
+                </div>
+
+                <div className="mt-6 text-[11px] uppercase tracking-wide text-muted-foreground">
+                  Source measuring points (3)
+                </div>
+                <div className="mt-3 space-y-3">
+                  {[
+                    { name: "Main Incomer A", pct: "42%", color: "text-red-600", usage: "4,200", spend: "2,800", peak: "125" },
+                    { name: "Main Incomer B", pct: "100%", color: "text-emerald-600", usage: "8,800", spend: "5,900", peak: "210" },
+                  ].map((s) => (
+                    <div key={s.name} className="rounded-md border-l-4 border-l-primary/40 bg-muted/20 p-3">
+                      <div className="flex items-center justify-between">
+                        <div className="font-medium">{s.name}</div>
+                        <div className={cn("text-sm font-semibold", s.color)}>{s.pct} ▸</div>
+                      </div>
+                      <div className="mt-2 space-y-1 text-sm">
+                        <div className="flex justify-between"><span>Usage</span><span>{s.usage} <span className="text-xs text-muted-foreground">kWh</span></span></div>
+                        <div className="flex justify-between"><span>Spend</span><span>{s.spend} <span className="text-xs text-muted-foreground">USD</span></span></div>
+                        <div className="flex justify-between"><span>Peak Demand</span><span>{s.peak} <span className="text-xs text-muted-foreground">kW</span></span></div>
+                      </div>
+                      <div className="mt-3 flex justify-end gap-2 border-t pt-3">
+                        <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+                          <Plus className="size-3.5" /> Add data
+                        </Button>
+                        <Button variant="outline" size="sm">View details</Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="space-y-3">
-            <div className="rounded-lg border p-4">
-              <div className="flex items-center gap-2 font-medium">
-                <Zap className="size-4 text-amber-500" /> Electric Power
+          {/* LEVEL 2 */}
+          <div>
+            <div className="mb-3 text-center text-xs uppercase tracking-widest text-muted-foreground">
+              Level 2
+            </div>
+            <div className="rounded-xl border bg-background shadow-sm">
+              <div className="flex items-center justify-between border-b px-5 py-4">
+                <div className="flex items-center gap-2 text-sm">
+                  <ChevronRight className="size-4 rotate-180" />
+                  <span className="text-muted-foreground">Electric Power /</span>
+                  <span className="font-semibold">Main Incomer A</span>
+                </div>
+                <button className="rounded-md p-1 hover:bg-muted" aria-label="Close">
+                  <X className="size-4" />
+                </button>
               </div>
-              <div className="mt-3 pl-6 text-sm text-muted-foreground">
-                <div className="flex items-center justify-between border-t pt-3">
-                  <span>H7298 - PULLMAN SHANGHAI CENTRAL</span>
-                  <button
-                    onClick={() => setOpen(true)}
-                    className="inline-flex items-center gap-1 text-primary hover:underline"
-                  >
-                    <Plus className="size-3.5" /> Add data
-                  </button>
+              <div className="px-5 py-4">
+                <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+                  <div className="font-medium">⚠ 2 gaps detected</div>
+                  <ul className="mt-1 list-disc pl-5 text-xs">
+                    <li>Mar 1, 2026 – Mar 10, 2026 (10 day gap) Peak demand &amp; Spend</li>
+                    <li>Mar 20, 2026 – Mar 25, 2026 (5 day gap) Usage</li>
+                  </ul>
+                </div>
+              </div>
+              <div className="border-y px-5 py-3">
+                <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  Reporting period
+                </div>
+                <div className="text-base font-semibold">March 2026</div>
+              </div>
+              <div className="px-5 py-4">
+                <div className="mb-2 text-[11px] uppercase tracking-wide text-muted-foreground">
+                  March 1 – March 31, 2026
+                </div>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-muted/40 text-[11px] uppercase tracking-wide text-muted-foreground">
+                      <th className="py-2 text-left font-medium">Measure</th>
+                      <th className="py-2 text-right font-medium">Total Value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      ["Usage", "8,200", "kWh"],
+                      ["Spend", "4,100", "USD"],
+                      ["Peak demand", "120", "kW"],
+                    ].map(([m, v, u]) => (
+                      <tr key={m} className="border-b last:border-0">
+                        <td className="py-3">{m}</td>
+                        <td className="py-3 text-right">
+                          <span className="font-semibold">{v}</span>{" "}
+                          <span className="text-xs text-muted-foreground">{u}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                <div className="mt-5 flex items-center justify-between">
+                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    Past measurements
+                  </div>
+                  <Button variant="outline" size="sm">Download</Button>
+                </div>
+
+                <div className="mt-3 flex justify-end">
+                  <Button onClick={() => setOpen(true)} className="gap-2" size="sm">
+                    <Plus className="size-4" /> Add data
+                  </Button>
                 </div>
               </div>
             </div>
