@@ -9,9 +9,15 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as FlyoutMockRouteImport } from './routes/flyout-mock'
 import { Route as DataCollectionRouteImport } from './routes/data-collection'
 import { Route as IndexRouteImport } from './routes/index'
 
+const FlyoutMockRoute = FlyoutMockRouteImport.update({
+  id: '/flyout-mock',
+  path: '/flyout-mock',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DataCollectionRoute = DataCollectionRouteImport.update({
   id: '/data-collection',
   path: '/data-collection',
@@ -26,31 +32,42 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/data-collection': typeof DataCollectionRoute
+  '/flyout-mock': typeof FlyoutMockRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/data-collection': typeof DataCollectionRoute
+  '/flyout-mock': typeof FlyoutMockRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/data-collection': typeof DataCollectionRoute
+  '/flyout-mock': typeof FlyoutMockRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/data-collection'
+  fullPaths: '/' | '/data-collection' | '/flyout-mock'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/data-collection'
-  id: '__root__' | '/' | '/data-collection'
+  to: '/' | '/data-collection' | '/flyout-mock'
+  id: '__root__' | '/' | '/data-collection' | '/flyout-mock'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DataCollectionRoute: typeof DataCollectionRoute
+  FlyoutMockRoute: typeof FlyoutMockRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/flyout-mock': {
+      id: '/flyout-mock'
+      path: '/flyout-mock'
+      fullPath: '/flyout-mock'
+      preLoaderRoute: typeof FlyoutMockRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/data-collection': {
       id: '/data-collection'
       path: '/data-collection'
@@ -71,6 +88,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DataCollectionRoute: DataCollectionRoute,
+  FlyoutMockRoute: FlyoutMockRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
